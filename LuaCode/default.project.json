@@ -1,0 +1,94 @@
+{
+  "name": "LuaCode",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "ServerStorage": {
+      "Entities": {
+        "$className": "Folder",
+        "ArtifactGuardian": {
+          "$className": "Model",
+          "ArtifactGuardianScript": {
+            "$path": "src/ServerStorage/Entities/ArtifactGuardianScript.server.luau"
+          }
+        },
+        "Blob": {
+          "$className": "Model",
+          "BlobScript": {
+            "$path": "src/ServerStorage/Entities/BlobScript.server.luau"
+          }
+        },
+        "CoatArms": {
+          "$className": "Model",
+          "CoatArmsScript": {
+            "$path": "src/ServerStorage/Entities/CoatArmsScript.server.luau"
+          }
+        },
+        "Dybb": {
+          "$className": "Model",
+          "DybbScript": {
+            "$path": "src/ServerStorage/Entities/DybbScript.server.luau"
+          }
+        },
+        "GrandPo": {
+          "$className": "Model",
+          "GrandPoScript": {
+            "$path": "src/ServerStorage/Entities/GrandPoScript.server.luau"
+          }
+        },
+        "Griffin": {
+          "$className": "Model",
+          "GriffinScript": {
+            "$path": "src/ServerStorage/Entities/GriffinScript.server.luau"
+          }
+        },
+        "LithEater": {
+          "$className": "Model",
+          "LithEaterScript": {
+            "$path": "src/ServerStorage/Entities/LithEaterScript.server.luau"
+          }
+        },
+        "MudPriest": {
+          "$className": "Model",
+          "MudPriestScript": {
+            "$path": "src/ServerStorage/Entities/MudPriestScript.server.luau"
+          }
+        },
+        "Pog": {
+          "$className": "Model",
+          "PogScript": {
+            "$path": "src/ServerStorage/Entities/PogScript.server.luau"
+          }
+        },
+         "StoneManaPriest": {
+          "$className": "Model",
+          "StoneManaPriestScript": {
+            "$path": "src/ServerStorage/Entities/StoneManaPriestScript.server.luau"
+          }
+        },
+         "WindSpirit": {
+          "$className": "Model",
+          "WindSpiritScript": {
+            "$path": "src/ServerStorage/Entities/WindSpiritScript.server.luau"
+          }
+        }
+      }
+    }
+  }
+}
