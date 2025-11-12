@@ -3,6 +3,7 @@ local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
 local height = hrp.Position.Y
 local runservice = game:GetService("RunService")
+print(height)
 -- create local function named spawn
 local function localspawn()
 	if hrp then

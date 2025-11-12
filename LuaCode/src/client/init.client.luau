@@ -7,7 +7,6 @@ local startergui = game:GetService("StarterGui")
 local uis = game:GetService("UserInputService")
 local guiroot = players.LocalPlayer:WaitForChild("PlayerGui")
 local magicgui = guiroot:WaitForChild("MagicGui")
-
 local designFolder = replicatedstorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
 local themes = designFolder:WaitForChild("ClassThemes")

@@ -10,7 +10,7 @@ local function localspawn()
 		hrp.Anchored = false
 		local currentY = hrp.CFrame.Y
 		if currentY ~= height then
-			hrp.CFrame = hrp.CFrame + Vector3.new(0, height - currentY, 0)
+			hrp.CFrame = hrp.CFrame + Vector3.new(0, currentY - height, 0)
 		end
 		
 		runservice.Heartbeat:Wait()
