@@ -1,6 +1,26 @@
 local model = script.Parent
 local humanoid = model:FindFirstChildOfClass("Humanoid")
 
+local hrp = model:FindFirstChild("HumanoidRootPart")
+local height = hrp.Position.Y
+local runservice = game:GetService("RunService")
+
+local function localspawn()
+	if hrp then
+		hrp.Anchored = false
+		
+		local currentY = hrp.CFrame.Y
+		if currentY ~= height then
+			hrp.CFrame = hrp.CFrame + Vector3.new(0, height - currentY, 0)
+		end
+		
+		runservice.Heartbeat:Wait()
+		task.wait(0.05)
+		hrp.Anchored = true
+	end
+end
+localspawn()
+
 if humanoid then
 	local animator = humanoid:FindFirstChildOfClass("Animator")
 	if animator then
@@ -14,6 +34,7 @@ if humanoid then
 
 		-- Loop through all animations in sequence, repeat forever
 		while true do
+			localspawn()
 			for _, anim in animations do
 				local track = animator:LoadAnimation(anim)
 				track.Looped = false
