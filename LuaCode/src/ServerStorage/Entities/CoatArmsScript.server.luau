@@ -1,24 +1,21 @@
+local utilMod = require(game:GetService("ReplicatedStorage").Shared.Util)
 local model = script.Parent
 local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
-local height = hrp.Position.Y
+local height = game:GetService("ServerStorage"):FindFirstChild("Entities"):FindFirstChild("CoatArms"):FindFirstChild("HumanoidRootPart").Position.Y
 local runservice = game:GetService("RunService")
-print(height)
--- create local function named spawn
-local function localspawn()
-	if hrp then
-		hrp.Anchored = false
-		local currentY = hrp.CFrame.Y
-		if currentY ~= height then
-			hrp.CFrame = hrp.CFrame + Vector3.new(0, height - currentY, 0)
-		end
-		
-		runservice.Heartbeat:Wait()
-		task.wait(0.05)
-		hrp.Anchored = true
+
+
+runservice.Heartbeat:Connect(function()
+	local hrploc = utilMod.DistancetoGround(hrp.Position.X, hrp.Position.Z, {model}, height)
+	if hrploc then
+		local movement = hrp.Position.Y - hrploc
+		hrp.CFrame = hrp.CFrame - Vector3.new(0, movement, 0)
 	end
-end
-localspawn()
+end)
+
+
+
 if humanoid then
 	local animator = humanoid:FindFirstChildOfClass("Animator")
 	if animator then
@@ -32,8 +29,6 @@ if humanoid then
 
 		-- Loop through all animations in sequence, repeat forever
 		while true do
-			-- call localspawn function
-			localspawn()
 			for _, anim in animations do
 				local track = animator:LoadAnimation(anim)
 				track.Looped = false
@@ -49,5 +44,4 @@ if humanoid then
 		end
 	end
 end
-
 
