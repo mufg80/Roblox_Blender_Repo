@@ -1,5 +1,5 @@
 local replicatedstorage = game:GetService("ReplicatedStorage")
-local magicMod = require(replicatedstorage.Shared.Magic)
+local combatMod = require(replicatedstorage.Shared.combatMod)
 local runservice = game:GetService("RunService")
 
 local players = game:GetService("Players")
@@ -18,15 +18,15 @@ local player = players.LocalPlayer
 function updateMagicUI()
     local magic = player:GetAttribute("Magic")
     local magicLevel = player:GetAttribute("MagicLevel")
-    local typeTable = magicMod.MagicLevels[magic]
+    local typeTable = combatMod.MagicLevels[magic]
 
 
-    if magic == magicMod.MagicType.Artificer then
+    if magic == combatMod.MagicType.Artificer then
         designSheet:SetDerives({artificertheme})
         magicgui.Enabled = true
         magicgui.SpellFrame.Visible = true
         magicgui.CreatureFrame.Visible = true
-    elseif magic == magicMod.MagicType.Primordial then
+    elseif magic == combatMod.MagicType.Primordial then
         designSheet:SetDerives({primordialtheme})
         magicgui.Enabled = true
         magicgui.SpellFrame.Visible = true

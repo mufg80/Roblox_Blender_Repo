@@ -4,17 +4,17 @@
 --local plrData = ds:GetDataStore("Testing_035")
 --local dataStoreEnabled = false
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
-
+local collectionService = game:GetService("CollectionService")
 local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
-local magicMod = require(game.ReplicatedStorage.Shared.Magic)
+local magicMod = require(game.ReplicatedStorage.Shared.combatMod)
 
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
 	local hrp = character:FindFirstChild("HumanoidRootPart")
-	
-		
+	collectionService:AddTag(character, "Character")
+
 	-- local currPos = hrp.CFrame.Position
 	-- local rot = CFrame.Angles(0,math.rad(90),0)
 	-- hrp.CFrame = CFrame.new(currPos)*rot
@@ -32,8 +32,6 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	player:SetAttribute("Magic", magicMod.MagicType.Artificer)
 	player:SetAttribute("MagicLevel", 1)
-	
-	
 	
 	
 	
@@ -123,7 +121,8 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local summonedCreature = creature:Clone()
-                summonedCreature.Parent = workspace
+				summonedCreature:SetAttribute("OwnedBy", player.UserId)
+                summonedCreature.Parent = workspace:WaitForChild("Pets")
                 -- get creature humanoidrootpart cframe and offset by 5 studs in front of player
                 local offsetCFrame = hrp.CFrame * CFrame.new(0, 0, -5)
                 local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
