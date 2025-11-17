@@ -2,6 +2,14 @@ local collectionService = game:GetService("CollectionService")
 local combatMod = require(game:GetService("ReplicatedStorage").Shared.combatMod)
 local utilMod = {}
 
+function utilMod.HexToColor3(hex)
+    hex = hex:gsub("#","")
+    local r = tonumber(hex:sub(1,2), 16) / 255
+    local g = tonumber(hex:sub(3,4), 16) / 255
+    local b = tonumber(hex:sub(5,6), 16) / 255
+    return Color3.new(r, g, b)
+end
+
 function utilMod.DistancetoGround(hrpX, hrpZ, ignoreList, npcHeight)
     local rayOrigin = Vector3.new(hrpX, 5000, hrpZ)
     local rayDirection = Vector3.new(0, -10000, 0)
@@ -145,6 +153,34 @@ function utilMod.AcceptableDistanceToOpponent(model, enemy)
     else
         return false
     end
+end
+
+
+
+function utilMod.createCustomExplosion(position, visualSize, time, color)  -- visualSize = e.g., 5, 20, 50
+    -- Custom visuals: Scaled fire/smoke ring
+    local attachment = Instance.new("Attachment")
+    attachment.Position = position
+    attachment.Parent = workspace.Terrain  -- Or a part
+
+    local pe = Instance.new("ParticleEmitter")
+    pe.Parent = attachment
+    --pe.Texture = "rbxasset://textures/particles/fire_main.dds"
+    pe.Color = ColorSequence.new(color, color)
+    pe.Size = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(0.5, visualSize),
+        NumberSequenceKeypoint.new(1, 0)
+    }
+    pe.Lifetime = NumberRange.new(0.1, 0.4)
+    pe.Rate = 1000
+    pe.SpreadAngle = Vector2.new(360, 360)
+    pe.Speed = NumberRange.new(5, 20)
+    pe.Drag = 5
+
+
+    -- Cleanup
+    game:GetService("Debris"):AddItem(attachment, time)
 end
 
 return utilMod

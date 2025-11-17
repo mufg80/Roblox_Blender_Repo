@@ -32,7 +32,7 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	player:SetAttribute("Magic", magicMod.MagicType.Artificer)
 	player:SetAttribute("MagicLevel", 1)
-	
+	player:SetAttribute("Enemy", "None")
 	
 	
 	-- if dataStoreEnabled then

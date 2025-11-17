@@ -101,7 +101,33 @@ combatMod.MagicLevels = {
 	
 }
 
+combatMod.StaffStats = {
+    StarterStaffArtificer = {
+        maxRange = 100,
+        bulletSpeed = 50,
+        arcHeight = 5,
+        bulletTrail = "#d5d506",
+        visualSize = .2,
+        visualTime = .5
 
+    },
+    StarterStaffPrimordial = {
+        maxRange = 100,
+        bulletSpeed = 50,
+        arcHeight = 5,
+        bulletTrail = "#1d1674",
+        visualSize = .2,
+        visualTime = .5
+    },
+    StarterStaffNature = {
+        maxRange = 100,
+        bulletSpeed = 50,
+        arcHeight = 5,
+        bulletTrail = "#217a22",
+        visualSize = .2,
+        visualTime = .5
+    }
+}
 
 combatMod.creatureStats = {
     -- ── ARTIFICER ─────────────────────────────────────────────────────

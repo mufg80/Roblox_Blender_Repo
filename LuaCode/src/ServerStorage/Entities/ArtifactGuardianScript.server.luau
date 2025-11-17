@@ -159,14 +159,18 @@ threads.stateAndAnim = task.spawn(function()
                 attackTrack:Play()
                 attackTrack.Stopped:Once(function() end)
             end
-        else
+        elseif isMoving then
             -- Idle / Moving
             if not animTracks.idle.IsPlaying then
-				animTracks.idle:AdjustSpeed(isMoving and 2.0 or 1.0)
-                animTracks.idle:Play()
+				animTracks.idle:Stop()
             else
-                animTracks.idle:AdjustSpeed(isMoving and 2.0 or 1.0)
+                animTracks.idle:Play()
             end
+        elseif isIdle then
+            if not animTracks.idle.IsPlaying then
+                 animTracks.idle:Play()
+            end
+           
         end
     end
 end)

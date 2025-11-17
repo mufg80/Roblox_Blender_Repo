@@ -2,16 +2,19 @@
   "name": "LuaCode",
   "tree": {
     "$className": "DataModel",
+
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
       }
     },
+
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
       }
     },
+
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
@@ -19,6 +22,7 @@
         }
       }
     },
+
     "ServerStorage": {
       "Entities": {
         "$className": "Folder",
@@ -76,17 +80,49 @@
             "$path": "src/ServerStorage/Entities/PogScript.server.luau"
           }
         },
-         "StoneManaPriest": {
+        "StoneManaPriest": {
           "$className": "Model",
           "StoneManaPriestScript": {
             "$path": "src/ServerStorage/Entities/StoneManaPriestScript.server.luau"
           }
         },
-         "WindSpirit": {
+        "WindSpirit": {
           "$className": "Model",
           "WindSpiritScript": {
             "$path": "src/ServerStorage/Entities/WindSpiritScript.server.luau"
           }
+        }
+      }
+    },
+
+     "StarterPack": {
+      "$className": "StarterPack",
+
+      "StarterStaffPrimordial": {
+        "$path": "models/StarterStaffPrimordial.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/StarterStaffPrimordial/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/StarterStaffPrimordial/StarterStaffLocalScript.client.luau"
+        }
+      },
+
+      "StarterStaffArtificer": {
+        "$path": "models/StarterStaffArtificer.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/StarterStaffArtificer/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/StarterStaffArtificer/StarterStaffLocalScript.client.luau"
+        }
+      }, "StarterStaffNature": {
+        "$path": "models/StarterStaffNature.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/StarterStaffNature/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/StarterStaffNature/StarterStaffLocalScript.client.luau"
         }
       }
     }
