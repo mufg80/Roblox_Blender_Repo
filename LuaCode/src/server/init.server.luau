@@ -8,6 +8,7 @@ local collectionService = game:GetService("CollectionService")
 local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
 local magicMod = require(game.ReplicatedStorage.Shared.combatMod)
+local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
@@ -33,7 +34,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("Magic", magicMod.MagicType.Artificer)
 	player:SetAttribute("MagicLevel", 1)
 	player:SetAttribute("Enemy", "None")
-	
+	player:SetAttribute("HasFallen", false)
 	
 	-- if dataStoreEnabled then
 		
@@ -122,14 +123,17 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
             if hrp then
                 local summonedCreature = creature:Clone()
 				summonedCreature:SetAttribute("OwnedBy", player.UserId)
+				summonedCreature:AddTag("Character")
+				
                 summonedCreature.Parent = workspace:WaitForChild("Pets")
-                -- get creature humanoidrootpart cframe and offset by 5 studs in front of player
-                local offsetCFrame = hrp.CFrame * CFrame.new(0, 0, -5)
+                -- get creature humanoidrootpart cframe and offset by 10 studs in front of player
+				local height = combatMod.creatureStats[creatureName].height
+				local offsetheight = height - hrp.CFrame.Position.Y
+                local offsetCFrame = hrp.CFrame * CFrame.new(0, offsetheight, -10)
                 local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
                 if creatureHRP then
                     creatureHRP.CFrame = offsetCFrame
                     
-                    print("Summoned "..creatureName.." for "..player.Name)
                 else
                     warn("Summoned creature "..creatureName.." has no HumanoidRootPart")
                 end
@@ -139,6 +143,32 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
         warn("Creature "..creatureName.." not found in Serverstorate.Entities")
     end
 end)
+
+
+local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
+
+if spawnpoints then
+	local rand = math.random(1, #spawnpoints)
+	local point = spawnpoints[rand]
+
+	local creature = serverstorage.Entities:FindFirstChild("FeralArtifactGuardian"):Clone()
+	creature.Parent = workspace:WaitForChild("Ferals")
+	creature:AddTag("Character")
+	local height = combatMod.creatureStats["ArtifactGuardian"].height
+
+	local offsetheight = height - point.Position.Y
+                local offsetCFrame = CFrame.new(point.Position.X, offsetheight, point.Position.Z)
+                local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
+                if creatureHRP then
+                    creatureHRP.CFrame = offsetCFrame
+                else
+                    warn("Summoned creature "..creature.." has no HumanoidRootPart")
+                end
+end
+
+
+
+
 
 
 -- admin area

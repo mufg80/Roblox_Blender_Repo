@@ -32,6 +32,12 @@
             "$path": "src/ServerStorage/Entities/ArtifactGuardianScript.server.luau"
           }
         },
+        "FeralArtifactGuardian": {
+          "$className": "Model",
+          "FeralArtifactGuardianScript": {
+            "$path": "src/ServerStorage/Entities/FeralArtifactGuardianScript.server.luau"
+          }
+        },
         "Blob": {
           "$className": "Model",
           "BlobScript": {

@@ -1,9 +1,9 @@
+-- ArtifactGuardian Pet Script (with combat integration, no StateEvents)
 local thisMob = "ArtifactGuardian"
 local model = script.Parent
 
 local Debris = game:GetService("Debris")
-local RunService = game:GetService("RunService")
-local height = game:GetService("ServerStorage"):FindFirstChild("Entities"):FindFirstChild(thisMob):FindFirstChild("HumanoidRootPart").Position.Y
+local Players = game:GetService("Players")
 
 local utilMod = require(game:GetService("ReplicatedStorage").Shared.utilMod)
 local combatMod = require(game:GetService("ReplicatedStorage").Shared.combatMod)
@@ -13,193 +13,149 @@ local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
 if not humanoid or not hrp then return end
 
+-- === Creature stats from combatMod ===
 local baseStats = combatMod.ShallowTableCopy(thisMob)
 
--- === 4. BindableEvents for real-time state changes ===
-local StateEvents = Instance.new("Folder")
-StateEvents.Name = "StateEvents"
-StateEvents.Parent = model
+-- Apply stats to humanoid
+humanoid.MaxHealth = baseStats.hitPoints
+humanoid.Health = baseStats.hitPoints
+humanoid.WalkSpeed = 16 * baseStats.speed   -- Roblox default WalkSpeed is 16
 
-local OwnedByChanged = Instance.new("BindableEvent"); OwnedByChanged.Name = "OwnedByChanged"; OwnedByChanged.Parent = StateEvents
-local HasFallenChanged = Instance.new("BindableEvent"); HasFallenChanged.Name = "HasFallenChanged"; HasFallenChanged.Parent = StateEvents
-local InCombatChanged = Instance.new("BindableEvent"); InCombatChanged.Name = "InCombatChanged"; InCombatChanged.Parent = StateEvents
-local IsIdleChanged = Instance.new("BindableEvent"); IsIdleChanged.Name = "IsIdleChanged"; IsIdleChanged.Parent = StateEvents
-local IsMovingChanged = Instance.new("BindableEvent"); IsMovingChanged.Name = "IsMovingChanged"; IsMovingChanged.Parent = StateEvents
-
--- === Initial state ===
-local owningId = model:GetAttribute("OwnedBy")
-local hasFallen = model:GetAttribute("HasFallen")
-local inCombat = model:GetAttribute("InCombat")
-local isIdle = model:GetAttribute("IsIdle")
-local isMoving = model:GetAttribute("IsMoving")
-
--- === Sync attributes → fire events ===
-for _, attrName in pairs({"OwnedBy", "HasFallen", "InCombat", "IsIdle", "IsMoving"}) do
-    model:GetAttributeChangedSignal(attrName):Connect(function()
-        local value = model:GetAttribute(attrName)
-        local event = StateEvents:FindFirstChild(attrName .. "Changed")
-        if event then
-            event:Fire(value)
-        end
-    end)
-end
-
--- === 5. Preloaded Animation Tracks ===
+-- === Animations ===
 local animator = humanoid:FindFirstChildOfClass("Animator")
 local animTracks = {}
 if animator then
-    animTracks.idle = animator:LoadAnimation(model:FindFirstChild("ArtGuardIdle"))
-    animTracks.idle.Looped = true
-    animTracks.blink = animator:LoadAnimation(model:FindFirstChild("ArtGuardBlink"))
-    animTracks.blink.Looped = false
-    animTracks.death = animator:LoadAnimation(model:FindFirstChild("ArtGuardFall"))
-    animTracks.death.Looped = false
-    animTracks.attack1 = animator:LoadAnimation(model:FindFirstChild("ArtGuardAtt1"))
-    animTracks.attack1.Looped = false
-    animTracks.attack2 = animator:LoadAnimation(model:FindFirstChild("ArtGuardAtt2"))
-    animTracks.attack2.Looped = false
-    animTracks.attack3 = animator:LoadAnimation(model:FindFirstChild("ArtGuardAtt3"))
-    animTracks.attack3.Looped = false
+    animTracks.idle = animator:LoadAnimation(model:FindFirstChild("ArtGuardIdle")); animTracks.idle.Looped = true
+    animTracks.blink = animator:LoadAnimation(model:FindFirstChild("ArtGuardBlink")); animTracks.blink.Looped = false
+    animTracks.death = animator:LoadAnimation(model:FindFirstChild("ArtGuardFall")); animTracks.death.Looped = false
+    animTracks.attack1 = animator:LoadAnimation(model:FindFirstChild("ArtGuardAtt1")); animTracks.attack1.Looped = false
+    animTracks.attack2 = animator:LoadAnimation(model:FindFirstChild("ArtGuardAtt2")); animTracks.attack2.Looped = false
+    animTracks.attack3 = animator:LoadAnimation(model:FindFirstChild("ArtGuardAtt3")); animTracks.attack3.Looped = false
 end
 
--- === 3. Single Heartbeat: Main Loop (Ground, Turn, Anim, State) ===
-local connections = {}
+-- === Threads ===
 local threads = {}
 
--- connections.heartbeat = RunService.Heartbeat:Connect(function(dt)
---     -- === Ground Snap ===
---    if not isMoving then  -- Not moving to waypoint
---         local charactertags = utilMod.GetCharactersTagged()
---         local hrploc = utilMod.DistancetoGround(hrp.Position.X, hrp.Position.Z, charactertags, height)
---         if hrploc then
---             local movement = hrp.Position.Y - hrploc
---             hrp.CFrame = hrp.CFrame - Vector3.new(0, movement, 0)
---         end
---     end
-
---     -- === Smooth Turn in Combat ===
---     if inCombat then
---         local targetID = model:GetAttribute("TargetIDorName")
---         local enemyTarget = utilMod.GetModelByIDorName(targetID)
-
---         if enemyTarget and enemyTarget.PrimaryPart and utilMod.AcceptableDistanceToOpponent(hrp, enemyTarget) then
---             local myPos = hrp.Position
---             local enemyPos = enemyTarget.PrimaryPart.Position
---             local lookDir = (enemyPos - myPos) * Vector3.new(1, 0, 1)
-
---             if lookDir.Magnitude > 0.01 then
---                 local desiredCFrame = CFrame.new(myPos, myPos + lookDir)
---                 local currentForward = hrp.CFrame.LookVector * Vector3.new(1, 0, 1)
---                 currentForward = currentForward.Unit
-
---                 local angle = math.acos(math.clamp(currentForward:Dot(lookDir.Unit), -1, 1))
---                 if angle > 0.01 then
---                     local turnThisFrame = math.min(angle, 8 * dt, math.rad(15))
---                     local axis = currentForward:Cross(lookDir.Unit)
---                     local rotIncrement = CFrame.fromAxisAngle(axis, turnThisFrame)
---                     hrp.CFrame = CFrame.new(hrp.Position) * (rotIncrement * hrp.CFrame - hrp.Position)
---                 end
---             end
---         end
---     end
--- end)
-
--- === 1. & 2. Character State & Animation Logic (task.wait + :Once) ===
+-- === Main Loop ===
 threads.stateAndAnim = task.spawn(function()
-    -- === Blink Loop (random blink) ===
+    -- Blink loop
     task.spawn(function()
-        while task.wait(math.random(4, 15)) do
-            if animTracks.blink and not hasFallen then
+        while task.wait(math.random(4,15)) do
+            if animTracks.blink and not model:GetAttribute("HasFallen") then
                 animTracks.blink:Play()
-                animTracks.blink.Stopped:Once(function() end)
             end
         end
     end)
 
-    -- === Main State + Animation Loop ===
-    while task.wait(0.1) do
-        -- Exit if fallen or dead
-        if hasFallen or baseStats.hitPoints < 1 then
-            if baseStats.hitPoints < 1 then
+    local lastAttackTime = 0
+    local ATTACK_COOLDOWN = combatMod.DELAY * baseStats.attackDelay
+
+    while task.wait(0.03) do
+        -- Death check
+        if humanoid.Health <= 0 then
+            if not model:GetAttribute("HasFallen") then
                 utilMod.SetFlagsForDeath(model)
             end
-            break
+            continue
         end
 
-        -- === Pathfinding & Movement ===
-        local targetPosition = pathMod.GetTargetPet(model)
-        if targetPosition then
-            local success = pathMod.PathfindToPosition(model, targetPosition)
-            local target = model:GetAttribute("TargetIDorName")
-            if success and inCombat and utilMod.AcceptableDistanceToOpponent(model, target) then
-                utilMod.SetFlagsForCombat(model)
-            else
+        -- Target validity
+        local identifier = model:GetAttribute("TargetIDorName")
+        if identifier ~= "None" and model:GetAttribute("InCombat") then
+            local target = utilMod.GetModelByIDorName(identifier)
+            if not target or target:GetAttribute("HasFallen") then
+                model:SetAttribute("TargetIDorName","None")
                 utilMod.SetFlagsForIdle(model)
             end
-        else
-            utilMod.SetFlagsForIdle(model)
         end
 
-        -- === Animation State Machine ===
-        if hasFallen then
-            if animTracks.death and not animTracks.death.IsPlaying then
-                animTracks.death:Play()
-                animTracks.death.Stopped:Once(function()
-                    Debris:AddItem(model, 5)
-                end)
+        -- Aggro check
+        if not model:GetAttribute("InCombat") then
+            local enemiescloseby = {}
+            local allpets = workspace:WaitForChild("Pets"):GetChildren()
+            local allferals = workspace:WaitForChild("Ferals"):GetChildren()
+            for _, pet in pairs(allpets) do
+                local enemyhrp = pet:FindFirstChild("HumanoidRootPart")
+                if enemyhrp then
+                    local dis = utilMod.GetMagnitude(enemyhrp, hrp)
+                    if dis < baseStats.aggroRadius and pet:GetAttribute("OwnedBy") ~= model:GetAttribute("OwnedBy") then
+                        table.insert(enemiescloseby, pet.Name)
+                    end
+                end
             end
-        elseif inCombat then
-            -- Stop idle animations
-            if animTracks.idle.IsPlaying then animTracks.idle:Stop() end
+            for _, feral in pairs(allferals) do
+                local enemyhrp = feral:FindFirstChild("HumanoidRootPart")
+                if enemyhrp then
+                    local dis = utilMod.GetMagnitude(enemyhrp, hrp)
+                    if dis < baseStats.aggroRadius then
+                        table.insert(enemiescloseby, feral.Name)
+                    end
+                end
+            end
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local playerhrp = player.Character.HumanoidRootPart
+                    local distance = utilMod.GetMagnitude(playerhrp, hrp)
+                    if player.UserId ~= model:GetAttribute("OwnedBy") and distance < baseStats.aggroRadius then
+                        table.insert(enemiescloseby, player.UserId)
+                    end
+                end
+            end
+            if #enemiescloseby > 0 then
+                local randomTarget = enemiescloseby[math.random(1,#enemiescloseby)]
+                model:SetAttribute("TargetIDorName", randomTarget)
+                utilMod.SetFlagsForCombat(model)
+            end
+        end
 
-            -- Play random attack
-            local attackChoice = math.random(1, 3)
-            local attackTrack = animTracks["attack" .. attackChoice]
-            if attackTrack and not attackTrack.IsPlaying then
-                attackTrack:Play()
-                attackTrack.Stopped:Once(function() end)
+        -- Pathfinding
+        local targetPosition = nil
+        if model:GetAttribute("InCombat") and model:GetAttribute("TargetIDorName") ~= "None" then
+            targetPosition = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
+        elseif model:GetAttribute("IsIdle") and not model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then
+            targetPosition = pathMod.GetTargetPet(model, model:GetAttribute("OwnedBy"))
+        end
+        if targetPosition and not pathMod.IsPathActive(model) then
+            pathMod.PathfindToPosition(model, targetPosition)
+        end
+
+        -- Animation & Combat
+        if model:GetAttribute("HasFallen") then
+            -- death handled
+        elseif model:GetAttribute("InCombat") then
+            if animTracks.idle.IsPlaying then animTracks.idle:Stop() end
+            local now = tick()
+            if now - lastAttackTime > ATTACK_COOLDOWN then
+                local attackChoice = math.random(1,3)
+                local track = animTracks["attack"..attackChoice]
+                if track and not track.IsPlaying then
+                    track:Play()
+                    lastAttackTime = now
+
+                    -- Damage application
+                    local targetModel = utilMod.GetModelByIDorName(model:GetAttribute("TargetIDorName"))
+                    if targetModel then
+                        local targetHumanoid = targetModel:FindFirstChildOfClass("Humanoid")
+                        if targetHumanoid then
+                            local defenderStats = utilMod.GetStatsSafelyForPlrorNpc(targetHumanoid.Parent)
+                            local damage = combatMod.MeleeAttackResult(baseStats, defenderStats)
+                            targetHumanoid.Health = math.max(targetHumanoid.Health - damage, 0)
+                        end
+                    end
+                end
             end
-        elseif isMoving then
-            -- Idle / Moving
-            if not animTracks.idle.IsPlaying then
-				animTracks.idle:Stop()
-            else
-                animTracks.idle:Play()
-            end
-        elseif isIdle then
-            if not animTracks.idle.IsPlaying then
-                 animTracks.idle:Play()
-            end
-           
+        elseif model:GetAttribute("IsMoving") or model:GetAttribute("IsIdle") then
+            if not animTracks.idle.IsPlaying then animTracks.idle:Play() end
+            animTracks.idle:AdjustSpeed(model:GetAttribute("IsMoving") and 1.5 or 1.0)
         end
     end
 end)
 
--- === State Event Listeners (Real-time Updates) ===
-connections.ownedBy = OwnedByChanged.Event:Connect(function(value) owningId = value end)
-connections.hasFallen = HasFallenChanged.Event:Connect(function(value) hasFallen = value end)
-connections.inCombat = InCombatChanged.Event:Connect(function(value) inCombat = value end)
-connections.isIdle = IsIdleChanged.Event:Connect(function(value) isIdle = value end)
-connections.isMoving = IsMovingChanged.Event:Connect(function(value) isMoving = value end)
-
--- === Cleanup on Destruction ===
+-- === Cleanup ===
 model.AncestryChanged:Connect(function()
     if not model.Parent then
-        -- Disconnect all
-        for _, conn in pairs(connections) do
-            if conn.Connected then
-                conn:Disconnect()
-            end
-        end
-
-        -- Cancel all threads
         for _, thread in pairs(threads) do
-            if task.is_running(thread) then
-                task.cancel(thread)
-            end
+            if task.is_running(thread) then task.cancel(thread) end
         end
-
-        -- Clean up BindableEvents
-        StateEvents:Destroy()
     end
 end)

@@ -1,3 +1,4 @@
+
 local combatMod = {}
 
 -- add enum with three types, Artificer, Primordial, None
@@ -129,9 +130,11 @@ combatMod.StaffStats = {
     }
 }
 
+combatMod.DELAY = 5.0
+
 combatMod.creatureStats = {
     -- ── ARTIFICER ─────────────────────────────────────────────────────
-    StoneManaPriest = {
+    ["PlayerArtificer"] = {
         magicType = "Artificer",
         hitPoints = 50,
         attack = 0.25,
@@ -143,9 +146,27 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.25,
         speed = 0.25,
         maxDamage = 0.35,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 2.7,
+        aggroRadius = 50
     },
-    ArtifactGuardian = {
+    ["StoneManaPriest"] = {
+        magicType = "Artificer",
+        hitPoints = 50,
+        attack = 0.25,
+        attackDelay = 0.75,
+        defense = 0.25,
+        armour = 0.30,
+        primordialmagicdefense = 0.20,
+        artificermagicdefense = 0.45,
+        naturemagicdefense = 0.25,
+        speed = 0.25,
+        maxDamage = 0.35,
+        distanceForAttacker = 2,
+        height = 2.7,
+        aggroRadius = 50
+    },
+    ["ArtifactGuardian"] = {
         magicType = "Artificer",
         hitPoints = 60,
         attack = 0.35,
@@ -157,9 +178,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.30,
         speed = 0.30,
         maxDamage = 0.48,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 1,
+        aggroRadius = 50
     },
-    GrandPo = {
+    ["GrandPo"] = {
         magicType = "Artificer",
         hitPoints = 70,
         attack = 0.45,
@@ -171,9 +194,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.35,
         speed = 0.35,
         maxDamage = 0.58,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 2.5,
+        aggroRadius = 50
     },
-    CoatArms = {
+    ["CoatArms"] = {
         magicType = "Artificer",
         hitPoints = 80,
         attack = 0.50,
@@ -185,9 +210,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.40,
         speed = 0.38,
         maxDamage = 0.65,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 4.1,
+        aggroRadius = 50
     },
-    ArtifactProtector = {
+    ["ArtifactProtector"] = {
         magicType = "Artificer",
         hitPoints = 90,
         attack = 0.60,
@@ -199,9 +226,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.42,
         maxDamage = 0.75,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    SuitArms = {
+    ["SuitArms"] = {
         magicType = "Artificer",
         hitPoints = 100,
         attack = 0.70,
@@ -213,9 +242,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.50,
         speed = 0.48,
         maxDamage = 0.82,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    FlyingGolem = {
+    ["FlyingGolem"] = {
         magicType = "Artificer",
         hitPoints = 110,
         attack = 0.80,
@@ -227,11 +258,13 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.55,
         speed = 0.60,
         maxDamage = 0.90,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
 
     -- ── PRIMORDIAL ───────────────────────────────────────────────────
-    MudPriest = {
+    ["PlayerPrimordial"] = {
         magicType = "Primordial",
         hitPoints = 50,
         attack = 0.22,
@@ -243,9 +276,27 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.30,
         speed = 0.30,
         maxDamage = 0.32,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 2.9,
+        aggroRadius = 50
     },
-    Dybb = {
+    ["MudPriest"] = {
+        magicType = "Primordial",
+        hitPoints = 50,
+        attack = 0.22,
+        attackDelay = 0.78,
+        defense = 0.28,
+        armour = 0.25,
+        primordialmagicdefense = 0.45,
+        artificermagicdefense = 0.20,
+        naturemagicdefense = 0.30,
+        speed = 0.30,
+        maxDamage = 0.32,
+        distanceForAttacker = 2,
+        height = 2.9,
+        aggroRadius = 50
+    },
+    ["Dybb"] = {
         magicType = "Primordial",
         hitPoints = 60,
         attack = 0.32,
@@ -257,9 +308,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.35,
         speed = 0.38,
         maxDamage = 0.45,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 2.0,
+        aggroRadius = 50
     },
-    Blob = {
+    ["Blob"] = {
         magicType = "Primordial",
         hitPoints = 70,
         attack = 0.42,
@@ -271,9 +324,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.40,
         speed = 0.42,
         maxDamage = 0.55,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 0.6,
+        aggroRadius = 50
     },
-    LithEater = {
+    ["LithEater"] = {
         magicType = "Primordial",
         hitPoints = 80,
         attack = 0.48,
@@ -285,9 +340,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.48,
         maxDamage = 0.62,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 4.3,
+        aggroRadius = 50
     },
-    GemEncrustedDybb = {
+    ["GemEncrustedDybb"] = {
         magicType = "Primordial",
         hitPoints = 90,
         attack = 0.58,
@@ -299,9 +356,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.50,
         speed = 0.52,
         maxDamage = 0.72,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    GiantAmoeba = {
+    ["GiantAmoeba"] = {
         magicType = "Primordial",
         hitPoints = 100,
         attack = 0.68,
@@ -313,9 +372,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.55,
         speed = 0.58,
         maxDamage = 0.80,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    FlyingEnergyField = {
+    ["FlyingEnergyField"] = {
         magicType = "Primordial",
         hitPoints = 110,
         attack = 0.78,
@@ -327,11 +388,13 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.60,
         speed = 0.75,
         maxDamage = 0.88,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
 
     -- ── NATURE ───────────────────────────────────────────────────────
-    Druid = {
+    ["PlayerNature"] = {
         magicType = "Nature",
         hitPoints = 50,
         attack = 0.20,
@@ -343,9 +406,27 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.40,
         maxDamage = 0.30,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    Pog = {
+    ["Druid"] = {
+        magicType = "Nature",
+        hitPoints = 50,
+        attack = 0.20,
+        attackDelay = 0.80,
+        defense = 0.22,
+        armour = 0.22,
+        primordialmagicdefense = 0.30,
+        artificermagicdefense = 0.25,
+        naturemagicdefense = 0.45,
+        speed = 0.40,
+        maxDamage = 0.30,
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
+    },
+    ["Pog"] = {
         magicType = "Nature",
         hitPoints = 60,
         attack = 0.30,
@@ -357,9 +438,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.55,
         speed = 0.55,
         maxDamage = 0.42,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 3.0,
+        aggroRadius = 50
     },
-    WindSpirit = {
+    ["WindSpirit"] = {
         magicType = "Nature",
         hitPoints = 70,
         attack = 0.40,
@@ -371,9 +454,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.60,
         speed = 0.70,
         maxDamage = 0.52,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 0.55,
+        aggroRadius = 50
     },
-    Silverback = {
+    ["Silverback"] = {
         magicType = "Nature",
         hitPoints = 80,
         attack = 0.48,
@@ -385,9 +470,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.65,
         speed = 0.60,
         maxDamage = 0.64,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    GreatTuskedPog = {
+    ["GreatTuskedPog"] = {
         magicType = "Nature",
         hitPoints = 90,
         attack = 0.58,
@@ -399,9 +486,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.70,
         speed = 0.68,
         maxDamage = 0.76,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    Carnosaur = {
+    ["Carnosaur"] = {
         magicType = "Nature",
         hitPoints = 100,
         attack = 0.70,
@@ -413,9 +502,11 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.75,
         speed = 0.72,
         maxDamage = 0.84,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 5,
+        aggroRadius = 50
     },
-    Griffin = {
+    ["Griffin"] = {
         magicType = "Nature",
         hitPoints = 110,
         attack = 0.80,
@@ -427,10 +518,29 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.80,
         speed = 0.80,
         maxDamage = 0.90,
-        distanceForAttacker = 2
+        distanceForAttacker = 2,
+        height = 7.3,
+        aggroRadius = 50
+    },
+
+    -- Feral
+    ["FeralArtifactGuardian"] = {
+        magicType = "Artificer",
+        hitPoints = 60,
+        attack = 0.35,
+        attackDelay = 0.70,
+        defense = 0.35,
+        armour = 0.40,
+        primordialmagicdefense = 0.25,
+        artificermagicdefense = 0.55,
+        naturemagicdefense = 0.30,
+        speed = 0.30,
+        maxDamage = 0.48,
+        distanceForAttacker = 5,
+        height = 1,
+        aggroRadius = 50
     }
 }
-
 
 
 function combatMod.MeleeAttackResult(attacker, defender)
@@ -474,13 +584,16 @@ function combatMod.MeleeAttackResult(attacker, defender)
 end
 
 function combatMod.ShallowTableCopy(name)
-    local t = combatMod.creatureStats[name]
+
+    local t = combatMod.creatureStats[tostring(name)]
+    if not t then
+        warn(name)
+    end
     local copy = {}
     for k, v in pairs(t) do
         copy[k] = v
     end
     return copy
-
 end
 
 return combatMod
