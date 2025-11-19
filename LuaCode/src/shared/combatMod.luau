@@ -146,7 +146,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.25,
         speed = 0.25,
         maxDamage = 0.35,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 2.7,
         aggroRadius = 50
     },
@@ -162,7 +162,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.25,
         speed = 0.25,
         maxDamage = 0.35,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 2.7,
         aggroRadius = 50
     },
@@ -178,7 +178,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.30,
         speed = 0.30,
         maxDamage = 0.48,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 1,
         aggroRadius = 50
     },
@@ -194,7 +194,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.35,
         speed = 0.35,
         maxDamage = 0.58,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 2.5,
         aggroRadius = 50
     },
@@ -210,7 +210,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.40,
         speed = 0.38,
         maxDamage = 0.65,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 4.1,
         aggroRadius = 50
     },
@@ -226,7 +226,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.42,
         maxDamage = 0.75,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -242,7 +242,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.50,
         speed = 0.48,
         maxDamage = 0.82,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -258,7 +258,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.55,
         speed = 0.60,
         maxDamage = 0.90,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -276,7 +276,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.30,
         speed = 0.30,
         maxDamage = 0.32,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 2.9,
         aggroRadius = 50
     },
@@ -292,7 +292,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.30,
         speed = 0.30,
         maxDamage = 0.32,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 2.9,
         aggroRadius = 50
     },
@@ -308,7 +308,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.35,
         speed = 0.38,
         maxDamage = 0.45,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 2.0,
         aggroRadius = 50
     },
@@ -324,7 +324,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.40,
         speed = 0.42,
         maxDamage = 0.55,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 0.6,
         aggroRadius = 50
     },
@@ -340,7 +340,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.48,
         maxDamage = 0.62,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 4.3,
         aggroRadius = 50
     },
@@ -356,7 +356,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.50,
         speed = 0.52,
         maxDamage = 0.72,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -372,7 +372,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.55,
         speed = 0.58,
         maxDamage = 0.80,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -388,7 +388,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.60,
         speed = 0.75,
         maxDamage = 0.88,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -406,7 +406,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.40,
         maxDamage = 0.30,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -422,7 +422,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.45,
         speed = 0.40,
         maxDamage = 0.30,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -438,7 +438,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.55,
         speed = 0.55,
         maxDamage = 0.42,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 3.0,
         aggroRadius = 50
     },
@@ -454,7 +454,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.60,
         speed = 0.70,
         maxDamage = 0.52,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 0.55,
         aggroRadius = 50
     },
@@ -470,7 +470,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.65,
         speed = 0.60,
         maxDamage = 0.64,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -486,7 +486,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.70,
         speed = 0.68,
         maxDamage = 0.76,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -502,7 +502,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.75,
         speed = 0.72,
         maxDamage = 0.84,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 5,
         aggroRadius = 50
     },
@@ -518,7 +518,7 @@ combatMod.creatureStats = {
         naturemagicdefense = 0.80,
         speed = 0.80,
         maxDamage = 0.90,
-        distanceForAttacker = 2,
+        distanceForAttacker = 5,
         height = 7.3,
         aggroRadius = 50
     },
@@ -527,7 +527,7 @@ combatMod.creatureStats = {
     ["FeralArtifactGuardian"] = {
         magicType = "Artificer",
         hitPoints = 60,
-        attack = 0.35,
+        attack = 0.85, --0.35,
         attackDelay = 0.70,
         defense = 0.35,
         armour = 0.40,
@@ -535,7 +535,7 @@ combatMod.creatureStats = {
         artificermagicdefense = 0.55,
         naturemagicdefense = 0.30,
         speed = 0.30,
-        maxDamage = 0.48,
+        maxDamage = 1.0, -- 0.48,
         distanceForAttacker = 5,
         height = 1,
         aggroRadius = 50
@@ -548,7 +548,7 @@ function combatMod.MeleeAttackResult(attacker, defender)
     -- MISS CHANCE CALCULATION (15% floor, 30% ceiling)
     local defenseAdvantage = defender.defense - attacker.attack
     local missChance = math.clamp(defenseAdvantage * 25, 0.15, 0.30)
-    local MAXDAMAGECONSTANT = 20
+    local MAXDAMAGECONSTANT = 50
     
     -- Roll for miss
     if math.random() < missChance then

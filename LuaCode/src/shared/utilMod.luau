@@ -120,7 +120,6 @@ end
 
 function utilMod.AcceptableDistanceToOpponent(model, enemy)
     local enemyTable = utilMod.GetStatsSafelyForPlrorNpc(enemy)
-    
     local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
     local enemyhrp = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChildWhichIsA("BasePart")
     if not hrp or not enemyhrp then return false end
@@ -187,6 +186,36 @@ function utilMod.createCustomExplosion(position, visualSize, time, color)
     pe.Drag = 5
 
     game:GetService("Debris"):AddItem(attachment, time)
+end
+
+-- Generate a unique name based on baseofname by scanning workspace.Pets and workspace.Ferals
+function utilMod.uniquename(baseofname)
+    local highest = 0
+
+    -- Helper to scan a folder for matching names
+    local function scanFolder(folder)
+        if not folder then return end
+        for _, item in ipairs(folder:GetChildren()) do
+            if item.Name:sub(1, #baseofname) == baseofname then
+                -- Match pattern baseofname_### (numeric suffix)
+                local suffix = item.Name:match("^" .. baseofname .. "_(%d+)$")
+                if suffix then
+                    local num = tonumber(suffix)
+                    if num and num > highest then
+                        highest = num
+                    end
+                end
+            end
+        end
+    end
+
+    -- Scan both Pets and Ferals folders
+    scanFolder(workspace:FindFirstChild("Pets"))
+    scanFolder(workspace:FindFirstChild("Ferals"))
+
+    -- Return next name, padded to 3 digits
+    local newNum = highest + 1
+    return string.format("%s_%03d", baseofname, newNum)
 end
 
 return utilMod

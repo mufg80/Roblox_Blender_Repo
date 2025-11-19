@@ -9,7 +9,7 @@ local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
 local magicMod = require(game.ReplicatedStorage.Shared.combatMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
-
+local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
@@ -122,6 +122,8 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local summonedCreature = creature:Clone()
+				local name = utilMod.uniquename(creatureName)
+				summonedCreature.Name = name
 				summonedCreature:SetAttribute("OwnedBy", player.UserId)
 				summonedCreature:AddTag("Character")
 				

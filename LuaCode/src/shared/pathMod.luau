@@ -22,14 +22,12 @@ function pathMod.PathfindToPosition(model, targetPosition)
     if activePaths[key] then return false end
     
     activePaths[key] = true
-    utilMod.SetFlagsForMoving(model)
     
     local humanoid = model:FindFirstChildOfClass("Humanoid")
     local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
     
     if not humanoid or not rootPart then
         activePaths[key] = nil
-        utilMod.SetFlagsForIdle(model)
         return false
     end
 
@@ -46,7 +44,6 @@ function pathMod.PathfindToPosition(model, targetPosition)
 
     if not success or path.Status ~= Enum.PathStatus.Success then
         activePaths[key] = nil
-        utilMod.SetFlagsForIdle(model)
         return false
     end
 
@@ -64,7 +61,6 @@ function pathMod.PathfindToPosition(model, targetPosition)
         if currentWaypointIndex > #waypoints then
             connection:Disconnect()
             activePaths[key] = nil
-            utilMod.SetFlagsForIdle(model)
             return
         end
         
@@ -132,7 +128,6 @@ function pathMod.GetTargetPet(model, targetIdOrName)
     if not enemyhrp then return nil end
     
     if not utilMod.AcceptableDistanceToOpponent(model, enemyTarget) then
-        --local enemyTable = creatureMod.GetCreatureTableFromModel(enemyTarget)
         local enemyTable = utilMod.GetStatsSafelyForPlrorNpc(enemyTarget)
         local distanceForAttacker = enemyTable and enemyTable.distanceForAttacker or 4
         local direction = (enemyhrp.Position - hrp.Position).Unit
