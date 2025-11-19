@@ -48,6 +48,7 @@ humanoid.HealthChanged:Connect(function(health)
         local attacker = creator.Value
         local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
         AddThreatEvent:Fire(attackerId, damageTaken * 2.5 + 30)
+        if creator.Parent then creator:Destroy() end
     end
 end)
 
@@ -109,11 +110,15 @@ task.spawn(function()
                         animTracks.death.TimePosition = animTracks.death.Length - 0.02
                         animTracks.death:AdjustSpeed(0)
                         humanoid.PlatformStand = true
-                        Debris:AddItem(model, 5)
+                        task.spawn(function()
+                            Debris:AddItem(model, 5)
+                        end)
                     end)
                 else
                     humanoid.PlatformStand = true
-                    Debris:AddItem(model, 5)
+                    task.spawn(function()
+                            Debris:AddItem(model, 5)
+                    end)
                 end
             end
             task.wait(0.1)
@@ -191,7 +196,6 @@ task.spawn(function()
         ----------------------------------------------------------------
         -- MOVEMENT & PATHFINDING
         ----------------------------------------------------------------
-        local wantsToMove = false
 
         if model:GetAttribute("InCombat") and currentTargetId ~= "None" then
             local targetModel = utilMod.GetModelByIDorName(currentTargetId)
@@ -207,10 +211,10 @@ task.spawn(function()
 
                     if distance < idealRange then
                         humanoid:MoveTo(hrp.Position)
-                        wantsToMove = false
+                        utilMod.SetFlagsForCombat(model)
                     else
                         humanoid:MoveTo(targetHRP.Position)
-                        wantsToMove = true
+                        utilMod.SetFlagsForMoving(model)
                     end
                 else
                     -- Normal pathfinding when farther away
@@ -218,33 +222,12 @@ task.spawn(function()
                         local pos = pathMod.GetTargetPet(model, currentTargetId)
                         if pos then
                             pathMod.PathfindToPosition(model, pos)
-                            wantsToMove = true
+                            utilMod.SetFlagsForMoving(model)
                         end
                     end
                 end
             end
-
-        elseif not IsStationary and model:GetAttribute("IsIdle") then
-            -- Roam or return to spawn
-            if tick() - idleStartTime >= IdleReset then
-                if (hrp.Position - spawnPosition).Magnitude > 5 and not pathMod.IsPathActive(model) then
-                    pathMod.PathfindToPosition(model, spawnPosition)
-                    idleStartTime = tick()
-                    wantsToMove = true
-                end
-            elseif not pathMod.IsPathActive(model) then
-                local offset = Vector3.new(math.random(-20,20), 0, math.random(-20,20))
-                pathMod.PathfindToPosition(model, spawnPosition + offset)
-                idleStartTime = tick()
-                wantsToMove = true
-            end
-        end
-
-        -- Update flags
-        if wantsToMove then
-            if not model:GetAttribute("IsMoving") then utilMod.SetFlagsForMoving(model) end
-        elseif model:GetAttribute("IsMoving") then
-            utilMod.SetFlagsForIdle(model)
+       
         end
 
         ----------------------------------------------------------------
@@ -289,7 +272,7 @@ task.spawn(function()
                             local damage = combatMod.MeleeAttackResult(baseStats, defStats)
                             targetHum.Health = math.max(targetHum.Health - damage, 0)
 
-                            hateList[currentTargetId] = (hateList[currentTargetId] or 0) + damage * 1.4 + 10
+                            --hateList[currentTargetId] = (hateList[currentTargetId] or 0) + damage * 1.4 + 10
                         end
                     end
                 end

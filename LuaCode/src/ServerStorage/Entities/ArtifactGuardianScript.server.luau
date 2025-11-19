@@ -42,7 +42,7 @@ humanoid.HealthChanged:Connect(function(health)
         local attacker = creator.Value
         local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
         AddThreatEvent:Fire(attackerId, damageTaken * 2.5 + 30)
-
+        if creator.Parent then creator:Destroy() end
     end
 end)
 
@@ -96,11 +96,16 @@ task.spawn(function()
                         animTracks.death.TimePosition = animTracks.death.Length - 0.02
                         animTracks.death:AdjustSpeed(0)
                         humanoid.PlatformStand = true
-                        Debris:AddItem(model, 5)
+                        task.spawn(function()
+                            Debris:AddItem(model, 5)
+                        end)
+
                     end)
                 else
                     humanoid.PlatformStand = true
-                    Debris:AddItem(model, 5)
+                     task.spawn(function()
+                            Debris:AddItem(model, 5)
+                    end)
                 end
             end
             task.wait(0.1)
@@ -186,12 +191,11 @@ task.spawn(function()
             model:SetAttribute("TargetIDorName", "None")
             utilMod.SetFlagsForIdle(model)
         end
-
+        
         ----------------------------------------------------------------
         -- MOVEMENT & PATHFINDING
         ----------------------------------------------------------------
-        local wantsToMove = false
-
+        
         if model:GetAttribute("InCombat") and currentTargetId ~= "None" then
             local targetModel = utilMod.GetModelByIDorName(currentTargetId)
             local targetHRP = targetModel and (targetModel:FindFirstChild("HumanoidRootPart") or targetModel:FindFirstChild("Torso"))
@@ -208,11 +212,11 @@ task.spawn(function()
                     if distance < idealRange then
                         -- Already in melee range → force Humanoid to stop moving
                         humanoid:MoveTo(hrp.Position)  -- tricks it into idling
-                        wantsToMove = false
+                        utilMod.SetFlagsForCombat(model)
                     else
                         -- Close but not quite there → direct MoveTo (no pathfinding stutter)
                         humanoid:MoveTo(targetHRP.Position)
-                        wantsToMove = true
+                        utilMod.SetFlagsForMoving(model)
                     end
                 else
                     -- Far away → normal pathfinding
@@ -220,35 +224,27 @@ task.spawn(function()
                         local pos = pathMod.GetTargetPet(model, currentTargetId)
                         if pos then
                             pathMod.PathfindToPosition(model, pos)
-                            wantsToMove = true
+                            utilMod.SetFlagsForMoving(model)
                         end
                     end
                 end
             end
-
-        elseif model:GetAttribute("IsIdle") and myOwnerId then
-            -- Follow owner
-            local owner = Players:GetPlayerByUserId(myOwnerId)
-            local ownerHRP = owner and owner.Character and owner.Character:FindFirstChild("HumanoidRootPart")
-            if ownerHRP and (ownerHRP.Position - hrp.Position).Magnitude > 8 then
-                if not pathMod.IsPathActive(model) then
-                    local pos = pathMod.GetTargetPet(model, myOwnerId)
-                    if pos then
-                        pathMod.PathfindToPosition(model, pos)
-                    end
+        else 
+            -- Follow owner            
+            if not pathMod.IsPathActive(model) then
+                
+                local pos = pathMod.GetTargetPet(model, myOwnerId)
+                if pos then
+                    pathMod.PathfindToPosition(model, pos)
+                    utilMod.SetFlagsForMoving(model)
+                else
+                    utilMod.SetFlagsForIdle(model)
                 end
-                wantsToMove = true
-            end
-        end
-
-        -- Update moving flag
-        if wantsToMove then
-            if not model:GetAttribute("IsMoving") then
+            else
                 utilMod.SetFlagsForMoving(model)
             end
-        elseif model:GetAttribute("IsMoving") then
-            utilMod.SetFlagsForIdle(model)
         end
+
 
         ----------------------------------------------------------------
         -- FACE TARGET / OWNER
@@ -307,7 +303,7 @@ task.spawn(function()
                             targetHum.Health = math.max(targetHum.Health - damage, 0)
 
                             -- Build threat
-                            hateList[currentTargetId] = (hateList[currentTargetId] or 0) + damage * 1.4 + 10
+                            --hateList[currentTargetId] = (hateList[currentTargetId] or 0) + damage * 1.4 + 10
                         end
                     end
                 end

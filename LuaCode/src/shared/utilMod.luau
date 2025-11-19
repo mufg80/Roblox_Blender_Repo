@@ -189,7 +189,7 @@ function utilMod.createCustomExplosion(position, visualSize, time, color)
 end
 
 -- Generate a unique name based on baseofname by scanning workspace.Pets and workspace.Ferals
-function utilMod.uniquename(baseofname)
+function utilMod.uniqueName(baseofname)
     local highest = 0
 
     -- Helper to scan a folder for matching names
@@ -217,5 +217,6 @@ function utilMod.uniquename(baseofname)
     local newNum = highest + 1
     return string.format("%s_%03d", baseofname, newNum)
 end
+
 
 return utilMod

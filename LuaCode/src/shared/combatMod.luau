@@ -584,9 +584,10 @@ function combatMod.MeleeAttackResult(attacker, defender)
 end
 
 function combatMod.ShallowTableCopy(name)
-
-    local t = combatMod.creatureStats[tostring(name)]
+    local trimmed = combatMod.customTrim(tostring(name))
+    local t = combatMod.creatureStats[trimmed]
     if not t then
+        print(trimmed)
         warn(name)
     end
     local copy = {}
@@ -594,6 +595,17 @@ function combatMod.ShallowTableCopy(name)
         copy[k] = v
     end
     return copy
+end
+
+-- Put this in your combatMod (or wherever you keep utilities)
+function combatMod.customTrim(input: string?): string
+    if typeof(input) ~= "string" then
+        return ""
+    end
+
+    -- Remove trailing underscore + any non-empty sequence of alphanumeric characters
+    -- Also removes a lone trailing underscore
+    return input:gsub("_[%w]*$", "")
 end
 
 return combatMod

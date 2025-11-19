@@ -122,7 +122,7 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local summonedCreature = creature:Clone()
-				local name = utilMod.uniquename(creatureName)
+				local name = utilMod.uniqueName(creatureName)
 				summonedCreature.Name = name
 				summonedCreature:SetAttribute("OwnedBy", player.UserId)
 				summonedCreature:AddTag("Character")
@@ -154,6 +154,7 @@ if spawnpoints then
 	local point = spawnpoints[rand]
 
 	local creature = serverstorage.Entities:FindFirstChild("FeralArtifactGuardian"):Clone()
+	creature.Name = utilMod.uniqueName(creature.Name)
 	creature.Parent = workspace:WaitForChild("Ferals")
 	creature:AddTag("Character")
 	local height = combatMod.creatureStats["ArtifactGuardian"].height
