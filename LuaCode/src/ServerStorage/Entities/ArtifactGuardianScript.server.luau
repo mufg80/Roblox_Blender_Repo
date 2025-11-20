@@ -1,23 +1,45 @@
 -- ArtifactGuardian Pet Script - FINAL POLISHED VERSION (Nov 19, 2025)
 local thisMob = "ArtifactGuardian"
+local thisFeralMob = "FeralArtifactGuardian"
 local model = script.Parent
 
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
+local aggroMod = require(game.ReplicatedStorage.Shared.aggroMod)
 
 local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
 if not humanoid or not hrp then return end
 
--- === Stats ===
-local baseStats = combatMod.ShallowTableCopy(thisMob)
-humanoid.MaxHealth = baseStats.hitPoints
-humanoid.Health = baseStats.hitPoints
-humanoid.WalkSpeed = 16 * baseStats.speed
+local baseStats= combatMod.ShallowTableCopy(thisMob)
+
+local IsStationary = model:GetAttribute("IsStationary") ~= false
+local IdleReset = model:GetAttribute("IdleReset") or 5
+local spawnPosition = hrp.Position
+
+function setStats()
+    if model:GetAttribute("OwnedBy") == "None" or model:GetAttribute("OwnedBy") == "" then
+        baseStats = combatMod.ShallowTableCopy(thisFeralMob)
+        humanoid.MaxHealth = baseStats.hitPoints
+        humanoid.Health = baseStats.hitPoints
+        humanoid.WalkSpeed = 16 * baseStats.speed
+        IsStationary = model:GetAttribute("IsStationary") ~= false
+        IdleReset = model:GetAttribute("IdleReset") or 5
+        spawnPosition = hrp.Position
+    else
+        baseStats = combatMod.ShallowTableCopy(thisMob)
+        humanoid.MaxHealth = baseStats.hitPoints
+        humanoid.Health = baseStats.hitPoints
+        humanoid.WalkSpeed = 16 * baseStats.speed
+    end
+end
+
+model:GetAttributeChangedSignal("OwnedBy"):Connect(setStats)
+
 
 -- === Threat API ===
 local AddThreatEvent = Instance.new("BindableEvent")
@@ -34,17 +56,23 @@ end)
 
 -- === THREAT FROM TAKING DAMAGE (NOW WORKING) ===
 humanoid.HealthChanged:Connect(function(health)
-    local damageTaken = humanoid.Health - health
-    humanoid.Health = health
+    -- Compare old vs new health
+    local damageTaken = humanoid:GetAttribute("LastHealth") and (humanoid:GetAttribute("LastHealth") - health) or 0
 
-    local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
-    if creator and creator.Value then
-        local attacker = creator.Value
-        local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
-        AddThreatEvent:Fire(attackerId, damageTaken * 2.5 + 30)
-        if creator.Parent then creator:Destroy() end
+    -- Store the new health for next time
+    humanoid:SetAttribute("LastHealth", health)
+
+    if damageTaken > 0 then
+        local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
+        if creator and creator.Value then
+            local attacker = creator.Value
+            local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
+            AddThreatEvent:Fire(attackerId, damageTaken * 2.5 + 30)
+            if creator.Parent then creator:Destroy() end
+        end
     end
 end)
+
 
 -- === Animations ===
 local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -66,6 +94,10 @@ if animator then
     animTracks.attack3 = load("ArtGuardAtt3", false)
 end
 
+
+
+
+
 -- === MAIN LOOP ===
 task.spawn(function()
     -- Blink loop
@@ -79,242 +111,191 @@ task.spawn(function()
 
     local lastAttackTime = 0
     local ATTACK_COOLDOWN = combatMod.DELAY * baseStats.attackDelay
-    local myOwnerId = model:GetAttribute("OwnedBy")
+    
+    local ownedby = model:GetAttribute("OwnedBy")
 
     while task.wait(0.03) do
-        ----------------------------------------------------------------
-        -- DEATH HANDLING
-        ----------------------------------------------------------------
+
+-- set flags
+-- death if hum below 0
+-- combat if hateList > 0 and target is less than acceptable
+-- move if hateList > 0 and target is more than acceptable or
+-- move if movemod returns target pos for owner
+-- idle if none other are true
+
         if humanoid.Health <= 0 then
             if not model:GetAttribute("HasFallen") then
                 utilMod.SetFlagsForDeath(model)
-
-                if animTracks.death then
-                    animTracks.death:Play()
-                    animTracks.death.Stopped:Once(function()
-                        if not model.Parent then return end
-                        animTracks.death.TimePosition = animTracks.death.Length - 0.02
-                        animTracks.death:AdjustSpeed(0)
-                        humanoid.PlatformStand = true
-                        task.spawn(function()
-                            Debris:AddItem(model, 5)
-                        end)
-
-                    end)
-                else
-                    humanoid.PlatformStand = true
-                     task.spawn(function()
-                            Debris:AddItem(model, 5)
-                    end)
-                end
-            end
-            task.wait(0.1)
-            continue
-        end
-
-        ----------------------------------------------------------------
-        -- THREAT / TARGET SELECTION
-        ----------------------------------------------------------------
-        local aggroSqr = baseStats.aggroRadius ^ 2
-        local leashSqr = (baseStats.aggroRadius * 3) ^ 2
-
-        -- Add nearby threats
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player.UserId ~= myOwnerId then
-                local root = player.Character and (player.Character.HumanoidRootPart or player.Character:FindFirstChild("Torso"))
-                if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[player.UserId] then
-                    hateList[player.UserId] = 8
-                end
             end
         end
-
-        local petsFolder = workspace:FindFirstChild("Pets")
-        if petsFolder then
-            for _, pet in ipairs(petsFolder:GetChildren()) do
-                if pet ~= model and pet:GetAttribute("OwnedBy") ~= myOwnerId then
-                    local root = pet:FindFirstChild("HumanoidRootPart") or pet:FindFirstChild("Torso")
-                    if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[pet.Name] then
-                        hateList[pet.Name] = 4
-                    end
-                end
-            end
-        end
-
-        local feralsFolder = workspace:FindFirstChild("Ferals")
-        if feralsFolder then
-            for _, feral in ipairs(feralsFolder:GetChildren()) do
-                local root = feral:FindFirstChild("HumanoidRootPart") or feral:FindFirstChild("Torso")
-                if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[feral.Name] then
-                    hateList[feral.Name] = 6
-                end
-            end
-        end
-
-       -- Leash + decay
-        for id, threat in pairs(hateList) do
-            local target = utilMod.GetModelByIDorName(id)
-            local root = target and (target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso"))
-            local hum = target and target:FindFirstChildOfClass("Humanoid")
+        local isPet = false;
+        local ownerInstance = nil
+        local combatTargetModel = nil
+        local acceptableDistance = nil
+        local useDirectMove = false
+        if not model:GetAttribute("HasFallen") then
             
-            if not root or (root.Position - hrp.Position).Magnitude^2 > leashSqr then
-                hateList[id] = nil
-            elseif target and hum and hum.Health < 0 or target:GetAttribute("HasFallen") then
-                hateList[id] = nil
-            else
-                hateList[id] = threat * 0.995
+            
+            ----------------------------------------------------------------
+            -- Aggro
+            ----------------------------------------------------------------
+            
+            if ownedby == "" or ownedby == "None" or ownedby == "none" then
+                isPet = false
             end
-        end
+            
+            if isPet then
+                ownerInstance = utilMod.GetModelByIDorName(model:GetAttribute("OwnedBy"))
+            end
 
-        -- Choose highest threat
-        local bestId, bestThreat = "None", 0
-        for id, threat in pairs(hateList) do
-            if threat > bestThreat then
-                local target = utilMod.GetModelByIDorName(id)
-                if target and not target:GetAttribute("HasFallen") and target:FindFirstChildOfClass("Humanoid") then
-                    bestId = id
-                    bestThreat = threat
-                else
-                    hateList[id] = nil
+            if isPet then
+                aggroMod.hateListPet(baseStats, hateList, model, hrp)
+            else
+                aggroMod.hateListFeral(baseStats, hateList, model, hrp)
+            end
+            if #hateList > 0 then
+                if model:GetAttribute("TargetIDorName") == "None" then
+                    warn("Should not reach me.")
                 end
             end
-        end
-
-        local currentTargetId = model:GetAttribute("TargetIDorName")
-        if bestThreat > 0 then
-            if currentTargetId ~= bestId then
-                model:SetAttribute("TargetIDorName", bestId)
+            
+            
+            if not model:GetAttribute("TargetIDorName") == "None" then
+                combatTargetModel = utilMod.GetModelByIDorName(model:GetAttribute("TargetIDorName"))
             end
-            if not model:GetAttribute("InCombat") then
-                utilMod.SetFlagsForCombat(model)
+
+            if combatTargetModel then
+                acceptableDistance = utilMod.AcceptableDistanceToOpponent(model, combatTargetModel)
             end
-        elseif currentTargetId ~= "None" then
-            model:SetAttribute("TargetIDorName", "None")
-            utilMod.SetFlagsForIdle(model)
-        end
-        
-        ----------------------------------------------------------------
-        -- MOVEMENT & PATHFINDING
-        ----------------------------------------------------------------
-        
-        if model:GetAttribute("InCombat") and currentTargetId ~= "None" then
-            local targetModel = utilMod.GetModelByIDorName(currentTargetId)
-            local targetHRP = targetModel and (targetModel:FindFirstChild("HumanoidRootPart") or targetModel:FindFirstChild("Torso"))
+            
 
-            if targetHRP then
-                local distance = (hrp.Position - targetHRP.Position).Magnitude
+            if #hateList > 0 and acceptableDistance then
+                if not model:GetAttribute("InCombat") then
+                    utilMod.SetFlagsForCombat(model)
+                end
+            end
+            
+            if #hateList > 0 and not acceptableDistance then
+                if not model:GetAttribute("IsMoving")then
+                    utilMod.SetFlagsForMoving(model)
+                end
+            end
 
-                -- CLOSE RANGE: Use direct MoveTo to avoid pathfinding stutter
-                -- CLOSE RANGE HANDLING: Direct MoveTo + smart stop to prevent "running in place"
-                if distance <= 7 then
-                    local stats = utilMod.GetStatsSafelyForPlrorNpc(targetModel)
-                    local idealRange = stats and stats.distanceForAttacker or 4
-
-                    if distance < idealRange then
-                        -- Already in melee range → force Humanoid to stop moving
-                        humanoid:MoveTo(hrp.Position)  -- tricks it into idling
-                        utilMod.SetFlagsForCombat(model)
-                    else
-                        -- Close but not quite there → direct MoveTo (no pathfinding stutter)
-                        humanoid:MoveTo(targetHRP.Position)
-                        utilMod.SetFlagsForMoving(model)
-                    end
-                else
-                    -- Far away → normal pathfinding
-                    if not pathMod.IsPathActive(model) or not utilMod.AcceptableDistanceToOpponent(model, targetModel) then
-                        local pos = pathMod.GetTargetPet(model, currentTargetId)
-                        if pos then
-                            pathMod.PathfindToPosition(model, pos)
+            if #hateList == 0 then
+                if isPet then
+                    if pathMod.GetTargetPet(model, ownerInstance.name) then
+                        if not model:GetAttribute("IsMoving") then
                             utilMod.SetFlagsForMoving(model)
                         end
+                    else
+                        if not model:GetAttribute("IsIdle") then
+                            utilMod.SetFlagsForIdle(model)
+                        end
                     end
-                end
-            end
-        else 
-            -- Follow owner            
-            if not pathMod.IsPathActive(model) then
-                
-                local pos = pathMod.GetTargetPet(model, myOwnerId)
-                if pos then
-                    pathMod.PathfindToPosition(model, pos)
-                    utilMod.SetFlagsForMoving(model)
                 else
-                    utilMod.SetFlagsForIdle(model)
-                end
-            else
-                utilMod.SetFlagsForMoving(model)
-            end
-        end
-
-
-        ----------------------------------------------------------------
-        -- FACE TARGET / OWNER
-        ----------------------------------------------------------------
-        if model:GetAttribute("InCombat") and currentTargetId ~= "None" and not pathMod.IsPathActive(model) then
-            local targetModel = utilMod.GetModelByIDorName(currentTargetId)
-            local tHRP = targetModel and (targetModel:FindFirstChild("HumanoidRootPart") or targetModel:FindFirstChild("Torso"))
-            if tHRP then
-                local dir = (tHRP.Position - hrp.Position)
-                dir = Vector3.new(dir.X, 0, dir.Z)
-                if dir.Magnitude > 0.1 then
-                    hrp.CFrame = hrp.CFrame:lerp(CFrame.lookAt(hrp.Position, hrp.Position + dir), 0.3)
-                end
-            end
-        elseif model:GetAttribute("IsIdle") and myOwnerId then
-            local player = Players:GetPlayerByUserId(myOwnerId)
-            local pHRP = player and player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if pHRP then
-                local dir = (pHRP.Position - hrp.Position)
-                dir = Vector3.new(dir.X, 0, dir.Z)
-                if dir.Magnitude > 3 then
-                    hrp.CFrame = hrp.CFrame:lerp(CFrame.lookAt(hrp.Position, hrp.Position + dir), 0.2)
-                end
-            end
-        end
-
-        ----------------------------------------------------------------
-        -- COMBAT (only when actually in range)
-        ----------------------------------------------------------------
-        if model:GetAttribute("InCombat") and currentTargetId ~= "None" then
-            local targetModel = utilMod.GetModelByIDorName(currentTargetId)
-            if targetModel and utilMod.AcceptableDistanceToOpponent(model, targetModel) then
-                if animTracks.idle and animTracks.idle.IsPlaying then
-                    animTracks.idle:Stop()
-                end
-
-                if tick() - lastAttackTime >= ATTACK_COOLDOWN then
-                    local track = animTracks["attack" .. math.random(1,3)]
-                    if track and not track.IsPlaying then
-                        track:Play()
-                        lastAttackTime = tick()
-
-                        local targetHum = targetModel:FindFirstChildOfClass("Humanoid")
-                        if targetHum then
-                            -- Creator tag
-                            local creator = Instance.new("ObjectValue")
-                            creator.Name = "creator"
-                            creator.Value = model
-                            creator.Parent = targetHum
-                            task.delay(0.5, function()
-                                if creator.Parent then creator:Destroy() end
-                            end)
-
-                            local defStats = utilMod.GetStatsSafelyForPlrorNpc(targetModel)
-                            local damage = combatMod.MeleeAttackResult(baseStats, defStats)
-                            targetHum.Health = math.max(targetHum.Health - damage, 0)
-
-                            -- Build threat
-                            --hateList[currentTargetId] = (hateList[currentTargetId] or 0) + damage * 1.4 + 10
+                    if IsStationary then
+                        if utilMod.GetMagnitude(spawnPosition, hrp) > 3 and (model:GetAttribute("IdleStartTime") - tick()) > IdleReset then
+                            if not model:GetAttribute("IsMoving")then
+                                utilMod.SetFlagsForMoving(model)
+                            end
+                        else 
+                            if not model:GetAttribute("IsIdle") then
+                                utilMod.SetFlagsForIdle(model)
+                            end
+                        end
+                    else
+                        if (model:GetAttribute("IdleStartTime") - tick()) > IdleReset then
+                            if not model:GetAttribute("IsMoving") then
+                                utilMod.SetFlagsForMoving(model)
+                            else
+                                if not model:GetAttribute("IsIdle") then
+                                    utilMod.SetFlagsForMoving(model)
+                                end
+                            end
                         end
                     end
                 end
             end
-        elseif not model:GetAttribute("InCombat") and (model:GetAttribute("IsMoving") or model:GetAttribute("IsIdle")) then
-            if animTracks.idle and not animTracks.idle.IsPlaying then
-                animTracks.idle:Play()
+
+
+            if model:GetAttribute("InCombat") then
+                ----------------------------------------------------------------
+                -- FACE TARGET / OWNER
+                ----------------------------------------------------------------
+                if combatTargetModel and not pathMod.IsPathActive(model) then
+                    
+                    local tHRP = combatTargetModel and (combatTargetModel:FindFirstChild("HumanoidRootPart") or combatTargetModel:FindFirstChild("Torso"))
+                    if tHRP then
+                        local dir = (tHRP.Position - hrp.Position)
+                        dir = Vector3.new(dir.X, 0, dir.Z)
+                        if dir.Magnitude > 0.1 then
+                            hrp.CFrame = hrp.CFrame:lerp(CFrame.lookAt(hrp.Position, hrp.Position + dir), 0.3)
+                        end
+                    end
+
+                    if animTracks.idle and animTracks.idle.IsPlaying then
+                            animTracks.idle:Stop()
+                    end
+
+                    if tick() - lastAttackTime >= ATTACK_COOLDOWN then
+                        local track = animTracks["attack" .. math.random(1,3)]
+                        if track and not track.IsPlaying then
+                            track:Play()
+                            lastAttackTime = tick()
+
+                            local targetHum = combatTargetModel:FindFirstChildOfClass("Humanoid")
+                            if targetHum then
+                                -- Creator tag
+                                local creator = Instance.new("ObjectValue")
+                                creator.Name = "creator"
+                                creator.Value = model
+                                creator.Parent = targetHum
+                                task.delay(0.5, function()
+                                    if creator.Parent then creator:Destroy() end
+                                end)
+
+                                local defStats = utilMod.GetStatsSafelyForPlrorNpc(combatTargetModel)
+                                local damage = combatMod.MeleeAttackResult(baseStats, defStats)
+                                targetHum.Health = math.max(targetHum.Health - damage, 0)
+
+                                -- Build threat
+                                --hateList[currentTargetId] = (hateList[currentTargetId] or 0) + damage * 1.4 + 10
+                            end
+                        end
+                    end
+                end
             end
-            if animTracks.idle then
-                animTracks.idle:AdjustSpeed(model:GetAttribute("IsMoving") and 1.5 or 1.0)
+            ----------------------------------------------------------------
+                -- Moving
+            ----------------------------------------------------------------
+            if model:GetAttribute("IsMoving") then
+                
+            end
+            ----------------------------------------------------------------
+                -- Idle
+            ----------------------------------------------------------------
+            if model:GetAttribute("IsIdle") then
+                if not animTracks.idle.IsPlaying then
+                    animTracks.idle:Play()
+                end
+            end
+        else
+            ----------------------------------------------------------------
+                -- Death
+            ----------------------------------------------------------------
+            if animTracks.death and not animTracks.death.IsPlaying then
+                animTracks.blink:Stop()
+                animTracks.idle:Stop()
+                animTracks.death:Play()
+                task.wait(2)
+                model:SetAttribute("RecycleMe", true)
+                
+            else
+                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                humanoid.PlatformStand = true
+                model:SetAttribute("RecycleMe", true)
             end
         end
     end
 end)
+

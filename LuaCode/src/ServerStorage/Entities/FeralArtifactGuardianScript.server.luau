@@ -40,17 +40,23 @@ end)
 
 -- === THREAT FROM TAKING DAMAGE (FIXED & WORKING) ===
 humanoid.HealthChanged:Connect(function(health)
-    local damageTaken = humanoid.Health - health
-    humanoid.Health = health
+    -- Compare old vs new health
+    local damageTaken = humanoid:GetAttribute("LastHealth") and (humanoid:GetAttribute("LastHealth") - health) or 0
 
-    local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
-    if creator and creator.Value then
-        local attacker = creator.Value
-        local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
-        AddThreatEvent:Fire(attackerId, damageTaken * 2.5 + 30)
-        if creator.Parent then creator:Destroy() end
+    -- Store the new health for next time
+    humanoid:SetAttribute("LastHealth", health)
+
+    if damageTaken > 0 then
+        local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
+        if creator and creator.Value then
+            local attacker = creator.Value
+            local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
+            AddThreatEvent:Fire(attackerId, damageTaken * 2.5 + 30)
+            if creator.Parent then creator:Destroy() end
+        end
     end
 end)
+
 
 -- === Animations ===
 local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -99,31 +105,28 @@ task.spawn(function()
         ----------------------------------------------------------------
         -- DEATH HANDLING
         ----------------------------------------------------------------
-        if humanoid.Health <= 0 then
+        ----------------------------------------------------------------
+       if humanoid.Health <= 0 then
             if not model:GetAttribute("HasFallen") then
                 utilMod.SetFlagsForDeath(model)
 
                 if animTracks.death then
+                    animTracks.blink:Stop()
+                    animTracks.idle:Stop()
                     animTracks.death:Play()
-                    animTracks.death.Stopped:Once(function()
-                        if not model.Parent then return end
-                        animTracks.death.TimePosition = animTracks.death.Length - 0.02
-                        animTracks.death:AdjustSpeed(0)
-                        humanoid.PlatformStand = true
-                        task.spawn(function()
-                            Debris:AddItem(model, 5)
-                        end)
-                    end)
+                    task.wait(2)
+                    model:SetAttribute("RecycleMe", true)
+                    
                 else
+                    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
                     humanoid.PlatformStand = true
-                    task.spawn(function()
-                            Debris:AddItem(model, 5)
-                    end)
+                    model:SetAttribute("RecycleMe", true)
                 end
             end
             task.wait(0.1)
             continue
         end
+
 
         ----------------------------------------------------------------
         -- THREAT / TARGET SELECTION

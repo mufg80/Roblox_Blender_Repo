@@ -3,13 +3,13 @@
 --local ds = game:GetService("DataStoreService")
 --local plrData = ds:GetDataStore("Testing_035")
 --local dataStoreEnabled = false
-local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local collectionService = game:GetService("CollectionService")
 local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
 local magicMod = require(game.ReplicatedStorage.Shared.combatMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
+local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
@@ -121,21 +121,29 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
         if character then
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                local summonedCreature = creature:Clone()
-				local name = utilMod.uniqueName(creatureName)
-				summonedCreature.Name = name
+
+
+                local summonedCreature = nil
+				if recyleMod.CheckIfExistsPet(creatureName) then
+					summonedCreature = recyleMod.ReturnPet(creatureName)
+				else
+					summonedCreature = creature:Clone()
+					local name = utilMod.uniqueName(creatureName)
+					summonedCreature.Name = name
+					summonedCreature.Parent = workspace:WaitForChild("Pets")
+					summonedCreature:AddTag("Character")
+				end
 				summonedCreature:SetAttribute("OwnedBy", player.UserId)
-				summonedCreature:AddTag("Character")
 				
-                summonedCreature.Parent = workspace:WaitForChild("Pets")
+				
+                
                 -- get creature humanoidrootpart cframe and offset by 10 studs in front of player
 				local height = combatMod.creatureStats[creatureName].height
 				local offsetheight = height - hrp.CFrame.Position.Y
                 local offsetCFrame = hrp.CFrame * CFrame.new(0, offsetheight, -10)
                 local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
                 if creatureHRP then
-                    creatureHRP.CFrame = offsetCFrame
-                    
+                    creatureHRP.CFrame = offsetCFrame                    
                 else
                     warn("Summoned creature "..creatureName.." has no HumanoidRootPart")
                 end
@@ -149,26 +157,44 @@ end)
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
 
-if spawnpoints then
-	local rand = math.random(1, #spawnpoints)
-	local point = spawnpoints[rand]
 
-	local creature = serverstorage.Entities:FindFirstChild("FeralArtifactGuardian"):Clone()
-	creature.Name = utilMod.uniqueName(creature.Name)
-	creature.Parent = workspace:WaitForChild("Ferals")
-	creature:AddTag("Character")
-	local height = combatMod.creatureStats["ArtifactGuardian"].height
+function spawnferal()
+	if spawnpoints then
+		local rand = math.random(1, #spawnpoints)
+		local point = spawnpoints[rand]
+		local creature = nil
+		if recyleMod.CheckIfExistsFeral("FeralArtifactGuardian")then
+			creature = recyleMod.ReturnFeral("FeralArtifactGuardian")
+		else
+			creature = serverstorage.Entities:FindFirstChild("FeralArtifactGuardian"):Clone()
+			creature.Name = utilMod.uniqueName(creature.Name)
+			creature.Parent = workspace:WaitForChild("Ferals")
+			creature:SetAttribute("OwnedBy", "None")
+			creature:AddTag("Character")
+		end
+		local height = combatMod.creatureStats["ArtifactGuardian"].height
 
-	local offsetheight = height - point.Position.Y
-                local offsetCFrame = CFrame.new(point.Position.X, offsetheight, point.Position.Z)
-                local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
-                if creatureHRP then
-                    creatureHRP.CFrame = offsetCFrame
-                else
-                    warn("Summoned creature "..creature.." has no HumanoidRootPart")
-                end
+		local offsetheight = height - point.Position.Y
+					local offsetCFrame = CFrame.new(point.Position.X, offsetheight, point.Position.Z)
+					local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
+					if creatureHRP then
+						creatureHRP.CFrame = offsetCFrame
+					else
+						warn("Summoned creature "..creature.." has no HumanoidRootPart")
+					end
+	end
 end
 
+task.spawn(function()
+	while true do
+		task.wait(1)
+		if #workspace:FindFirstChild("Ferals"):GetChildren() == 0 then
+			spawnferal()
+		end
+
+		task.wait(20)
+	end
+end)
 
 
 

@@ -104,6 +104,7 @@ function utilMod.SetFlagsForIdle(model)
     model:SetAttribute("IsIdle", true)
     model:SetAttribute("HasFallen", false)
     model:SetAttribute("InCombat", false)
+    model:SetAttribute("IdleStartTime", tick())
 end
 
 function utilMod.GetStatsSafelyForPlrorNpc(npc)

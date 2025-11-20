@@ -608,4 +608,5 @@ function combatMod.customTrim(input: string?): string
     return input:gsub("_[%w]*$", "")
 end
 
+
 return combatMod
