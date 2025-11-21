@@ -126,14 +126,17 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
                 local summonedCreature = nil
 				if recyleMod.CheckIfExistsPet(creatureName) then
 					summonedCreature = recyleMod.ReturnPet(creatureName)
+					summonedCreature:SetAttribute("OwnedBy", player.UserId)
+					summonedCreature.Parent = workspace:WaitForChild("Pets")
 				else
 					summonedCreature = creature:Clone()
 					local name = utilMod.uniqueName(creatureName)
 					summonedCreature.Name = name
-					summonedCreature.Parent = workspace:WaitForChild("Pets")
+					summonedCreature:SetAttribute("OwnedBy", player.UserId)
 					summonedCreature:AddTag("Character")
+					summonedCreature.Parent = workspace:WaitForChild("Pets")
 				end
-				summonedCreature:SetAttribute("OwnedBy", player.UserId)
+				
 				
 				
                 
@@ -165,13 +168,15 @@ function spawnferal()
 		local creature = nil
 		if recyleMod.CheckIfExistsFeral("FeralArtifactGuardian")then
 			creature = recyleMod.ReturnFeral("FeralArtifactGuardian")
+			creature.Parent = workspace:WaitForChild("Ferals")			
 		else
 			creature = serverstorage.Entities:FindFirstChild("FeralArtifactGuardian"):Clone()
-			creature.Name = utilMod.uniqueName(creature.Name)
-			creature.Parent = workspace:WaitForChild("Ferals")
+			creature.Name = utilMod.uniqueName(creature.Name)			
 			creature:SetAttribute("OwnedBy", "None")
 			creature:AddTag("Character")
+			creature.Parent = workspace:WaitForChild("Ferals")
 		end
+		
 		local height = combatMod.creatureStats["ArtifactGuardian"].height
 
 		local offsetheight = height - point.Position.Y

@@ -3,9 +3,6 @@ local thisMob = "ArtifactGuardian"
 local thisFeralMob = "FeralArtifactGuardian"
 local model = script.Parent
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
@@ -22,7 +19,7 @@ local IdleReset = model:GetAttribute("IdleReset") or 5
 local spawnPosition = hrp.Position
 
 function setStats()
-    if model:GetAttribute("OwnedBy") == "None" or model:GetAttribute("OwnedBy") == "" then
+    if model:GetAttribute("OwnedBy") == "None" or model:GetAttribute("OwnedBy") == "none" or model:GetAttribute("OwnedBy") == "" then
         baseStats = combatMod.ShallowTableCopy(thisFeralMob)
         humanoid.MaxHealth = baseStats.hitPoints
         humanoid.Health = baseStats.hitPoints
@@ -35,11 +32,14 @@ function setStats()
         humanoid.MaxHealth = baseStats.hitPoints
         humanoid.Health = baseStats.hitPoints
         humanoid.WalkSpeed = 16 * baseStats.speed
+        IsStationary = model:GetAttribute("IsStationary") ~= false
+        IdleReset = model:GetAttribute("IdleReset") or 5
+        spawnPosition = hrp.Position
     end
 end
 
 model:GetAttributeChangedSignal("OwnedBy"):Connect(setStats)
-
+setStats()
 
 -- === Threat API ===
 local AddThreatEvent = Instance.new("BindableEvent")
@@ -93,9 +93,18 @@ if animator then
     animTracks.attack2 = load("ArtGuardAtt2", false)
     animTracks.attack3 = load("ArtGuardAtt3", false)
 end
+-- task.spawn(function()
+--     while true do
+--         if model:GetAttribute("OwnedBy") == "None" then return end
+--         local id = model:GetAttribute("OwnedBy")
+--         local player = utilMod.GetModelByIDorName(id)
+--         local l = player:FindFirstChild("HumanoidRootPart")
+--         local itemtoprint = utilMod.GetMagnitude(hrp, l)
+--         print(itemtoprint)
+--         task.wait(2)
+--     end
 
-
-
+-- end)
 
 
 -- === MAIN LOOP ===
@@ -108,12 +117,12 @@ task.spawn(function()
             end
         end
     end)
-
+    model:SetAttribute("IdleStartTime", tick())
     local lastAttackTime = 0
     local ATTACK_COOLDOWN = combatMod.DELAY * baseStats.attackDelay
     
     local ownedby = model:GetAttribute("OwnedBy")
-
+    local spincooldown = true
     while task.wait(0.03) do
 
 -- set flags
@@ -128,11 +137,11 @@ task.spawn(function()
                 utilMod.SetFlagsForDeath(model)
             end
         end
-        local isPet = false;
+        local isPet = true;
         local ownerInstance = nil
         local combatTargetModel = nil
         local acceptableDistance = nil
-        local useDirectMove = false
+        local movingDirection = "NotMoving"
         if not model:GetAttribute("HasFallen") then
             
             
@@ -153,15 +162,22 @@ task.spawn(function()
             else
                 aggroMod.hateListFeral(baseStats, hateList, model, hrp)
             end
-            if #hateList > 0 then
+
+            local hasEnemies = next(hateList) ~= nil   -- true if table has at least one entry
+            if hasEnemies then
                 if model:GetAttribute("TargetIDorName") == "None" then
                     warn("Should not reach me.")
                 end
             end
+
+            ----------------------------------------------------------------
+            -- SetStates
+            ----------------------------------------------------------------
             
-            
-            if not model:GetAttribute("TargetIDorName") == "None" then
-                combatTargetModel = utilMod.GetModelByIDorName(model:GetAttribute("TargetIDorName"))
+            local targetid = model:GetAttribute("TargetIDorName")
+
+            if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
+                combatTargetModel = utilMod.GetModelByIDorName(targetid)
             end
 
             if combatTargetModel then
@@ -169,24 +185,27 @@ task.spawn(function()
             end
             
 
-            if #hateList > 0 and acceptableDistance then
+            if hasEnemies and acceptableDistance then   -- next() returns nil if table is empty
                 if not model:GetAttribute("InCombat") then
                     utilMod.SetFlagsForCombat(model)
                 end
             end
             
-            if #hateList > 0 and not acceptableDistance then
+            if hasEnemies and not acceptableDistance then   -- next() returns nil if table is empty
                 if not model:GetAttribute("IsMoving")then
-                    utilMod.SetFlagsForMoving(model)
+                    utilMod.SetFlagsForMoving(model)                    
                 end
+                movingDirection = "MovingToCombatTarget"
             end
 
-            if #hateList == 0 then
+            if not hasEnemies then
                 if isPet then
-                    if pathMod.GetTargetPet(model, ownerInstance.name) then
+                    local check = ownerInstance and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+                    if check then
                         if not model:GetAttribute("IsMoving") then
                             utilMod.SetFlagsForMoving(model)
                         end
+                        movingDirection = "MovingToOwner"
                     else
                         if not model:GetAttribute("IsIdle") then
                             utilMod.SetFlagsForIdle(model)
@@ -196,8 +215,9 @@ task.spawn(function()
                     if IsStationary then
                         if utilMod.GetMagnitude(spawnPosition, hrp) > 3 and (model:GetAttribute("IdleStartTime") - tick()) > IdleReset then
                             if not model:GetAttribute("IsMoving")then
-                                utilMod.SetFlagsForMoving(model)
+                                utilMod.SetFlagsForMoving(model)                                
                             end
+                            movingDirection = "MovingToSpawnPosition"
                         else 
                             if not model:GetAttribute("IsIdle") then
                                 utilMod.SetFlagsForIdle(model)
@@ -207,21 +227,31 @@ task.spawn(function()
                         if (model:GetAttribute("IdleStartTime") - tick()) > IdleReset then
                             if not model:GetAttribute("IsMoving") then
                                 utilMod.SetFlagsForMoving(model)
-                            else
-                                if not model:GetAttribute("IsIdle") then
-                                    utilMod.SetFlagsForMoving(model)
-                                end
+                            end
+                            movingDirection = "MovingToRandom"
+                        else
+                            if not model:GetAttribute("IsIdle") then
+                                utilMod.SetFlagsForIdle(model)
                             end
                         end
                     end
                 end
             end
 
+            ----------------------------------------------------------------
+                -- Actions
+            ----------------------------------------------------------------
 
             if model:GetAttribute("InCombat") then
                 ----------------------------------------------------------------
                 -- FACE TARGET / OWNER
                 ----------------------------------------------------------------
+
+                if combatTargetModel and pathMod.IsPathActive(model) then
+                    if utilMod.AcceptableDistanceToOpponent(model, combatTargetModel) then
+                        pathMod.ShortCircutTravel(model)
+                    end
+                end
                 if combatTargetModel and not pathMod.IsPathActive(model) then
                     
                     local tHRP = combatTargetModel and (combatTargetModel:FindFirstChild("HumanoidRootPart") or combatTargetModel:FindFirstChild("Torso"))
@@ -269,7 +299,45 @@ task.spawn(function()
                 -- Moving
             ----------------------------------------------------------------
             if model:GetAttribute("IsMoving") then
-                
+                if not animTracks.idle.IsPlaying then
+                    animTracks.idle:Play()
+                    animTracks.idle:AdjustSpeed(1.5)
+                else
+                    animTracks.idle:AdjustSpeed(1.5)
+                end
+
+                if movingDirection == "MovingToCombatTarget" then
+                    local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
+                    if target and not pathMod.IsPathActive(model) then
+                        pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
+                    end
+                    
+                elseif movingDirection == "MovingToOwner" then
+                    local target = pathMod.GetTargetPet(model, model:GetAttribute("OwnedBy"))
+                    if target and not pathMod.IsPathActive(model)then
+                        pathMod.PathfindToPosition(model, target, model:GetAttribute("OwnedBy"))
+                    end
+
+                elseif movingDirection == "MovingToSpawnPosition" then
+                    if not pathMod.IsPathActive(model)then
+                        pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
+                    end
+
+                elseif movingDirection == "MovingToRandom" then
+                    local xpos = math.random(-20, 20)
+                    local zpos = math.random(-20, 20)
+                    local vec = Vector3.new(xpos, model.Position.Y, zpos)
+                    if not pathMod.IsPathActive(model) then
+                        pathMod.PathfindToPosition(model, vec, "SpawnPoint")
+                    end
+                elseif movingDirection == "NotMoving" then
+                    warn("flag is moving but not target.")
+                else
+                    warn("Should not reach me.")
+                end
+
+
+
             end
             ----------------------------------------------------------------
                 -- Idle
@@ -277,6 +345,57 @@ task.spawn(function()
             if model:GetAttribute("IsIdle") then
                 if not animTracks.idle.IsPlaying then
                     animTracks.idle:Play()
+                    animTracks.idle:AdjustSpeed(1.0)
+                else
+                    animTracks.idle:AdjustSpeed(1.0)
+                end
+                if pathMod.IsPathActive(model) then
+                    pathMod.ShortCircutTravel(model)
+                end
+
+                if ownerInstance and (tick() - model:GetAttribute("IdleStartTime")) > math.random(10, 20) and spincooldown then
+                    spincooldown = false
+                    task.spawn(function()
+                        local tHRP = ownerInstance:FindFirstChild("HumanoidRootPart") or ownerInstance:FindFirstChild("Torso")
+                        if not tHRP then
+                            spincooldown = true
+                            return
+                        end
+
+                        -- Direction to owner (ignore Y axis so it doesn’t tilt)
+                        local toOwner = (tHRP.Position - hrp.Position)
+                        toOwner = Vector3.new(toOwner.X, 0, toOwner.Z)
+                        if toOwner.Magnitude < 0.1 then
+                            spincooldown = true
+                            return
+                        end
+
+                        local targetCFrame = CFrame.lookAt(hrp.Position, hrp.Position + toOwner)
+
+                        local connection
+                        connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+                            -- Cancel if no longer idle or owner disappeared
+                            if not model:GetAttribute("IsIdle") or not ownerInstance.Parent then
+                                connection:Disconnect()
+                                return
+                            end
+
+                            -- Lerp toward the target facing direction
+                            local speed = 2 * dt
+                            hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, speed)  
+                            
+                            -- Stop when we’re basically facing the owner
+                            if (hrp.CFrame.LookVector - targetCFrame.LookVector).Magnitude < 0.05 then
+                                hrp.CFrame = targetCFrame  -- snap to exact
+                                connection:Disconnect()
+                            end
+                        end)
+                    end)
+
+                    -- Allow next turn after a random delay
+                    task.delay(math.random(8, 15), function()
+                        spincooldown = true
+                    end)
                 end
             end
         else
@@ -289,7 +408,6 @@ task.spawn(function()
                 animTracks.death:Play()
                 task.wait(2)
                 model:SetAttribute("RecycleMe", true)
-                
             else
                 humanoid:ChangeState(Enum.HumanoidStateType.Physics)
                 humanoid.PlatformStand = true

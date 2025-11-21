@@ -83,8 +83,8 @@ function aggroMod.hateListFeral(baseStats, hateList, model, hrp)
  ----------------------------------------------------------------
         -- THREAT / TARGET SELECTION
         ----------------------------------------------------------------
-        local aggroSqr = baseStats.AggroRadius ^ 2
-        local leashSqr = (baseStats.AggroRadius * 3) ^ 2
+        local aggroSqr = baseStats.aggroRadius ^ 2
+        local leashSqr = (baseStats.aggroRadius * 3) ^ 2
 
         -- Add nearby threats
         for _, player in ipairs(game.Players:GetPlayers()) do

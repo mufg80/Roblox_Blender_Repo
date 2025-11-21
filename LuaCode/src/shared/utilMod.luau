@@ -36,9 +36,40 @@ function utilMod.GetCharactersTagged()
     return CharacterList
 end
 
-function utilMod.GetMagnitude(part1, part2)
-    if not part1 or not part2 then return math.huge end
-    return (part1.Position - part2.Position).Magnitude
+-- utilMod.GetMagnitude(a, b)
+-- a and b can each be: Instance (Part/BasePart) or Vector3
+-- Returns the distance between the two points, or math.huge if invalid
+
+local function GetPosition(obj)
+    if typeof(obj) == "Instance" then
+        if obj:IsA("BasePart") then
+            return obj.Position
+        else
+            return nil, "Object is not a BasePart"
+        end
+    elseif typeof(obj) == "Vector3" then
+        return obj
+    else
+        return nil, "Expected BasePart or Vector3"
+    end
+end
+
+function utilMod.GetMagnitude(a, b)
+    if not a or not b then return math.huge end
+    
+    local posA, errA = GetPosition(a)
+    local posB, errB = GetPosition(b)
+    
+    if not posA then
+        warn("GetMagnitude: First argument invalid -", errA, a)
+        return math.huge
+    end
+    if not posB then
+        warn("GetMagnitude: Second argument invalid -", errB, b)
+        return math.huge
+    end
+    
+    return (posA - posB).Magnitude
 end
 
 function utilMod.GetModelByIDorName(targetIdOrName)

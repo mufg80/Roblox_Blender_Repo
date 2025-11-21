@@ -8,6 +8,7 @@ local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local recycleMod = {}
 recycleMod.thedead = {}
 recycleMod.theferaldead = {}
+recycleMod.waittime = 2
 
 ----------------------------------------------------------------
 -- Helper: reset an NPC back to its default state
@@ -29,7 +30,20 @@ function recycleMod.resetNPC(npc)
     if hum then
         hum.Health = hum.MaxHealth
         hum.PlatformStand = false
+        
+        -- Clear animations
+        local animator = hum:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                track:Stop()
+            end
+        end
+        
+        -- Reset state to idle
+        hum:ChangeState(Enum.HumanoidStateType.Physics) -- force reset
+        hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics) -- back to normal
     end
+
 
     -- Disable + re-enable scripts (restart clean)
     for _, s in ipairs(npc:GetDescendants()) do
@@ -76,7 +90,6 @@ function recycleMod.ReturnPet(baseName)
 
     for _, npc in ipairs(storagePets:GetChildren()) do
         if combatMod.customTrim(npc.Name) == baseName then
-            npc.Parent = workspace:WaitForChild("Pets")
             recycleMod.resetNPC(npc)
             return npc
         end
@@ -90,7 +103,6 @@ function recycleMod.ReturnFeral(baseName)
 
     for _, npc in ipairs(storageFerals:GetChildren()) do
         if combatMod.customTrim(npc.Name) == baseName then
-            npc.Parent = workspace:WaitForChild("Ferals")
             recycleMod.resetNPC(npc)
             return npc
         end
@@ -119,13 +131,12 @@ function recycleMod.flagAsDead()
 
         -- Recycle pets
         for name, t in pairs(recycleMod.thedead) do
-            if (tick() - t) > 3 then
+            if (tick() - t) > recycleMod.waittime then
                 local npc = workspace.Pets:FindFirstChild(name)
                 if npc then
                     local storagePets = ServerStorage:FindFirstChild("Pets")
                     if storagePets then
                         npc.Parent = storagePets
-                        recycleMod.resetNPC(npc)
                     end
                 end
                 recycleMod.thedead[name] = nil
@@ -134,13 +145,12 @@ function recycleMod.flagAsDead()
 
         -- Recycle ferals
         for name, t in pairs(recycleMod.theferaldead) do
-            if (tick() - t) > 3 then
+            if (tick() - t) > recycleMod.waittime then
                 local npc = workspace.Ferals:FindFirstChild(name)
                 if npc then
                     local storageFerals = ServerStorage:FindFirstChild("Ferals")
                     if storageFerals then
                         npc.Parent = storageFerals
-                        recycleMod.resetNPC(npc)
                     end
                 end
                 recycleMod.theferaldead[name] = nil
