@@ -22,7 +22,7 @@ function recycleMod.resetNPC(npc)
     npc:SetAttribute("InCombat", false)
     npc:SetAttribute("IsIdle", true)
     npc:SetAttribute("IsMoving", false)
-    npc:SetAttribute("OwnedBy", false)
+    npc:SetAttribute("OwnedBy", "None")
     npc:SetAttribute("RecycleMe", false)
 
     -- Reset humanoid

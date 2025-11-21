@@ -1,12 +1,13 @@
 -- ArtifactGuardian Pet Script - FINAL POLISHED VERSION (Nov 19, 2025)
-local thisMob = "ArtifactGuardian"
-local thisFeralMob = "FeralArtifactGuardian"
+
 local model = script.Parent
 
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
 local aggroMod = require(game.ReplicatedStorage.Shared.aggroMod)
+
+local thisMob = combatMod.customTrim(model.Name)
 
 local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
@@ -17,25 +18,14 @@ local baseStats= combatMod.ShallowTableCopy(thisMob)
 local IsStationary = model:GetAttribute("IsStationary") ~= false
 local IdleReset = model:GetAttribute("IdleReset") or 5
 local spawnPosition = hrp.Position
-
 function setStats()
-    if model:GetAttribute("OwnedBy") == "None" or model:GetAttribute("OwnedBy") == "none" or model:GetAttribute("OwnedBy") == "" then
-        baseStats = combatMod.ShallowTableCopy(thisFeralMob)
-        humanoid.MaxHealth = baseStats.hitPoints
-        humanoid.Health = baseStats.hitPoints
-        humanoid.WalkSpeed = 16 * baseStats.speed
-        IsStationary = model:GetAttribute("IsStationary") ~= false
-        IdleReset = model:GetAttribute("IdleReset") or 5
-        spawnPosition = hrp.Position
-    else
-        baseStats = combatMod.ShallowTableCopy(thisMob)
-        humanoid.MaxHealth = baseStats.hitPoints
-        humanoid.Health = baseStats.hitPoints
-        humanoid.WalkSpeed = 16 * baseStats.speed
-        IsStationary = model:GetAttribute("IsStationary") ~= false
-        IdleReset = model:GetAttribute("IdleReset") or 5
-        spawnPosition = hrp.Position
-    end
+    baseStats = combatMod.ShallowTableCopy(thisMob)
+    humanoid.MaxHealth = baseStats.hitPoints
+    humanoid.Health = baseStats.hitPoints
+    humanoid.WalkSpeed = 16 * baseStats.speed
+    IsStationary = model:GetAttribute("IsStationary") ~= false
+    IdleReset = model:GetAttribute("IdleReset") or 5
+    spawnPosition = hrp.Position
 end
 
 model:GetAttributeChangedSignal("OwnedBy"):Connect(setStats)
