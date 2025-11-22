@@ -12,10 +12,10 @@ local function addModel(model)
     end
 end
 
--- NON-BLOCKING Pathfinding (unchanged logic, safe key)
+
 function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 
-
+    
     if activePaths[model.Name] then
         return false
     end
@@ -25,7 +25,8 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
     
     local humanoid = model:FindFirstChildOfClass("Humanoid")
     local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
-    
+    local lastpos = rootPart.Position
+    local startTick = tick()
     if not humanoid or not rootPart then
         activePaths[model.Name] = nil
         return false
@@ -69,6 +70,31 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
             activePaths[model.Name] = nil
             return
         end
+        if tick() - startTick > 1 then
+    startTick = tick()
+    if (rootPart.Position - lastpos).Magnitude < 1 then
+        -- warn(string.format(
+        --     "NOT MOVING! model=%s | rootPos=%s | lastPos=%s | targetPos=%s | targetIdOrName=%s | currentWaypointIndex=%d/%d | waypointPos=%s | distToWaypoint=%.2f | distToTarget=%.2f | humanoidState=%s",
+        --     model.Name,
+        --     tostring(rootPart.Position),
+        --     tostring(lastpos),
+        --     tostring(targetPosition),
+        --     tostring(targetIdOrName),
+        --     currentWaypointIndex,
+        --     #waypoints,
+        --     tostring(waypoints[currentWaypointIndex] and waypoints[currentWaypointIndex].Position or "nil"),
+        --     utilMod.GetMagnitude(rootPart.Position, waypoints[currentWaypointIndex] and waypoints[currentWaypointIndex].Position or rootPart.Position),
+        --     utilMod.GetMagnitude(rootPart.Position, targetPosition),
+        --     tostring(humanoid:GetState())
+        -- ))
+        -- keep/disconnect depending on your test setup
+        connection:Disconnect()
+        activePaths[model.Name] = nil
+    else
+        lastpos = rootPart.Position
+    end
+end
+
 
        if targetIdOrName ~= "SpawnPoint" then
         local mob = utilMod.GetModelByIDorName(targetIdOrName)
@@ -98,11 +124,10 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 
         local waypoint = waypoints[currentWaypointIndex]
         local distanceToWaypoint = utilMod.GetMagnitude(rootPart.Position, waypoint.Position)
-        local distancetoTargetPos = utilMod.GetMagnitude(rootPart.Position, targetPosition)
+        --local distancetoTargetPos = utilMod.GetMagnitude(rootPart.Position, targetPosition)
 
-        if distancetoTargetPos < 3 then
-            humanoid:MoveTo(targetPosition)        
-        elseif distanceToWaypoint < 4 then
+        
+        if distanceToWaypoint < 3 and currentWaypointIndex ~= #waypoints then
             currentWaypointIndex += 1
         else
             if waypoint.Action == Enum.PathWaypointAction.Jump then

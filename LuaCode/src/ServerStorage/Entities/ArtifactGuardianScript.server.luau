@@ -17,6 +17,7 @@ local baseStats= combatMod.ShallowTableCopy(thisMob)
 
 local IsStationary = model:GetAttribute("IsStationary") ~= false
 local IdleReset = model:GetAttribute("IdleReset") or 5
+local rangeLimit = model:GetAttribute("RangeLimit") or 50
 local spawnPosition = hrp.Position
 function setStats()
     baseStats = combatMod.ShallowTableCopy(thisMob)
@@ -110,7 +111,7 @@ task.spawn(function()
     model:SetAttribute("IdleStartTime", tick())
     local lastAttackTime = 0
     local ATTACK_COOLDOWN = combatMod.DELAY * baseStats.attackDelay
-    
+    local homewardBound = false
     local ownedby = model:GetAttribute("OwnedBy")
     local spincooldown = true
     while task.wait(0.03) do
@@ -203,7 +204,7 @@ task.spawn(function()
                     end
                 else
                     if IsStationary then
-                        if utilMod.GetMagnitude(spawnPosition, hrp) > 3 and (model:GetAttribute("IdleStartTime") - tick()) > IdleReset then
+                        if utilMod.GetMagnitude(spawnPosition, hrp) > 3 and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset then
                             if not model:GetAttribute("IsMoving")then
                                 utilMod.SetFlagsForMoving(model)                                
                             end
@@ -214,9 +215,28 @@ task.spawn(function()
                             end
                         end
                     else
-                        if (model:GetAttribute("IdleStartTime") - tick()) > IdleReset then
+                        local tooFar = utilMod.GetMagnitude(hrp, spawnPosition) > rangeLimit
+
+                        if tooFar and not homewardBound then
+                            homewardBound = true
+                            if pathMod.IsPathActive(model) then
+                                pathMod.ShortCircutTravel(model)
+                            end
+                            if not model:GetAttribute("IsIdle") then
+                                utilMod.SetFlagsForIdle(model)
+                            end
+                        elseif homewardBound then
                             if not model:GetAttribute("IsMoving") then
                                 utilMod.SetFlagsForMoving(model)
+                            end
+                            movingDirection = "HomewardBound"
+                        elseif (tick() - model:GetAttribute("IdleStartTime")) > IdleReset then
+                            if not model:GetAttribute("IsMoving") then
+                                utilMod.SetFlagsForMoving(model)
+                            elseif model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then
+                                if not model:GetAttribute("IsIdle") then
+                                    utilMod.SetFlagsForIdle(model)
+                                end
                             end
                             movingDirection = "MovingToRandom"
                         else
@@ -314,11 +334,22 @@ task.spawn(function()
                     end
 
                 elseif movingDirection == "MovingToRandom" then
-                    local xpos = math.random(-20, 20)
-                    local zpos = math.random(-20, 20)
-                    local vec = Vector3.new(xpos, model.Position.Y, zpos)
+                    local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
+                    if math.random(1,10) < 5 then
+                        local xpos = math.random(-10, 10)
+                        local zpos = math.random(-10, 10)
+                        vec = vec + Vector3.new(xpos, 0, zpos)
+                    end
+                    
                     if not pathMod.IsPathActive(model) then
                         pathMod.PathfindToPosition(model, vec, "SpawnPoint")
+                    end
+                elseif movingDirection == "HomewardBound" then
+                    if not pathMod.IsPathActive(model)then
+                        pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
+                    elseif utilMod.GetMagnitude(hrp, spawnPosition) < 5 then
+                        pathMod.ShortCircutTravel(model)
+                        homewardBound = false
                     end
                 elseif movingDirection == "NotMoving" then
                     warn("flag is moving but not target.")
