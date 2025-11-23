@@ -1,5 +1,4 @@
 local collectionService = game:GetService("CollectionService")
-local combatMod = require(game:GetService("ReplicatedStorage").Shared.combatMod)
 local utilMod = {}
 
 -- Cache for performance
@@ -138,27 +137,6 @@ function utilMod.SetFlagsForIdle(model)
     model:SetAttribute("IdleStartTime", tick())
 end
 
-function utilMod.GetStatsSafelyForPlrorNpc(npc)
-    local enemyTable = nil
-    if utilMod.IsPlayer(npc)then
-        local plr = game.Players:GetPlayerFromCharacter(npc)
-        local magic = plr:GetAttribute("Magic")
-        enemyTable = combatMod.ShallowTableCopy("Player"..magic)
-    else
-        enemyTable = combatMod.ShallowTableCopy(npc)
-    end
-    return enemyTable
-end
-
-function utilMod.AcceptableDistanceToOpponent(model, enemy)
-    local enemyTable = utilMod.GetStatsSafelyForPlrorNpc(enemy)
-    local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-    local enemyhrp = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChildWhichIsA("BasePart")
-    if not hrp or not enemyhrp then return false end
-    
-    local distance = utilMod.GetMagnitude(hrp, enemyhrp)
-    return distance <= (enemyTable.distanceForAttacker)
-end
 
 -- Keep your existing utility functions unchanged
 function utilMod.HexToColor3(hex)
@@ -171,32 +149,21 @@ end
 
 
 
-function utilMod.DistancetoGround(hrpX, hrpZ, ignoreList, npcHeight)
-    local rayOrigin = Vector3.new(hrpX, 5000, hrpZ)
+function utilMod.DistancetoGround(vector)
+    local rayOrigin = vector
+    local ignoreList = utilMod.GetCharactersTagged()
     local rayDirection = Vector3.new(0, -10000, 0)
     local raycastParams = RaycastParams.new()
     raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
     raycastParams.FilterDescendantsInstances = ignoreList or {}
+    raycastParams.RespectCanCollide = false
     local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
     if raycastResult then
-        return raycastResult.Position.Y + npcHeight
+        return raycastResult.Position.Y
     end
     return nil
 end
 
-function utilMod.FindRandomLocationByCharacter(character, hoverdistance)
-    if not character then return nil end
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if rootPart then
-        local hoverPos = rootPart.Position + Vector3.new(
-            math.random(-hoverdistance, hoverdistance), 
-            0, 
-            math.random(-hoverdistance, hoverdistance)
-        )
-        return hoverPos
-    end
-    return nil
-end
 
 function utilMod.createCustomExplosion(position, visualSize, time, color)
     local attachment = Instance.new("Attachment")
@@ -248,6 +215,38 @@ function utilMod.uniqueName(baseofname)
     -- Return next name, padded to 3 digits
     local newNum = highest + 1
     return string.format("%s_%03d", baseofname, newNum)
+end
+
+-- Fully Luau-compatible version (no ~ operator)
+function utilMod.GetSeedFromName(name: string, useTime: boolean?): number
+    if not name or name == "" then
+        return math.random(1, 2^30)
+    end
+
+    local seed = 5381 -- DJB2 start value
+    local nameUpper = string.upper(name)
+
+    -- DJB2 hash (works perfectly in Luau)
+    for i = 1, #nameUpper do
+        local byte = string.byte(nameUpper, i)
+        seed = (seed * 33 + byte) % 0xFFFFFFFF   -- keep it 32-bit
+    end
+
+    -- Replace ~ (XOR) with bit32.bxor – fully supported in Roblox Luau
+    seed = bit32.bxor(seed, tonumber(tostring({}):sub(8), 16) or 0)
+
+    if useTime then
+        seed = bit32.bxor(seed, math.floor(tick() % 1 * 1e6))
+    end
+
+    -- Final avalanche (makes low bits random too) – using only bit32 functions
+    seed = bit32.bxor(seed, bit32.rshift(seed, 16))
+    seed = (seed * 0x7FE73CE1) % 0xFFFFFFFF
+    seed = bit32.bxor(seed, bit32.rshift(seed, 13))
+    seed = (seed * 0x5A7D3F15) % 0xFFFFFFFF
+    seed = bit32.bxor(seed, bit32.rshift(seed, 16))
+
+    return seed
 end
 
 

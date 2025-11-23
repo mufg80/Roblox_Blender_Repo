@@ -12,6 +12,7 @@ local designSheet = designFolder:WaitForChild("StyleSheet")
 local themes = designFolder:WaitForChild("ClassThemes")
 local artificertheme = themes:WaitForChild("ArtificerTheme")
 local primordialtheme = themes:WaitForChild("PrimordialTheme")
+local naturetheme = themes:WaitForChild("NatureTheme")
 local player = players.LocalPlayer
 
 
@@ -31,8 +32,12 @@ function updateMagicUI()
         magicgui.Enabled = true
         magicgui.SpellFrame.Visible = true
         magicgui.CreatureFrame.Visible = true
+    elseif magic == combatMod.MagicType.Nature then
+        designSheet:SetDerives({naturetheme})
+        magicgui.Enabled = true
+        magicgui.SpellFrame.Visible = true
+        magicgui.CreatureFrame.Visible = true
     else
-        print("No magic type selected.")
         magicgui.Enabled = false
         magicgui.SpellFrame.Visible = false
         magicgui.CreatureFrame.Visible = false

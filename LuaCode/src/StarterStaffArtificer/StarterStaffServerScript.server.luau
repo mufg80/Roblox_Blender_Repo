@@ -87,6 +87,31 @@ local function fireBullet(player, targetPosition)
 			local hitPlayer = game.Players:FindFirstChild(ownerName)
 			if hitPlayer and hitPlayer.Character == hitCharacter then
 				return -- Ignore collision with the owner's character
+
+			else
+				local targetchar = combatMod.customTrim(hitCharacter.Name)
+				local damage = combatMod.SpellAttackResult("PlayerArtificer", targetchar, "StarterStaffArtificer")
+				if damage then
+					local targetHum = hitCharacter:FindFirstChildOfClass("Humanoid")
+                            if targetHum then
+                                -- Creator tag
+                                local creator = Instance.new("ObjectValue")
+                                creator.Name = "creator"
+                                creator.Value = hitPlayer
+                                creator.Parent = targetHum
+                                task.delay(0.5, function()
+                                    if creator.Parent then creator:Destroy() end
+                                end)
+
+                                targetHum.Health = math.max(targetHum.Health - damage, 0)
+								if damage == 0 then
+									local event = hitCharacter:FindFirstChild("AddThreat")
+									if event then
+										event:fire(hitPlayer.UserId, 25)
+									end
+								end
+                            end
+				end
 			end
 		end
 		-- Trigger the explosion

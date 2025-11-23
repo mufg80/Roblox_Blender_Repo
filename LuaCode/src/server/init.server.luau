@@ -157,6 +157,11 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
     end
 end)
 
+local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
+spellevent.OnServerEvent:Connect(function(player, spellname)
+	print("SpellEvent received from "..player.Name.." for spell "..spellname)
+end)
+
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
 
@@ -202,9 +207,6 @@ task.spawn(function()
 end)
 
 
-
-
-
 -- admin area
 
 local adminEvent = repstore.Events.AdminEvent
@@ -216,7 +218,9 @@ adminEvent.OnServerEvent:Connect(function(player, command)
                 player:SetAttribute("Magic", magicMod.MagicType.Artificer)
             elseif currentType == magicMod.MagicType.Artificer then
                 player:SetAttribute("Magic", magicMod.MagicType.Primordial)
-            elseif currentType == magicMod.MagicType.Primordial then
+			elseif currentType == magicMod.MagicType.Primordial then
+                player:SetAttribute("Magic", magicMod.MagicType.Nature)
+            elseif currentType == magicMod.MagicType.Nature then
                 player:SetAttribute("Magic", magicMod.MagicType.None)
             end
         end
@@ -229,3 +233,4 @@ adminEvent.OnServerEvent:Connect(function(player, command)
     end
 end)
 
+--local testMod = require(game.ReplicatedStorage.Shared.testMod)

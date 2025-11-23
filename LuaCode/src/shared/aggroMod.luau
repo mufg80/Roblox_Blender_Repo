@@ -48,7 +48,6 @@ function aggroMod.hateListPet(baseStats, hateList, model, hrp)
         
         if not root or (root.Position - hrp.Position).Magnitude^2 > leashSqr then
             hateList[id] = nil
-            print("off leash")
         elseif target and hum and hum.Health < 0 or target:GetAttribute("HasFallen") then
             hateList[id] = nil
         else
@@ -114,10 +113,7 @@ function aggroMod.hateListFeral(baseStats, hateList, model, hrp)
             local hum = target and target:FindFirstChildOfClass("Humanoid")
             
             if not root or (root.Position - hrp.Position).Magnitude^2 > leashSqr then
-                print(hateList[id])
                 hateList[id] = nil
-                print("off leash")
-                print(hateList[id])
             elseif target and hum and hum.Health < 0 or target:GetAttribute("HasFallen") then
                 hateList[id] = nil
             else

@@ -1,4 +1,5 @@
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
+local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
 
@@ -6,36 +7,69 @@ local pathMod = {}
 
 local activePaths = {}        -- [model] = true / connection
 
-local function addModel(model)
+local function addModel(model, targetIdOrName, connection)
     if not activePaths[model] then
-        activePaths[model] = true
+        activePaths[model] = { connection = connection, targetIdOrName = targetIdOrName }
     end
+end
+
+-- NEW & FINAL VERSION – returns the real Instance when possible
+function pathMod.GetCurrentTarget(model)
+    local entry = activePaths[model]
+    if not entry then
+        return nil
+    end
+
+    local targetIdOrName = entry.targetIdOrName
+
+    -- Case 1: We're pathfinding to the literal "SpawnPoint" string
+    if targetIdOrName == "SpawnPoint" then
+        return "SpawnPoint"
+    end
+
+    -- Case 2: targetIdOrName is already an Instance (Model) → return it directly
+    if typeof(targetIdOrName) == "Instance" and targetIdOrName:IsA("Model") then
+        -- Double-check it's still in the game (in case it was destroyed)
+        if targetIdOrName.Parent then
+            return targetIdOrName
+        else
+            return nil
+        end
+    end
+
+    -- Case 3: It's a UserId (number) or name string → try to resolve the model
+    local targetModel = utilMod.GetModelByIDorName(targetIdOrName)
+    if targetModel and targetModel.Parent then
+        return targetModel
+    end
+
+    -- Nothing valid found
+    return nil
 end
 
 
 function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 
     
-    if activePaths[model.Name] then
+    if activePaths[model] then
         return false
     end
-    
-    addModel(model.Name)
-    
+    local connection = nil
+    addModel(model, targetIdOrName, connection)
     
     local humanoid = model:FindFirstChildOfClass("Humanoid")
     local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
     local lastpos = rootPart.Position
     local startTick = tick()
     if not humanoid or not rootPart then
-        activePaths[model.Name] = nil
+        activePaths[model] = nil
         return false
     end
 
     local path = pathfindingService:CreatePath({
         AgentRadius = 2,
         AgentHeight = 5,
-        AgentCanJump = false,
+        AgentCanJump = true,
         WaypointSpacing = 3,
     })
 
@@ -44,57 +78,45 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
     end)
 
     if not success or path.Status ~= Enum.PathStatus.Success then
-        activePaths[model.Name] = nil
+        activePaths[model] = nil
         return false
     end
 
     local waypoints = path:GetWaypoints()
     local currentWaypointIndex = 1
     
-    local connection
+    
     connection = RunService.Heartbeat:Connect(function()
-        if not activePaths[model.Name] then
+        if not activePaths[model] then
             connection:Disconnect()
             return
         end
 
-
         if not model.Parent then
             connection:Disconnect()
-            activePaths[model.Name] = nil
+            activePaths[model] = nil
             return
         end
         
         if currentWaypointIndex > #waypoints then
             connection:Disconnect()
-            activePaths[model.Name] = nil
+            activePaths[model] = nil
             return
         end
-        if tick() - startTick > 1 then
-    startTick = tick()
-    if (rootPart.Position - lastpos).Magnitude < 1 then
-        -- warn(string.format(
-        --     "NOT MOVING! model=%s | rootPos=%s | lastPos=%s | targetPos=%s | targetIdOrName=%s | currentWaypointIndex=%d/%d | waypointPos=%s | distToWaypoint=%.2f | distToTarget=%.2f | humanoidState=%s",
-        --     model.Name,
-        --     tostring(rootPart.Position),
-        --     tostring(lastpos),
-        --     tostring(targetPosition),
-        --     tostring(targetIdOrName),
-        --     currentWaypointIndex,
-        --     #waypoints,
-        --     tostring(waypoints[currentWaypointIndex] and waypoints[currentWaypointIndex].Position or "nil"),
-        --     utilMod.GetMagnitude(rootPart.Position, waypoints[currentWaypointIndex] and waypoints[currentWaypointIndex].Position or rootPart.Position),
-        --     utilMod.GetMagnitude(rootPart.Position, targetPosition),
-        --     tostring(humanoid:GetState())
-        -- ))
-        -- keep/disconnect depending on your test setup
-        connection:Disconnect()
-        activePaths[model.Name] = nil
-    else
-        lastpos = rootPart.Position
-    end
-end
 
+-- REPLACE your entire stuck detection block (the if tick() - startTick > 1 and not lastchance ... end) with this FIXED version:
+
+        if tick() - startTick > 1 then
+            startTick = tick()
+            if utilMod.GetMagnitude(lastpos, rootPart.Position) < 1 then
+                print("disconnected")
+                connection:Disconnect()
+                activePaths[model] = nil
+                return
+            else
+                lastpos = rootPart.Position
+            end
+        end
 
        if targetIdOrName ~= "SpawnPoint" then
         local mob = utilMod.GetModelByIDorName(targetIdOrName)
@@ -106,7 +128,7 @@ end
                 if waysoff > 10 then  -- I recommend 10–15, not 5
                     -- RECURSIVE REPATH — seamless!
                     connection:Disconnect()
-                    activePaths[model.Name] = nil
+                    activePaths[model] = nil
                     task.spawn(function()
                         -- Tiny delay so the stack doesn't grow during the same frame
                         task.wait()
@@ -141,9 +163,9 @@ end
     model.AncestryChanged:Connect(function()
         if not model.Parent then
             if connection then connection:Disconnect() end
-            activePaths[model.Name] = nil
+            activePaths[model] = nil
         end
-    end)    
+    end)
     return true
 end
 
@@ -152,14 +174,17 @@ function pathMod.IsPathActive(model)
     if not model then
         warn("should not reach here.")
     end
-    return activePaths[model.Name] ~= nil
+    return activePaths[model] ~= nil
 end
 
 
 -- short circuit travel
 function pathMod.ShortCircutTravel(model)
-    if activePaths[model.Name] then
-        activePaths[model.Name] = nil
+    if activePaths[model] then
+        if activePaths[model].connection then
+            activePaths[model].connection:Disconnect()
+        end
+        activePaths[model] = nil
     end
 end
 
@@ -179,11 +204,14 @@ function pathMod.GetTargetPet(model, targetIdOrName)
         
         local distance = utilMod.GetMagnitude(playerhrp, hrp)
         if distance >= 25 then
+
+            local random = Random.new(utilMod.GetSeedFromName(model.Name))
+
             local direction = -playerhrp.CFrame.LookVector
-            local randomDistance = math.random(10, 20)
+            local randomDistance = random:NextInteger(10,20)
             local targetPosition = playerhrp.Position + direction * randomDistance
             local rightVector = playerhrp.CFrame.RightVector
-            local randomOffset = math.random(-15, 15)
+            local randomOffset = random:NextInteger(-15,15)
             targetPosition = targetPosition + rightVector * randomOffset
             return targetPosition
         end
@@ -196,9 +224,9 @@ function pathMod.GetTargetPet(model, targetIdOrName)
     local enemyhrp = enemyTarget:FindFirstChild("HumanoidRootPart") or enemyTarget:FindFirstChildWhichIsA("BasePart")
     if not enemyhrp then return nil end
     
-    if not utilMod.AcceptableDistanceToOpponent(model, enemyTarget) then
-        local enemyTable = utilMod.GetStatsSafelyForPlrorNpc(enemyTarget)
-        local distanceForAttacker = enemyTable and enemyTable.distanceForAttacker - 1 or 4
+    if not combatMod.AcceptableDistanceToOpponent(model, enemyTarget) then
+        local enemyTable = combatMod.GetStatsSafelyForPlrorNpc(enemyTarget)
+        local distanceForAttacker = ((enemyTable and enemyTable.distanceForAttacker) or 4) - 2
         local direction = (enemyhrp.Position - hrp.Position).Unit
         local targetPosition = enemyhrp.Position - direction * distanceForAttacker
         return targetPosition
@@ -208,3 +236,4 @@ function pathMod.GetTargetPet(model, targetIdOrName)
 end
 
 return pathMod
+
