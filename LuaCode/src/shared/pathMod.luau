@@ -5,6 +5,207 @@ local RunService = game:GetService("RunService")
 
 local pathMod = {}
 
+pathMod.Pathing = {
+    StoneManaPriest = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    ArtifactGuardian = {
+    AgentRadius = 3,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    GrandPo = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    CoatArms = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    ArtifactProtector = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    SuitArms = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    FlyingGolem = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    MudPriest = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Dybb = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Blob = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    LithEater = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    GemEncrustedDybb = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    GiantAmoeba = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    FlyingEnergyField = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Druid = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Pog = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    WindSpirit = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Silverback = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    GreatTuskedPog = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Carnosaur = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    Griffin = {
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    },
+    FeralArtifactGuardian = {
+    AgentRadius = 3,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 3,
+    Costs = {
+        ["Danger"] = math.huge -- Avoid
+    }
+    }
+}
+
 local activePaths = {}        -- [model] = true / connection
 
 local function addModel(model, targetIdOrName, connection)
@@ -65,13 +266,8 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
         activePaths[model] = nil
         return false
     end
-
-    local path = pathfindingService:CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true,
-        WaypointSpacing = 3,
-    })
+    local pathTable = pathMod.Pathing[combatMod.customTrim(model.Name)]
+    local path = pathfindingService:CreatePath(pathTable)
 
     local success, err = pcall(function()
         path:ComputeAsync(rootPart.Position, targetPosition)
@@ -109,7 +305,6 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
         if tick() - startTick > 1 then
             startTick = tick()
             if utilMod.GetMagnitude(lastpos, rootPart.Position) < 1 then
-                print("disconnected")
                 connection:Disconnect()
                 activePaths[model] = nil
                 return

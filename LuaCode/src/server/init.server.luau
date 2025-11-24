@@ -121,8 +121,13 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
         if character then
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
-
-
+				local height = combatMod.creatureStats[creatureName].height
+				local straightAhead = hrp.CFrame * CFrame.new(0, 0, -10)
+				local straightAheadVectorStart = straightAhead.Position
+				local GroundAtSpawn = utilMod.DistancetoGround(straightAheadVectorStart)
+				local mobPos = GroundAtSpawn + height + 1
+				local mobposvector = Vector3.new(straightAheadVectorStart.X, mobPos, straightAheadVectorStart.Z)
+				local lookatVector = mobposvector + (hrp.CFrame.LookVector * 10)
                 local summonedCreature = nil
 				if recyleMod.CheckIfExistsPet(creatureName) then
 					summonedCreature = recyleMod.ReturnPet(creatureName)
@@ -138,15 +143,9 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
 				end
 				
 				
-				
-                
-                -- get creature humanoidrootpart cframe and offset by 10 studs in front of player
-				local height = combatMod.creatureStats[creatureName].height
-				local offsetheight = height - hrp.CFrame.Position.Y
-                local offsetCFrame = hrp.CFrame * CFrame.new(0, offsetheight, -10)
                 local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
                 if creatureHRP then
-                    creatureHRP.CFrame = offsetCFrame                    
+                    creatureHRP.CFrame = CFrame.new(mobposvector, lookatVector)
                 else
                     warn("Summoned creature "..creatureName.." has no HumanoidRootPart")
                 end
@@ -185,13 +184,13 @@ function spawnferal()
 		local height = combatMod.creatureStats["ArtifactGuardian"].height
 
 		local offsetheight = height - point.Position.Y
-					local offsetCFrame = CFrame.new(point.Position.X, offsetheight, point.Position.Z)
-					local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
-					if creatureHRP then
-						creatureHRP.CFrame = offsetCFrame
-					else
-						warn("Summoned creature "..creature.." has no HumanoidRootPart")
-					end
+		local offsetCFrame = CFrame.new(point.Position.X, offsetheight, point.Position.Z)
+		local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
+		if creatureHRP then
+			creatureHRP.CFrame = offsetCFrame
+		else
+			warn("Summoned creature "..creature.." has no HumanoidRootPart")
+		end
 	end
 end
 

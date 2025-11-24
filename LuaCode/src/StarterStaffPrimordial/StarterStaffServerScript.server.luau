@@ -1,165 +1,136 @@
-local ServerStorage = game:GetService("ServerStorage")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PhysicsService = game:GetService("PhysicsService")
+local ServerStorage       = game:GetService("ServerStorage")
+local ReplicatedStorage   = game:GetService("ReplicatedStorage")
+local RunService          = game:GetService("RunService")
 
-local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
-local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
+local combatMod = require(ReplicatedStorage.Shared.combatMod)
+local utilMod   = require(ReplicatedStorage.Shared.utilMod)
+
 local staffTable = combatMod.StaffStats
-local tool = script.Parent
+local tool       = script.Parent
 local bulletStartPosition = tool:WaitForChild("BulletStartPosition")
-local maxRange = staffTable.StarterStaffPrimordial.maxRange
-local bulletSpeed = staffTable.StarterStaffPrimordial.bulletSpeed
-local arcHeight = staffTable.StarterStaffPrimordial.arcHeight
 
--- Set collision group for BulletStartPosition
+-- Primordial Staff Stats
+local maxRange    = staffTable.StarterStaffPrimordial.maxRange
+local bulletSpeed = staffTable.StarterStaffPrimordial.bulletSpeed
+local arcHeight   = staffTable.StarterStaffPrimordial.arcHeight
+
+-- Muzzle collision group
 if bulletStartPosition:IsA("BasePart") then
-	bulletStartPosition.CollisionGroup = "Weapon"
+    bulletStartPosition.CollisionGroup = "Weapon"
 else
-	warn("BulletStartPosition is not a BasePart")
+    warn("BulletStartPosition is not a BasePart")
 end
 
--- Create RemoteEvent if it doesn't exist
+-- RemoteEvent (generic name "FireStarterStaff" – matches your original)
 local fireEvent = ReplicatedStorage:FindFirstChild("FireStarterStaff")
 if not fireEvent then
-	fireEvent = Instance.new("RemoteEvent")
-	fireEvent.Name = "FireStarterStaff"
-	fireEvent.Parent = ReplicatedStorage
+    fireEvent = Instance.new("RemoteEvent")
+    fireEvent.Name = "FireStarterStaff"
+    fireEvent.Parent = ReplicatedStorage
 end
 
--- Function to spawn and move bullet
-local function fireBullet(player, targetPosition)
-	-- Get bullet from ServerStorage
-	local bulletTemplate = ServerStorage:FindFirstChild("StarterStaffBullet")
-	local trail: Trail = bulletTemplate:FindFirstChild("StarterStaffTrail")
-	
-	local color = utilMod.HexToColor3(staffTable.StarterStaffPrimordial.bulletTrail)
-	local seq = ColorSequence.new({ColorSequenceKeypoint.new(0, color), ColorSequenceKeypoint.new(1, color)})
+local function fireBullet(player: Player, targetPosition: Vector3)
+    local bulletTemplate = ServerStorage:FindFirstChild("StarterStaffBullet")
+    if not bulletTemplate then
+        warn("StarterStaffBullet not found in ServerStorage")
+        return
+    end
 
-	trail.Color = seq
-	if not bulletTemplate then
-		warn("StarterStaffBullet not found in ServerStorage")
-		return
-	end
+    -- Set trail color
+    local trail: Trail = bulletTemplate:FindFirstChild("StarterStaffTrail")
+    local color = utilMod.HexToColor3(staffTable.StarterStaffPrimordial.bulletTrail)
+    trail.Color = ColorSequence.new(color)
 
-	-- Clone bullet
-	local bullet = bulletTemplate:Clone()
-	bullet:SetAttribute("Owner", player.Name)
-	bullet.Position = bulletStartPosition.Position + Vector3.new(0, 0.5, 0) -- Slight offset to avoid initial collision
-	bullet.Parent = workspace
+    -- Spawn bullet
+    local bullet = bulletTemplate:Clone()
+    bullet:SetAttribute("Owner", player.Name)
+    bullet.Position = bulletStartPosition.Position + Vector3.new(0, 0.5, 0)
+    bullet.Parent = workspace
 
-	-- Set collision group for bullet
-	if bullet:IsA("BasePart") then
-		bullet.CollisionGroup = "Bullet"
-	elseif bullet:IsA("Model") and bullet.PrimaryPart then
-		bullet.PrimaryPart.CollisionGroup = "Bullet"
-		for _, part in ipairs(bullet:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CollisionGroup = "Bullet"
-			end
-		end
-	end
+    -- Apply Bullet collision group (works for Part or Model)
+    local function setBulletCollision(part)
+        if part:IsA("BasePart") then
+            part.CollisionGroup = "Bullet"
+        end
+    end
+    if bullet:IsA("BasePart") then
+        setBulletCollision(bullet)
+    elseif bullet.PrimaryPart then
+        setBulletCollision(bullet.PrimaryPart)
+        for _, part in bullet:GetDescendants() do
+            setBulletCollision(part)
+        end
+    end
 
-	-- Set collision group for player's character parts, excluding tool parts
-	local character = player.Character
-	if character then
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") and not part:IsDescendantOf(tool) then
-				part.CollisionGroup = "Player"
-			end
-		end
-	end
+    -- Prevent self-hit
+    local character = player.Character
+    if character then
+        for _, part in character:GetDescendants() do
+            if part:IsA("BasePart") and not part:IsDescendantOf(tool) then
+                part.CollisionGroup = "Player"
+            end
+        end
+    end
 
-	-- Calculate direction and distance
-	local startPosition = bullet.Position
-	local direction = (targetPosition - startPosition).Unit
-	local distance = math.min((targetPosition - startPosition).Magnitude, maxRange)
+    -- Movement setup
+    local startPos   = bullet.Position
+    local direction  = (targetPosition - startPos).Unit
+    local distance   = math.min((targetPosition - startPos).Magnitude, maxRange)
+    local duration   = distance / bulletSpeed
+    local startTime  = tick()
 
-	-- Handle collision detection
-	local connection
-	connection = bullet.Touched:Connect(function(hit)
-		-- Ignore BulletStartPosition, parts in the same tool, and owner's character
-		if hit == bulletStartPosition or hit:IsDescendantOf(tool) then
-			return
-		end
-		local ownerName = bullet:GetAttribute("Owner")
-		local hitCharacter = hit:FindFirstAncestorOfClass("Model")
-		if hitCharacter and ownerName then
-			local hitPlayer = game.Players:FindFirstChild(ownerName)
-			if hitPlayer and hitPlayer.Character == hitCharacter then
-				return -- Ignore collision with the owner's character
-				else
-				local targetchar = combatMod.customTrim(hitCharacter.Name)
-				local damage = combatMod.SpellAttackResult("PlayerPrimordial", targetchar, "StarterStaffPrimordial")
-				if damage then
-					local targetHum = hitCharacter:FindFirstChildOfClass("Humanoid")
-					if targetHum then
-						-- Creator tag
-						local creator = Instance.new("ObjectValue")
-						creator.Name = "creator"
-						creator.Value = hitPlayer
-						creator.Parent = targetHum
-						task.delay(0.5, function()
-							if creator.Parent then creator:Destroy() end
-						end)
+    -- Touched → Damage via shared function
+    local touchConn
+    touchConn = bullet.Touched:Connect(function(hit)
+        if hit == bulletStartPosition or hit:IsDescendantOf(tool) then return end
 
-						targetHum.Health = math.max(targetHum.Health - damage, 0)
-						if damage == 0 then
-							local event = hitCharacter:FindFirstChild("AddThreat")
-							if event then
-								event:fire(hitPlayer.UserId, 25)
-							end
-						end
-					end
-				end
-			end
-		end
-		-- Trigger the explosion
-		utilMod.createCustomExplosion(bullet.Position, staffTable.StarterStaffPrimordial.visualSize, staffTable.StarterStaffPrimordial.visualTime, color)
+        local ownerName = bullet:GetAttribute("Owner")
+        local ownerPlayer = ownerName and game.Players:FindFirstChild(ownerName)
+        if not ownerPlayer then return end
 
-		-- Clean up
-		bullet:Destroy()
-		if connection then
-			connection:Disconnect()
-		end
-	end)
+        -- Reusable damage application
+        local hitSuccess = combatMod.ApplyStaffDamage(hit, ownerPlayer, "StarterStaffPrimordial")
 
-	-- Move bullet with arc
-	local startTime = tick()
-	local duration = distance / bulletSpeed
-	local halfDuration = duration / 2
+        if hitSuccess then
+            -- Visual explosion
+            utilMod.createCustomExplosion(
+                bullet.Position,
+                staffTable.StarterStaffPrimordial.visualSize,
+                staffTable.StarterStaffPrimordial.visualTime,
+                color
+            )
 
-	local heartbeatConnection
-	heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
-		local elapsed = tick() - startTime
-		if elapsed > duration or not bullet.Parent then
-			bullet:Destroy()
-			if heartbeatConnection then
-				heartbeatConnection:Disconnect()
-			end
-			if connection then
-				connection:Disconnect()
-			end
-			return
-		end
+            -- Cleanup
+            bullet:Destroy()
+            if touchConn then touchConn:Disconnect() end
+        end
+    end)
 
-		local t = elapsed / duration -- Normalized time (0 to 1)
-		local progress = t * distance
-		local currentPos = startPosition + direction * progress
+    -- Smooth parabolic flight
+    local moveConn
+    moveConn = RunService.Heartbeat:Connect(function()
+        local elapsed = tick() - startTime
+        if elapsed >= duration or not bullet.Parent then
+            if bullet.Parent then bullet:Destroy() end
+            if moveConn then moveConn:Disconnect() end
+            if touchConn then touchConn:Disconnect() end
+            return
+        end
 
-		-- Calculate arc height
-		local height
-		if t < 0.5 then
-			height = arcHeight * (t / 0.5)
-		else
-			height = arcHeight * (1 - (t - 0.5) / 0.5)
-		end
+        local t = elapsed / duration
+        local progress = t * distance
+        local pos = startPos + direction * progress
 
-		bullet.Position = currentPos + Vector3.new(0, height, 0)
-		bullet.CFrame = CFrame.new(bullet.Position, bullet.Position + direction)
-	end)
+        -- Beautiful smooth arc: peaks perfectly at t = 0.5
+        local height = arcHeight * 4 * t * (1 - t)
+
+        bullet.Position = pos + Vector3.new(0, height, 0)
+        bullet.CFrame = CFrame.new(bullet.Position, bullet.Position + direction)
+    end)
 end
 
--- Handle fire event
+-- Fire when client sends target position
 fireEvent.OnServerEvent:Connect(function(player, targetPosition)
-	fireBullet(player, targetPosition)
+    if typeof(targetPosition) ~= "Vector3" then return end
+    fireBullet(player, targetPosition)
 end)

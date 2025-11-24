@@ -773,5 +773,127 @@ function combatMod.customTrim(input: string?): string
     return input:gsub("_[%w]*$", "")
 end
 
+-- ReplicatedStorage.Shared.combatMod
+function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staffType: string)
+    -- Find the hit character/model
+    local hitCharacter = hitPart:FindFirstAncestorWhichIsA("Model")
+    if not hitCharacter then return false end
+
+    -- === ALLY PROTECTION: Never damage own character OR anything you own ===
+    local ownerUserId = ownerPlayer.UserId
+
+    -- 1. Prevent self-damage (your character)
+    if ownerPlayer.Character == hitCharacter then
+        return false
+    end
+
+    -- 2. Prevent damage to any pet/NPC owned by this player
+    local targetOwnerId = hitCharacter:GetAttribute("OwnedBy")
+    if targetOwnerId and targetOwnerId == ownerUserId then
+        return false  -- This is my pet, my summon, my minion — do NOT damage!
+    end
+
+    -- === Normal damage flow starts here ===
+    local targetName = combatMod.customTrim(hitCharacter.Name)
+
+    -- Calculate spell damage (your existing system)
+    local damage = combatMod.SpellAttackResult(
+        staffType:match("Artificer") and "PlayerArtificer" or
+        staffType:match("Nature") and "PlayerNature" or
+        "PlayerPrimordial",
+        targetName,
+        staffType
+    )
+
+    if not damage or damage <= 0 then
+        -- Still generate threat even on block/miss (good for PvP & PvE balance)
+        local addThreat = hitCharacter:FindFirstChild("AddThreat")
+        if addThreat and addThreat:IsA("BindableEvent") then
+            addThreat:Fire(ownerUserId, 25)
+        end
+        return false
+    end
+
+    local humanoid = hitCharacter:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+
+    -- Creator tag for kill credit
+    local creator = Instance.new("ObjectValue")
+    creator.Name = "creator"
+    creator.Value = ownerPlayer
+    creator.Parent = humanoid
+
+    task.delay(0.5, function()
+        if creator and creator.Parent then
+            creator:Destroy()
+        end
+    end)
+
+    -- Apply damage
+    humanoid.Health = math.max(humanoid.Health - damage, 0)
+
+    -- Optional: small threat on successful hits too? (common in MMOs)
+    -- local addThreat = hitCharacter:FindFirstChild("AddThreat")
+    -- if addThreat then addThreat:Fire(ownerUserId, 10) end
+
+    return true -- Damage successfully applied
+end
+
+-- Applies melee damage from an NPC/pet to any target
+-- Handles: creator tag, damage calculation, health application, threat
+function combatMod.ApplyMeleeDamage(attackerModel: Model, targetModel: Model)
+    if not attackerModel or not targetModel then return false end
+
+    local targetHum = targetModel:FindFirstChildOfClass("Humanoid")
+    if not targetHum then return false end
+
+    -- === ALLY PROTECTION (same logic as staffs) ===
+    local attackerOwnerId = attackerModel:GetAttribute("OwnedBy")
+    if attackerOwnerId and typeof(attackerOwnerId) == "number" then
+        -- Don't hit your owner
+        local ownerPlayer = game.Players:GetPlayerByUserId(attackerOwnerId)
+        if ownerPlayer and ownerPlayer.Character == targetModel then
+            return false
+        end
+
+        -- Don't hit anything else owned by the same player (other pets, summons, etc.)
+        local targetOwnerId = targetModel:GetAttribute("OwnedBy")
+        if targetOwnerId and targetOwnerId == attackerOwnerId then
+            return false
+        end
+    end
+
+    -- Calculate damage using your existing system
+    local damage = combatMod.MeleeAttackResult(attackerModel, targetModel)
+    if not damage or damage <= 0 then
+        -- Still generate threat on block/miss
+        local addThreat = targetModel:FindFirstChild("AddThreat")
+        if addThreat and addThreat:IsA("BindableEvent") then
+            local threatSourceId = attackerModel.Name
+            addThreat:Fire(threatSourceId, 5)
+        end
+        return false
+    end
+
+    local creator = Instance.new("ObjectValue")
+    creator.Name = "creator"
+    creator.Value = attackerModel
+    creator.Parent = targetHum
+
+    task.delay(0.5, function()
+        if creator and creator.Parent then
+            creator:Destroy()
+        end
+    end)
+
+    -- Apply damage
+    targetHum.Health = math.max(targetHum.Health - damage, 0)
+
+    return true
+end
+
+function combatMod.CalculateAggro(damageTaken)
+    return damageTaken * 1.5 + 30
+end
 
 return combatMod

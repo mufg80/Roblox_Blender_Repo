@@ -1,4 +1,5 @@
 local collectionService = game:GetService("CollectionService")
+local RunService = game:GetService("RunService")
 local utilMod = {}
 
 -- Cache for performance
@@ -35,9 +36,6 @@ function utilMod.GetCharactersTagged()
     return CharacterList
 end
 
--- utilMod.GetMagnitude(a, b)
--- a and b can each be: Instance (Part/BasePart) or Vector3
--- Returns the distance between the two points, or math.huge if invalid
 
 local function GetPosition(obj)
     if typeof(obj) == "Instance" then
@@ -147,7 +145,155 @@ function utilMod.HexToColor3(hex)
     return Color3.new(r, g, b)
 end
 
+-- Smoothly rotates a model to face a target during combat
+-- Handles both HumanoidRootPart and legacy Torso
+-- Only rotates on Y axis (no tilting)
+function utilMod.SpinToTargetInCombat(model: Model, targetModel: Model, lerpAlpha: number?)
+    if not model or not targetModel then return end
+    lerpAlpha = lerpAlpha or 0.3
 
+    local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+    local targetRoot = targetModel:FindFirstChild("HumanoidRootPart") or targetModel:FindFirstChild("Torso")
+    if not hrp or not targetRoot then return end
+
+    local direction = (targetRoot.Position - hrp.Position)
+    direction = Vector3.new(direction.X, 0, direction.Z)  -- Flatten to horizontal plane
+
+    if direction.Magnitude > 0.1 then
+        local targetCFrame = CFrame.lookAt(hrp.Position, hrp.Position + direction)
+        hrp.CFrame = hrp.CFrame:lerp(targetCFrame, lerpAlpha)
+    end
+end
+
+-- Makes a pet smoothly spin/fidget to face its owner while idle
+-- Only runs during true idle state (not following, not in combat)
+-- Includes random delays and natural feel
+function utilMod.IdleSpinToOwner(model: Model, ownerModel: Model)
+    if not model or not ownerModel then return end
+    if not model:GetAttribute("IsIdle") then return end
+
+    local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+    local ownerRoot = ownerModel:FindFirstChild("HumanoidRootPart") or ownerModel:FindFirstChild("Torso")
+    if not hrp or not ownerRoot then return end
+
+    -- Prevent spam
+    if not model:GetAttribute("CanIdleSpin") then return end
+    model:SetAttribute("CanIdleSpin", false)
+
+    task.spawn(function()
+        -- Direction to owner (horizontal only)
+        local toOwner = (ownerRoot.Position - hrp.Position)
+        toOwner = Vector3.new(toOwner.X, 0, toOwner.Z)
+
+        if toOwner.Magnitude < 0.3 then
+            -- Too close or already aligned → skip
+            model:SetAttribute("CanIdleSpin", true)
+            return
+        end
+
+        local targetCFrame = CFrame.lookAt(hrp.Position, hrp.Position + toOwner)
+
+        local connection
+        connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+            -- Safety checks
+            if not model:GetAttribute("IsIdle") then
+                connection:Disconnect()
+                return
+            end
+            if not ownerModel.Parent then
+                connection:Disconnect()
+                model:SetAttribute("CanIdleSpin", true)
+                return
+            end
+
+            -- Smooth lerp with delta-time scaling
+            local alpha = math.min(4 * dt, 1)  -- Feels snappy but natural (~0.25s total)
+            hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, alpha)
+
+            -- Done when close enough
+            if (hrp.CFrame.LookVector - targetCFrame.LookVector).Magnitude < 0.05 then
+                hrp.CFrame = targetCFrame  -- Snap to perfect
+                connection:Disconnect()
+            end
+        end)
+
+        -- Random cooldown before next spin (8–15 seconds)
+        local nextSpinDelay = Random.new():NextInteger(8, 15)
+        task.delay(nextSpinDelay, function()
+            if model.Parent and model:GetAttribute("IsIdle") then
+                model:SetAttribute("CanIdleSpin", true)
+            end
+        end)
+    end)
+end
+
+
+
+function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, rng: Random, spinCooldown: boolean?)
+    -- Optional external cooldown check (kept for backward compatibility)
+    if spinCooldown ~= nil and spinCooldown == true then
+        return
+    end
+
+    -- Prevent multiple simultaneous spins
+    if model:GetAttribute("SpinningToOwner") then
+        return
+    end
+    model:SetAttribute("SpinningToOwner", true)
+
+    task.spawn(function()
+        local tHRP = ownerInstance:FindFirstChild("HumanoidRootPart") or ownerInstance:FindFirstChild("Torso")
+        if not tHRP or not tHRP.Parent then
+            model:SetAttribute("SpinningToOwner", false)
+            return
+        end
+
+        -- Flat direction to owner (ignore Y)
+        local direction = Vector3.new(
+            tHRP.Position.X - hrp.Position.X,
+            0,
+            tHRP.Position.Z - hrp.Position.Z
+        )
+
+        if direction.Magnitude < 0.1 then
+            model:SetAttribute("SpinningToOwner", false)
+            return
+        end
+
+        local targetCFrame = CFrame.lookAt(hrp.Position, hrp.Position + direction)
+
+        local connection
+        connection = RunService.Heartbeat:Connect(function(dt)
+            -- Cancel conditions
+            if not model:GetAttribute("IsIdle")
+                or not ownerInstance.Parent
+                or not hrp.Parent then
+                if connection then connection:Disconnect() end
+                model:SetAttribute("SpinningToOwner", false)
+                return
+            end
+
+            -- Smooth lerp (you can tweak the speed multiplier)
+            local alpha = math.min(12 * dt, 1)  -- ~80-100ms response time, feels snappy
+            hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, alpha)
+
+            -- Close enough → snap and finish
+            if (hrp.CFrame.LookVector - targetCFrame.LookVector).Magnitude < 0.05 then
+                hrp.CFrame = targetCFrame
+                if connection then connection:Disconnect() end
+                model:SetAttribute("SpinningToOwner", false)
+            end
+        end)
+
+        -- Safety cleanup in case something weird happens
+        task.delay(5, function()
+            if connection and connection.Connected then
+                connection:Disconnect()
+                model:SetAttribute("SpinningToOwner", false)
+            end
+        end)
+    end)
+end
 
 function utilMod.DistancetoGround(vector)
     local rayOrigin = vector

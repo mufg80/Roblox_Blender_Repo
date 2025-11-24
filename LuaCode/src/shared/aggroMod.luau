@@ -4,6 +4,24 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 
 local aggroMod = {}
 
+-- Add this helper function inside the module, above the main functions
+local function isAlly(model, targetId)
+    local ownerId = model:GetAttribute("OwnedBy")
+    if not ownerId then return false end
+
+    -- Case 1: Target is a player (UserId)
+    if typeof(targetId) == "number" then
+        return targetId == ownerId
+    end
+
+    -- Case 2: Target is a pet/NPC (by Name)
+    local targetModel = utilMod.GetModelByIDorName(targetId)
+    if not targetModel then return false end
+
+    local targetOwnerId = targetModel:GetAttribute("OwnedBy")
+    return targetOwnerId and targetOwnerId == ownerId
+end
+
 function aggroMod.hateListPet(baseStats, hateList, model, hrp)
     local aggroSqr = baseStats.aggroRadius ^ 2
     local leashSqr = (baseStats.aggroRadius * 3) ^ 2
@@ -36,6 +54,19 @@ function aggroMod.hateListPet(baseStats, hateList, model, hrp)
             local root = feral:FindFirstChild("HumanoidRootPart") or feral:FindFirstChild("Torso")
             if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[feral.Name] then
                 hateList[feral.Name] = 6
+            end
+        end
+    end
+
+    -- AFTER adding players + pets + ferals to hateList
+    -- BEFORE leash/decay and target selection
+
+    -- REMOVE ALLIES (owner + owner's other pets/NPCs)
+    local ownerId = model:GetAttribute("OwnedBy")
+    if ownerId then
+        for id, _ in pairs(hateList) do
+            if isAlly(model, id) then
+                hateList[id] = nil
             end
         end
     end
@@ -102,6 +133,17 @@ function aggroMod.hateListFeral(baseStats, hateList, model, hrp)
                     if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[pet.Name] then
                         hateList[pet.Name] = 4
                     end
+                end
+            end
+        end
+
+                
+        -- EARLY ALLY REMOVAL (for ferals that might be owned, e.g. tamed ones)
+        local ownerId = model:GetAttribute("OwnedBy")
+        if ownerId then
+            for id, _ in pairs(hateList) do
+                if isAlly(model, id) then
+                    hateList[id] = nil
                 end
             end
         end
