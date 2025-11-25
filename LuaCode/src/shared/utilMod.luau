@@ -69,6 +69,16 @@ function utilMod.GetMagnitude(a, b)
     return (posA - posB).Magnitude
 end
 
+function utilMod.GetMagnitudeHelper(model: Model, othermodel: Model)
+    if not model and not othermodel then return nil end
+    local modelhrp = model:FindFirstChild("HumanoidRootPart")
+    local othermodelhrp = othermodel:FindFirstChild("HumanoidRootPart")
+
+    if not modelhrp and not othermodelhrp then return nil end
+
+    return utilMod.GetMagnitude(modelhrp,othermodelhrp)
+end
+
 function utilMod.GetModelByIDorName(targetIdOrName)
     -- targetIdOrName is ALWAYS a string (pet.Name) or number (UserId)
     local targetType = type(targetIdOrName)
@@ -395,5 +405,156 @@ function utilMod.GetSeedFromName(name: string, useTime: boolean?): number
     return seed
 end
 
+function utilMod.GetClosestPlayer(thisplayer)
+    local thischar = thisplayer.Character
+    if not thischar then return end
+    local thisHRP = thischar:FindFirstChild("HumanoidRootPart")
+    if not thisHRP then return end
+    local thispos = thisHRP.Position
+
+    local closest = nil
+    local closestMag = math.huge  -- Use huge for first comparison
+
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= thisplayer then  -- Use ~= for objects (safer than UserId)
+            local char = plr.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local mag = utilMod.GetMagnitude(hrp.Position, thispos)  -- Assumes this works
+                    -- Or inline: (hrp.Position - thispos).Magnitude
+                    if mag < closestMag then
+                        closest = plr
+                        closestMag = mag
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+
+function utilMod.GetClosestModelifPetThenOthers(thisplayer, folderName)
+    local character = thisplayer.Character
+    if not character then return end
+    
+    local thisHRP = character:FindFirstChild("HumanoidRootPart")
+    if not thisHRP then return end
+    local thisPos = thisHRP.Position
+
+    local folder = workspace:FindFirstChild(folderName)
+    if not folder then return end
+
+    local isPetFolder = (folderName == "Pets")  -- Cleaner check
+    local closestModel = nil
+    local closestDist = math.huge
+
+    for _, model in pairs(folder:GetChildren()) do
+        if model:IsA("Model") then
+            local hrp = model:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- Skip player's own pet in Pets folder
+                if isPetFolder then
+                    local ownerId = model:GetAttribute("OwnedBy")
+                    if ownerId and ownerId == thisplayer.UserId then
+                        continue  -- Skip own pet
+                    end
+                end
+
+                local dist = (hrp.Position - thisPos).Magnitude
+                if dist < closestDist then
+                    closestDist = dist
+                    closestModel = model
+                end
+            end
+        end
+    end
+
+    return closestModel
+end
+
+
+function utilMod.GetEnemyModelsWithinRange(player, range)
+    local character = player.Character
+    if not character then return {} end
+    
+    local thisHRP = character:FindFirstChild("HumanoidRootPart")
+    if not thisHRP then return {} end
+    local thisPos = thisHRP.Position
+
+    local petsFolder = workspace:FindFirstChild("Pets")
+    local feralsFolder = workspace:FindFirstChild("ferals")
+    
+    local enemies = {}
+
+    -- Add other players' pets within range (exclude own pets)
+    if petsFolder then
+        for _, model in pairs(petsFolder:GetChildren()) do
+            if model:IsA("Model") then
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local ownerId = model:GetAttribute("OwnedBy")
+                    if ownerId ~= player.UserId then  -- Include if not owned by this player (or nil)
+                        local dist = (hrp.Position - thisPos).Magnitude
+                        if dist < range then
+                            table.insert(enemies, model)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Add all ferals within range
+    if feralsFolder then
+        for _, model in pairs(feralsFolder:GetChildren()) do
+            if model:IsA("Model") then
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - thisPos).Magnitude
+                    if dist < range then
+                        table.insert(enemies, model)
+                    end
+                end
+            end
+        end
+    end
+
+    return enemies
+end
+
+function utilMod.GetEnemyPlayersWithinRange(player, range)
+    local character = player.Character
+    if not character then return {} end
+    
+    local thisHRP = character:FindFirstChild("HumanoidRootPart")
+    if not thisHRP then return {} end
+    local thisPos = thisHRP.Position
+
+    local petsFolder = workspace:FindFirstChild("Pets")
+    local feralsFolder = workspace:FindFirstChild("ferals")
+    
+    local enemies = {}
+
+    for _, enemyplr in game.Players:GetPlayers() do
+        local enemhrp = enemyplr.Character:FindFirstChild("HumanoidRootPart")
+        if not enemhrp then continue end
+        if utilMod.GetMagnitude(thisHRP, enemhrp) < range then
+            table.insert(enemies, enemyplr.Character)
+        end
+    end
+end
+
+function utilMod.MyPets(plr)
+    local allpets = workspace:WaitForChild("Pets"):GetChildren()
+    local pets = {}
+    for _,pet in allpets do
+        if pet:GetAttribute("OwnedBy") == plr.UserId then
+            table.insert(pets, pet)
+        end
+    end
+    return pets
+end
 
 return utilMod

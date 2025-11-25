@@ -19,7 +19,7 @@ for name,_ in pairs(combatMod.creatureStats) do
     end
 end
 
-local artificerSpells = {"StarterStaffArtificer"}
+local artificerSpells = {"StoneFall"}
 
 print("=== ARTIFICER SPELL TEST (100 casts) ===")
 for i = 1, 50 do

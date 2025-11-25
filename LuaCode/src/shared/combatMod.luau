@@ -1,4 +1,5 @@
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
+local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 local combatMod = {}
 local random = Random.new(tick())
 -- add enum with three types, Artificer, Primordial, None
@@ -110,32 +111,32 @@ combatMod.MaxSpellCost = 15
 -- spellType: "damage", "areaDamage", "heal", "buff", "debuff", "utility"
 combatMod.SpellInfo = {
     -- Shared
-    ConvertSpout      = { manaCost = .2,  magicType = "Any",     spellType = "utility", missChance = 0,   effectMultiplier = 0   }, -- just converts mana, no damage/heal
-    ReclaimPet        = { manaCost = .3,  magicType = "Any",     spellType = "utility", missChance = 0,      effectMultiplier = 0   },
+    ConvertSpout      = { manaCost = .2,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = 0   }, -- just converts mana, no damage/heal
+    ReclaimPet        = { manaCost = .3,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0   },
 
     -- Artificer
-    StarterStaffArtificer         = { manaCost = 0,  magicType = "Artificer", spellType = "damage", missChance = 0,       effectMultiplier = .1   }, -- L2 single-target
-    StoneFall         = { manaCost = .4,  magicType = "Artificer", spellType = "damage", missChance = 0.2,      effectMultiplier = .5   }, -- L2 single-target
-    HardSkin          = { manaCost = .6,  magicType = "Artificer", spellType = "buff",  missChance = 0.2,       effectMultiplier = 0.4 }, -- +40% armor/def for X sec
-    ReviveSpirit      = { manaCost = .70, magicType = "Artificer", spellType = "heal",  missChance = 0.2,       effectMultiplier = 40  }, -- big heal
-    StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,      effectMultiplier = 5   }, -- slow + small DoT
-    Avalanche         = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4,      effectMultiplier = .2   }, -- AOE, lower per-target
+    StarterStaffArtificer         = { manaCost = 0,  magicType = "Artificer", spellType = "damage", missChance = 0, range = 20,  cooldown = 5,  numberTargets = 1,  effectMultiplier = .1   }, -- L2 single-target
+    StoneFall         = { manaCost = .4,  magicType = "Artificer", spellType = "damage", missChance = 0.2, range = 20,  cooldown = 5,  numberTargets = 1, effectMultiplier = .5   }, -- L2 single-target
+    HardSkin          = { manaCost = .6,  magicType = "Artificer", spellType = "buff",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0.4 }, -- +40% armor/def for X sec
+    ReviveSpirit      = { manaCost = .70, magicType = "Artificer", spellType = "heal",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = .15  }, -- big heal
+    StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 5   }, -- slow + small DoT
+    Avalanche         = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4,  range = 20,  cooldown = 5, numberTargets = 4, effectMultiplier = .2   }, -- AOE, lower per-target
 
     -- Primordial
-    StarterStaffPrimordial      = { manaCost = 0,  magicType = "Primordial", spellType = "damage", missChance = 0,    effectMultiplier = .1   }, -- L2 single-target
-    DormantVirus      = { manaCost = .4,  magicType = "Primordial", spellType = "damage", missChance = 0.2,    effectMultiplier = .4   }, -- L2 single-target
-    AnimatedAttacks   = { manaCost = .5,  magicType = "Primordial", spellType = "buff", missChance = 0.2,     effectMultiplier = 0.5 }, -- +50% attack speed/damage
-    HalfLife          = { manaCost = .6,  magicType = "Primordial", spellType = "heal", missChance = 0.2,    effectMultiplier = 0.5 }, -- 50% max HP reduction
-    GooSwamp          = { manaCost = .7, magicType = "Primordial", spellType = "debuff", missChance = 0.2,    effectMultiplier = 5 },
-    InhostpitableAtmosphere = { manaCost = .8, magicType = "Primordial", spellType = "areaDamage", missChance = 0.4,    effectMultiplier = .2 },
+    StarterStaffPrimordial      = { manaCost = 0,  magicType = "Primordial", spellType = "damage", missChance = 0, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .1   }, -- L2 single-target
+    DormantVirus      = { manaCost = .4,  magicType = "Primordial", spellType = "damage", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .4   }, -- L2 single-target
+    AnimatedAttacks   = { manaCost = .5,  magicType = "Primordial", spellType = "buff", missChance = 0.2, range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = 0.5 }, -- +50% attack speed/damage
+    HalfLife          = { manaCost = .6,  magicType = "Primordial", spellType = "heal", missChance = 0.2,  range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .15 }, -- 50% max HP reduction
+    GooSwamp          = { manaCost = .7, magicType = "Primordial", spellType = "debuff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 5 },
+    InhostpitableAtmosphere = { manaCost = .8, magicType = "Primordial", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .2 },
 
     -- Nature
-    StarterStaffNature     = { manaCost = 0,  magicType = "Nature", spellType = "damage", missChance = 0,      effectMultiplier = .1   },-- L2 single-target
-    StingingSwarm     = { manaCost = .4,  magicType = "Nature", spellType = "damage",  missChance = 0.2,     effectMultiplier = .6   },-- L2 single-target
-    AgilityoftheSquirrell = { manaCost = .6, magicType = "Nature", spellType = "buff", missChance = 0.2,    effectMultiplier = 0.6 }, -- big speed boost
-    Regenerate        = { manaCost = .6,  magicType = "Nature", spellType = "heal", missChance = 0.2,        effectMultiplier = 30  }, -- HoT or burst heal
-    Root              = { manaCost = .7,  magicType = "Nature", spellType = "debuff", missChance = 0.2,      effectMultiplier = 4   }, -- root + small damage
-    NaturesDefenders  = { manaCost = .8, magicType = "Nature", spellType = "areaDamage", missChance = 0.4,    effectMultiplier = .3   },
+    StarterStaffNature     = { manaCost = 0,  magicType = "Nature", spellType = "damage", missChance = 0, range = 20, cooldown = 5, numberTargets = 1,   effectMultiplier = .1   },-- L2 single-target
+    StingingSwarm     = { manaCost = .4,  magicType = "Nature", spellType = "damage",  missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .6   },-- L2 single-target
+    AgilityoftheSquirrell = { manaCost = .6, magicType = "Nature", spellType = "buff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 0.6 }, -- big speed boost
+    Regenerate        = { manaCost = .6,  magicType = "Nature", spellType = "heal", missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = .15  }, -- HoT or burst heal
+    Root              = { manaCost = .7,  magicType = "Nature", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 4   }, -- root + small damage
+    NaturesDefenders  = { manaCost = .8, magicType = "Nature", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .3   },
 }
 
 combatMod.StaffStats = {
@@ -837,6 +838,158 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
     -- if addThreat then addThreat:Fire(ownerUserId, 10) end
 
     return true -- Damage successfully applied
+end
+
+function combatMod.ExecuteDamageToBody(playerId, target, damage)
+    local owningplayer = game.Players:GetPlayerByUserId(playerId)
+    if not owningplayer then warn("should not reach here.") return end
+    -- 1. Prevent self-damage (your character)
+    if not owningplayer.Character or owningplayer.Character == target then
+        return false
+    end
+
+    -- 2. Prevent damage to any pet/NPC owned by this player
+    local targetOwnerId = target:GetAttribute("OwnedBy")
+    if targetOwnerId and targetOwnerId == playerId then
+        return false  -- This is my pet, my summon, my minion — do NOT damage!
+    end
+
+    -- === Normal damage flow starts here ===
+    local targetName = combatMod.customTrim(target.Name)
+
+    if not damage or damage <= 0 then
+        -- Still generate threat even on block/miss (good for PvP & PvE balance)
+        local addThreat = target:FindFirstChild("AddThreat")
+        if addThreat and addThreat:IsA("BindableEvent") then
+            addThreat:Fire(playerId, 25)
+        end
+        return false
+    end
+
+    local humanoid = target:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+
+    -- Creator tag for kill credit
+    local creator = Instance.new("ObjectValue")
+    creator.Name = "creator"
+    creator.Value = owningplayer
+    creator.Parent = humanoid
+
+    task.delay(0.5, function()
+        if creator and creator.Parent then
+            creator:Destroy()
+        end
+    end)
+
+    -- Apply damage
+    humanoid.Health = math.max(humanoid.Health - damage, 0)
+
+    -- Optional: small threat on successful hits too? (common in MMOs)
+    -- local addThreat = hitCharacter:FindFirstChild("AddThreat")
+    -- if addThreat then addThreat:Fire(ownerUserId, 10) end
+
+    return true -- Damage successfully applied
+end
+
+function combatMod.ApplySpellDamage(player, spellname)
+    local playerType = combatMod.GetPlayerType(player)
+    local info = combatMod.SpellInfo[spellname]
+    if not info then warn("should not reach here.") return end
+
+	if info.spellType == "damage" then
+		-- select target player highest priority then pets then ferals
+		local targetplayer = utilMod.GetClosestPlayer(player)
+		if targetplayer and targetplayer.Character and utilMod.GetMagnitudeHelper(player.Character, targetplayer.Character) < info.range then
+            local targetplayertype = combatMod.GetPlayerType(targetplayer)
+			local damage = combatMod.SpellAttackResult(playerType, targetplayertype, spellname)
+			combatMod.ExecuteDamageToBody(player.UserId, targetplayer.Character, damage)
+			return
+		end
+		local targetpet = utilMod.GetClosestModelifPetThenOthers(player, "Pets")
+		if targetpet and utilMod.GetMagnitudeHelper(player.Character, targetpet) < info.range then
+			local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(targetpet.Name), spellname)
+			combatMod.ExecuteDamageToBody(player.UserId, targetpet, damage)
+			return
+		end
+
+		local targetferal = utilMod.GetClosestModelifPetThenOthers(player, "Ferals")
+		if targetferal and utilMod.GetMagnitudeHelper(player.Character, targetferal) < info.range then
+			local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(targetferal.Name), spellname)
+			combatMod.ExecuteDamageToBody(player.UserId, targetferal, damage)
+			return
+		end
+
+	elseif info.spellType == "areadamage" then
+        local mobs = 1
+        local playerchars = utilMod.GetEnemyPlayersWithinRange(player, info.range)
+        local models = utilMod.GetEnemyModelsWithinRange(player, info.range)
+
+        for i,plr in ipairs(playerchars) do
+            if mobs <= info.numberTargets then
+                local targetplayertype = combatMod.GetPlayerType(plr)
+                local damage = combatMod.SpellAttackResult(playerType, targetplayertype, spellname)
+                combatMod.ExecuteDamageToBody(player.UserId, plr.Character, damage)
+            end
+            mobs += 1
+        end
+        for i, mob in ipairs(models) do
+            if mobs <= info.numberTargets then
+                local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(mob.Name), spellname)
+                combatMod.ExecuteDamageToBody(player.UserId, mob, damage)                
+            end
+            mobs += 1
+        end
+
+	elseif info.spellType == "buff" then
+        local mypets = utilMod.MyPets(player)
+        for _,i in ipairs(mypets) do
+            if mypets[i]:GetAttribute(info) == false then
+                mypets[i]:SetAttribute(info, true)
+            end
+        end
+
+	elseif info.spellType == "debuff" then
+        local playerchars = utilMod.GetEnemyPlayersWithinRange(player, info.range)
+        local models = utilMod.GetEnemyModelsWithinRange(player, info.range)
+
+        for _,plr in ipairs(playerchars) do
+            if player:GetAttribute(info) == false then
+                player:SetAttribute(info, true)
+            end
+        end
+
+        for _,mob in ipairs(models) do
+            if mob:GetAttribute(info) == false then
+                mob:SetAttribute(info, true)
+            end
+        end
+
+	elseif info.spellType == "heal" then
+        local mypets = utilMod.MyPets(player)
+        buffMod.ApplyHeals(player, info, mypets, combatMod.MaxSpellDamage)
+        
+
+	elseif info.spellType == "utility" then
+
+	else
+		warn("should not reach me.")
+	end
+
+end
+
+function combatMod.GetPlayerType(player)
+    if not player then return nil end
+    local magictype = player:GetAttribute("Magic")
+    if not magictype then return nil end
+    if magictype == "Artificer" then
+        return "PlayerArtificer" 
+    elseif magictype == "Primordial" then
+        return "PlayerPrimordial" 
+    elseif magictype == "Nature" then
+        return "PlayerNature"
+    else 
+        warn("Should not reach here.")
+    end
 end
 
 -- Applies melee damage from an NPC/pet to any target

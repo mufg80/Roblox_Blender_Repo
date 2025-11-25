@@ -86,16 +86,16 @@ if animator then
 end
 
 
--- task.spawn(function()
---     while true do
---         if thisMob =="FeralArtifactGuardian" then
---             print(hateList)
---         end
+task.spawn(function()
+    while true do
+        if thisMob =="FeralArtifactGuardian" then
+            print(hateList)
+        end
        
---         task.wait(2)
---     end
+        task.wait(2)
+    end
 
--- end)
+end)
 
 -- === MAIN LOOP ===
 task.spawn(function()
