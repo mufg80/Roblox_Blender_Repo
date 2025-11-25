@@ -159,6 +159,9 @@ end)
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
 spellevent.OnServerEvent:Connect(function(player, spellname)
 	print("SpellEvent received from "..player.Name.." for spell "..spellname)
+
+	combatMod.ApplySpellDamage(player, spellname)
+	
 end)
 
 
@@ -232,4 +235,4 @@ adminEvent.OnServerEvent:Connect(function(player, command)
     end
 end)
 
---local testMod = require(game.ReplicatedStorage.Shared.testMod)
+local testMod = require(game.ReplicatedStorage.Shared.testMod)
