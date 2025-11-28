@@ -321,6 +321,59 @@ function utilMod.DistancetoGround(vector)
 end
 
 
+
+function utilMod.FindClearSpawnPoint(player: Player, distance: number): Vector3?
+
+    -- Services
+    local Workspace = game:GetService("Workspace")
+
+    -- Configuration
+    local RAYCAST_PARAMS = RaycastParams.new()
+    RAYCAST_PARAMS.FilterType = Enum.RaycastFilterType.Exclude
+    RAYCAST_PARAMS.IgnoreWater = true
+
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+
+    local rootPart = player.Character.HumanoidRootPart
+    local origin = rootPart.Position
+
+    -- Update raycast params to ignore the player's character
+    RAYCAST_PARAMS.FilterDescendantsInstances = {player.Character}
+
+    local stepDegrees = 40
+
+    -- Rotate around Y axis in steps
+    for angle = 0, 360 - stepDegrees, stepDegrees do
+        local radians = math.rad(angle)
+        local direction = Vector3.new(math.cos(radians), 0, -math.sin(radians))
+        local targetPos = origin + direction * distance
+
+        -- Cast ray forward to check for obstacles
+        local rayOrigin = origin + Vector3.new(0, 2, 0) -- Start ray a bit above ground
+        local rayDirection = direction * (distance * 1.5)
+        local result = Workspace:Raycast(rayOrigin, rayDirection, RAYCAST_PARAMS)
+
+        local isClear = true
+
+        if result then
+            -- There's something in the way
+            local distToObstacle = (result.Position - origin).Magnitude
+            if distToObstacle < distance - 1 then
+                isClear = false
+            end
+        end
+
+        if isClear then
+           return targetPos
+        end
+    end
+
+    return nil
+end
+
+
 function utilMod.createCustomExplosion(position, visualSize, time, color)
     local attachment = Instance.new("Attachment")
     attachment.Position = position

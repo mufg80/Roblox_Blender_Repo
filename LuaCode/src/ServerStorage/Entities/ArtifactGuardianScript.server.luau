@@ -1,4 +1,3 @@
--- ArtifactGuardian Pet Script - FINAL POLISHED VERSION (Nov 19, 2025)
 
 local model = script.Parent
 local random = Random.new()
@@ -25,7 +24,7 @@ function setStats()
     humanoid.Health = baseStats.hitPoints
     humanoid.WalkSpeed = 16 * baseStats.speed
     IsStationary = model:GetAttribute("IsStationary") ~= false
-    IdleReset = model:GetAttribute("IdleReset") or 5
+    IdleReset = model:GetAttribute("IdleReset") or 15
     spawnPosition = hrp.Position
 end
 
@@ -50,7 +49,7 @@ end)
 humanoid.HealthChanged:Connect(function(health)
     -- Compare old vs new health
     local damageTaken = humanoid:GetAttribute("LastHealth") and (humanoid:GetAttribute("LastHealth") - health) or 0
-
+    
     -- Store the new health for next time
     humanoid:SetAttribute("LastHealth", health)
     local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
@@ -63,7 +62,7 @@ humanoid.HealthChanged:Connect(function(health)
         if creator.Parent then creator:Destroy() end
     end
 end)
-
+humanoid.Health = humanoid.MaxHealth - 1
 
 -- === Animations ===
 local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -86,16 +85,16 @@ if animator then
 end
 
 
-task.spawn(function()
-    while true do
-        if thisMob =="FeralArtifactGuardian" then
-            print(hateList)
-        end
+-- task.spawn(function()
+--     while true do
+--         if thisMob =="FeralArtifactGuardian" then
+--             print(hateList)
+--         end
        
-        task.wait(2)
-    end
+--         task.wait(2)
+--     end
 
-end)
+-- end)
 
 -- === MAIN LOOP ===
 task.spawn(function()

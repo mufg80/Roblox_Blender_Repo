@@ -128,6 +128,7 @@ function recycleMod.flagAsDead()
                 recycleMod.theferaldead[feral.Name] = tick()
             end
         end
+        
 
         -- Recycle pets
         for name, t in pairs(recycleMod.thedead) do

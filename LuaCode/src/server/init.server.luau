@@ -10,6 +10,8 @@ local magicMod = require(game.ReplicatedStorage.Shared.combatMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
+
+
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
@@ -30,11 +32,23 @@ game.Players.PlayerAdded:Connect(function(player)
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
 	
     -- set magic to enum of none
-
-	player:SetAttribute("Magic", magicMod.MagicType.Artificer)
+	-- Persistence Attributes
+	player:SetAttribute("Magic", magicMod.MagicType.None)
 	player:SetAttribute("MagicLevel", 1)
 	player:SetAttribute("Enemy", "None")
 	player:SetAttribute("HasFallen", false)
+
+
+	-- No persistence for these attributes
+	player:SetAttribute("MaxMana", player:GetAttribute("MagicLevel") * 20)
+	player:SetAttribute("Mana", 20)
+
+	player:GetAttributeChangedSignal("MagicLevel"):Connect(function()
+		local level = player:GetAttribute("MagicLevel")
+		local max = level * 20
+		player:SetAttribute("MaxMana", max)
+		player:SetAttribute("Mana", max)
+	end)
 	
 	-- if dataStoreEnabled then
 		
@@ -114,53 +128,14 @@ end)
 
 local summonevent = repstore.Events:waitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player, creatureName)
-    print("SummonEvent received from "..player.Name.." for creature "..creatureName)
-    local creature = serverstorage.Entities:FindFirstChild(creatureName)
-    if creature then
-        local character = player.Character
-        if character then
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-				local height = combatMod.creatureStats[creatureName].height
-				local straightAhead = hrp.CFrame * CFrame.new(0, 0, -10)
-				local straightAheadVectorStart = straightAhead.Position
-				local GroundAtSpawn = utilMod.DistancetoGround(straightAheadVectorStart)
-				local mobPos = GroundAtSpawn + height + 1
-				local mobposvector = Vector3.new(straightAheadVectorStart.X, mobPos, straightAheadVectorStart.Z)
-				local lookatVector = mobposvector + (hrp.CFrame.LookVector * 10)
-                local summonedCreature = nil
-				if recyleMod.CheckIfExistsPet(creatureName) then
-					summonedCreature = recyleMod.ReturnPet(creatureName)
-					summonedCreature:SetAttribute("OwnedBy", player.UserId)
-					summonedCreature.Parent = workspace:WaitForChild("Pets")
-				else
-					summonedCreature = creature:Clone()
-					local name = utilMod.uniqueName(creatureName)
-					summonedCreature.Name = name
-					summonedCreature:SetAttribute("OwnedBy", player.UserId)
-					summonedCreature:AddTag("Character")
-					summonedCreature.Parent = workspace:WaitForChild("Pets")
-				end
-				
-				
-                local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
-                if creatureHRP then
-                    creatureHRP.CFrame = CFrame.new(mobposvector, lookatVector)
-                else
-                    warn("Summoned creature "..creatureName.." has no HumanoidRootPart")
-                end
-            end
-        end
-    else
-        warn("Creature "..creatureName.." not found in Serverstorate.Entities")
-    end
+ 	print("SummonEvent received from "..player.Name.." for creature "..creatureName)
+	combatMod.ApplyAbility(player, creatureName, recyleMod)
 end)
 
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
 spellevent.OnServerEvent:Connect(function(player, spellname)
 	print("SpellEvent received from "..player.Name.." for spell "..spellname)
-
-	combatMod.ApplySpellDamage(player, spellname)
+	combatMod.ApplySpell(player, spellname)
 	
 end)
 
@@ -196,6 +171,27 @@ function spawnferal()
 		end
 	end
 end
+
+local manaspawnpoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
+
+for _,point in pairs(manaspawnpoints) do
+	if point:GetAttribute("HasBuilding") ~= "Empty" then
+		point:SetAttribute("HasBuilding", "Spout")
+		local spout = serverstorage:WaitForChild("Buildings"):WaitForChild("ManaSpout"):Clone()
+		spout.Position = point.Position
+		spout.Parent = workspace.ManaPoints
+	end
+end
+
+task.spawn(function()
+	while task.wait(6) do
+		for _,plr in game.Players:GetPlayers() do
+			local mana = plr:GetAttribute("Mana")
+			local newmana = math.min(mana + 2, plr:GetAttribute("MaxMana"))
+			plr:SetAttribute("Mana", newmana)
+		end
+	end
+end)
 
 task.spawn(function()
 	while true do

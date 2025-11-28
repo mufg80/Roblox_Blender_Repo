@@ -1,6 +1,12 @@
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
+local serverstorage = game:GetService("ServerStorage")
 local combatMod = {}
+
+combatMod.MaxSpellDamage = 100
+combatMod.MaxSpellCost = 25
+combatMod.DELAY = 5.0
+
 local random = Random.new(tick())
 -- add enum with three types, Artificer, Primordial, None
 combatMod.MagicType = {
@@ -103,22 +109,17 @@ combatMod.MagicLevels = {
 	}
 	
 }
-combatMod.MaxSpellDamage = 100
-combatMod.MaxSpellCost = 15
 
--- SpellInfo filled with educated guesses (you'll tweak later)
--- Format: SpellName = { manaCost, magicType, spellType, effectMultiplier }
--- spellType: "damage", "areaDamage", "heal", "buff", "debuff", "utility"
 combatMod.SpellInfo = {
     -- Shared
-    ConvertSpout      = { manaCost = .2,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = 0   }, -- just converts mana, no damage/heal
-    ReclaimPet        = { manaCost = .3,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0   },
+    ConvertSpout      = { manaCost = .5,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = 0   }, -- just converts mana, no damage/heal
+    ReclaimPet        = { manaCost = .0,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0   },
 
     -- Artificer
     StarterStaffArtificer         = { manaCost = 0,  magicType = "Artificer", spellType = "damage", missChance = 0, range = 20,  cooldown = 5,  numberTargets = 1,  effectMultiplier = .1   }, -- L2 single-target
     StoneFall         = { manaCost = .4,  magicType = "Artificer", spellType = "damage", missChance = 0.2, range = 20,  cooldown = 5,  numberTargets = 1, effectMultiplier = .5   }, -- L2 single-target
     HardSkin          = { manaCost = .6,  magicType = "Artificer", spellType = "buff",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0.4 }, -- +40% armor/def for X sec
-    ReviveSpirit      = { manaCost = .70, magicType = "Artificer", spellType = "heal",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = .15  }, -- big heal
+    ReviveSpirit      = { manaCost = .7, magicType = "Artificer", spellType = "heal",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = .15  }, -- big heal
     StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 5   }, -- slow + small DoT
     Avalanche         = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4,  range = 20,  cooldown = 5, numberTargets = 4, effectMultiplier = .2   }, -- AOE, lower per-target
 
@@ -167,9 +168,27 @@ combatMod.StaffStats = {
     }
 }
 
-combatMod.DELAY = 5.0
+
 
 combatMod.creatureStats = {
+    -- ── None ─────────────────────────────────────────────────────
+    ["PlayerNone"] = {
+        magicType = "None",
+        hitPoints = 10,
+        attack = 0.15,
+        attackDelay = 0.15,
+        defense = 0.15,
+        armour = 0.10,
+        primordialmagicdefense = 0.15,
+        artificermagicdefense = 0.15,
+        naturemagicdefense = 0.15,
+        speed = 0.25,
+        maxDamage = 0.1,
+        distanceForAttacker = 5,
+        height = 2.7,
+        aggroRadius = 50,
+        level = 1
+    },
     -- ── ARTIFICER ─────────────────────────────────────────────────────
     ["PlayerArtificer"] = {
         magicType = "Artificer",
@@ -604,7 +623,12 @@ combatMod.creatureStats = {
     }
 }
 
-
+function combatMod.LeveltoManaCost(creatureName:string)
+    local creature = combatMod.creatureStats[creatureName]
+    if not creature then return math.huge end
+    local tenth = creature.level * 0.1
+    return tenth * combatMod.MaxSpellCost
+end
 
 -- SpellAttackResult - now accounts for caster level vs target level
 function combatMod.SpellAttackResult(attackerCreatureName, defenderCreatureName, spellName)
@@ -891,33 +915,101 @@ function combatMod.ExecuteDamageToBody(playerId, target, damage)
     return true -- Damage successfully applied
 end
 
-function combatMod.ApplySpellDamage(player, spellname)
+function combatMod.ApplyAbility(player, creatureName, recyleMod)
+local cost = combatMod.LeveltoManaCost(creatureName)
+	local mana = player:GetAttribute("Mana")
+	if mana < cost then
+		warn("No mana")
+		return
+	end
+   
+    local creature = serverstorage.Entities:FindFirstChild(creatureName)
+    if creature then
+        local character = player.Character
+        if character then
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+				local height = combatMod.creatureStats[creatureName].height
+
+				local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
+				if not spawnpoint then
+					warn("NO place to spawn pet.")
+					return
+				end
+
+				local GroundAtSpawn = utilMod.DistancetoGround(spawnpoint)
+				local mobPos = GroundAtSpawn + height + 1
+				local mobposvector = Vector3.new(spawnpoint.X, mobPos, spawnpoint.Z)
+				local lookatVector = (mobposvector - hrp.Position) * 2
+                local summonedCreature = nil
+				if recyleMod.CheckIfExistsPet(creatureName) then
+					summonedCreature = recyleMod.ReturnPet(creatureName)
+					summonedCreature:SetAttribute("OwnedBy", player.UserId)
+					summonedCreature.Parent = workspace:WaitForChild("Pets")
+					player:SetAttribute("Mana", mana - cost)
+				else
+					summonedCreature = creature:Clone()
+					local name = utilMod.uniqueName(creatureName)
+					summonedCreature.Name = name
+					summonedCreature:SetAttribute("OwnedBy", player.UserId)
+					summonedCreature:AddTag("Character")
+					summonedCreature.Parent = workspace:WaitForChild("Pets")
+					player:SetAttribute("Mana", mana - cost)
+				end
+				
+				
+                local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
+                if creatureHRP then
+                    creatureHRP.CFrame = CFrame.new(mobposvector, lookatVector)
+                else
+                    warn("Summoned creature "..creatureName.." has no HumanoidRootPart")
+                end
+            end
+        end
+    else
+        warn("Creature "..creatureName.." not found in Serverstorate.Entities")
+    end
+end
+
+function combatMod.ApplySpell(player, spellname)
     local playerType = combatMod.GetPlayerType(player)
     local info = combatMod.SpellInfo[spellname]
     if not info then warn("should not reach here.") return end
 
+    local cost = combatMod.SpellInfo[spellname].manaCost * combatMod.MaxSpellCost
+    if not cost then warn("should not reach me") return end
+    local mana = player:GetAttribute("Mana")
+	if mana < cost then
+		warn("No mana")
+		return
+	end
+
 	if info.spellType == "damage" then
 		-- select target player highest priority then pets then ferals
 		local targetplayer = utilMod.GetClosestPlayer(player)
+        local applied = false
 		if targetplayer and targetplayer.Character and utilMod.GetMagnitudeHelper(player.Character, targetplayer.Character) < info.range then
             local targetplayertype = combatMod.GetPlayerType(targetplayer)
 			local damage = combatMod.SpellAttackResult(playerType, targetplayertype, spellname)
-			combatMod.ExecuteDamageToBody(player.UserId, targetplayer.Character, damage)
+			if combatMod.ExecuteDamageToBody(player.UserId, targetplayer.Character, damage) then applied = true end
 			return
 		end
 		local targetpet = utilMod.GetClosestModelifPetThenOthers(player, "Pets")
 		if targetpet and utilMod.GetMagnitudeHelper(player.Character, targetpet) < info.range then
 			local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(targetpet.Name), spellname)
-			combatMod.ExecuteDamageToBody(player.UserId, targetpet, damage)
+			if combatMod.ExecuteDamageToBody(player.UserId, targetpet, damage) then applied = true end
 			return
 		end
 
 		local targetferal = utilMod.GetClosestModelifPetThenOthers(player, "Ferals")
 		if targetferal and utilMod.GetMagnitudeHelper(player.Character, targetferal) < info.range then
 			local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(targetferal.Name), spellname)
-			combatMod.ExecuteDamageToBody(player.UserId, targetferal, damage)
+			if combatMod.ExecuteDamageToBody(player.UserId, targetferal, damage) then applied = true end
 			return
 		end
+        if applied then
+            player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
+        end
 
 	elseif info.spellType == "areadamage" then
         local mobs = 1
@@ -939,37 +1031,70 @@ function combatMod.ApplySpellDamage(player, spellname)
             end
             mobs += 1
         end
+        if mobs > 1 then
+            player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
+        end
 
 	elseif info.spellType == "buff" then
         local mypets = utilMod.MyPets(player)
+        if not mypets then warn("Nopets") return end
+        local applied = false
         for _,i in ipairs(mypets) do
             if mypets[i]:GetAttribute(info) == false then
                 mypets[i]:SetAttribute(info, true)
+                applied = true
             end
+        end
+        if applied then
+            player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
         end
 
 	elseif info.spellType == "debuff" then
         local playerchars = utilMod.GetEnemyPlayersWithinRange(player, info.range)
         local models = utilMod.GetEnemyModelsWithinRange(player, info.range)
-
-        for _,plr in ipairs(playerchars) do
-            if player:GetAttribute(info) == false then
-                player:SetAttribute(info, true)
+        local applied = false
+        if playerchars then
+            for _,plr in ipairs(playerchars) do
+                if player:GetAttribute(info) == false then
+                    player:SetAttribute(info, true)
+                    applied = true
+                end
             end
         end
-
-        for _,mob in ipairs(models) do
-            if mob:GetAttribute(info) == false then
-                mob:SetAttribute(info, true)
+        
+        if models then
+            for _,mob in ipairs(models) do
+                if mob:GetAttribute(info) == false then
+                    mob:SetAttribute(info, true)
+                    applied = true
+                end
             end
         end
-
+        
+        if applied then
+            player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
+        end
 	elseif info.spellType == "heal" then
         local mypets = utilMod.MyPets(player)
-        buffMod.ApplyHeals(player, info, mypets, combatMod.MaxSpellDamage)
+        local applied = buffMod.ApplyHeals(player, info, mypets, combatMod.MaxSpellDamage)
         
-
+        if applied then
+            player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
+        end
 	elseif info.spellType == "utility" then
+            if spellname == "ReclaimPet" then
+                local mypets = utilMod.MyPets(player)
+                if not mypets then warn("No pets") return end
+                local applied = buffMod.ReclaimPet(player, combatMod.SpellInfo[spellname], combatMod.MaxSpellCost, mypets)
+
+                if applied then
+                    player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
+                end
+            elseif spellname == "ConvertSpout" then
+                player:SetAttribute("Mana", 0)
+            end
+
+        
 
 	else
 		warn("should not reach me.")

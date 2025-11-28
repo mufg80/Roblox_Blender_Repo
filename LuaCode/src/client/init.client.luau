@@ -3,10 +3,10 @@ local combatMod = require(replicatedstorage.Shared.combatMod)
 local runservice = game:GetService("RunService")
 
 local players = game:GetService("Players")
-local startergui = game:GetService("StarterGui")
 local uis = game:GetService("UserInputService")
-local guiroot = players.LocalPlayer:WaitForChild("PlayerGui")
-local magicgui = guiroot:WaitForChild("MagicGui")
+local playerGui = players.LocalPlayer:WaitForChild("PlayerGui")
+local magicgui = playerGui:WaitForChild("MagicGui")
+local statsGui = playerGui:WaitForChild("StatsGui")
 local designFolder = replicatedstorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
 local themes = designFolder:WaitForChild("ClassThemes")
@@ -14,7 +14,9 @@ local artificertheme = themes:WaitForChild("ArtificerTheme")
 local primordialtheme = themes:WaitForChild("PrimordialTheme")
 local naturetheme = themes:WaitForChild("NatureTheme")
 local player = players.LocalPlayer
-
+local hum = player.Character:WaitForChild("Humanoid")
+local healthLabel = statsGui:WaitForChild("HealthFrame"):WaitForChild("HealthLabel")
+local manaLabel = statsGui:WaitForChild("HealthFrame"):WaitForChild("ManaLabel")
 
 function updateMagicUI()
     local magic = player:GetAttribute("Magic")
@@ -82,6 +84,27 @@ player:GetAttributeChangedSignal("MagicLevel"):Connect(function()
     updateMagicUI()
 end)
 
+-- health and mana
+
+player:GetAttributeChangedSignal("Mana"):Connect(function()
+    local newmana = player:GetAttribute("Mana")
+    manaLabel.Text = "Mana: "..tostring(math.floor(newmana))
+
+end)
+
+local function health(health)
+ -- Compare old vs new health
+        local damageTaken = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - (health or 0)) or 0
+        
+        -- Store the new health for next time
+        hum:SetAttribute("LastHealth", health)
+
+        healthLabel.Text = "Health: "..tostring(math.floor(hum:GetAttribute("LastHealth")))
+end
+hum.HealthChanged:Connect(health)
+health(hum.MaxHealth)
+player:SetAttribute("Mana", player:GetAttribute("Mana") - 1)
+
 local creaturebuttons = magicgui.CreatureFrame:GetChildren()
 local spellbuttons = magicgui.SpellFrame:GetChildren()
 
@@ -104,7 +127,7 @@ end
 -- admin area
 if players.LocalPlayer.UserId == 2484051658 then
     print("Admin detected, enabling admin GUI")
-    local adminGui = guiroot:WaitForChild("AdminGui")
+    local adminGui = playerGui:WaitForChild("AdminGui")
     local levelbutton = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
     local typebutton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
     levelbutton.MouseButton1Click:Connect(function()
