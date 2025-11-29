@@ -72,7 +72,7 @@ end
 function utilMod.GetMagnitudeHelper(model: Model, othermodel: Model)
     if not model and not othermodel then return nil end
     local modelhrp = model:FindFirstChild("HumanoidRootPart")
-    local othermodelhrp = othermodel:FindFirstChild("HumanoidRootPart")
+    local othermodelhrp = othermodel:FindFirstChild("HumanoidRootPart") or othermodel:FindFirstChildOfClass("MeshPart")
 
     if not modelhrp and not othermodelhrp then return nil end
 
@@ -488,7 +488,7 @@ function utilMod.GetClosestPlayer(thisplayer)
 end
 
 
-function utilMod.GetClosestModelifPetThenOthers(thisplayer, folderName)
+function utilMod.GetClosestModelSkipownPets(thisplayer, folderName)
     local character = thisplayer.Character
     if not character then return end
     

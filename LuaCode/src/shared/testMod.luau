@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local combatMod = require(ReplicatedStorage.Shared.combatMod)
-
+local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
+local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local testMod = {}
 
 
@@ -13,7 +13,7 @@ local artificerMobs = {
     "PlayerArtificer"
 }
 local allMobs = {}
-for name,_ in pairs(combatMod.creatureStats) do
+for name,_ in pairs(statsMod.creatureStats) do
     if name ~= "FeralArtifactGuardian" then -- optional: exclude ferals
         table.insert(allMobs, name)
     end
@@ -39,7 +39,7 @@ local primordialMobs = {
     "PlayerPrimordial"
 }
 local allMobs = {}
-for name,_ in pairs(combatMod.creatureStats) do table.insert(allMobs, name) end
+for name,_ in pairs(statsMod.creatureStats) do table.insert(allMobs, name) end
 
 local primordialSpells = {
     "StarterStaffPrimordial"
@@ -63,7 +63,7 @@ local natureMobs = {
     "PlayerNature"
 }
 local allMobs = {}
-for name,_ in pairs(combatMod.creatureStats) do table.insert(allMobs, name) end
+for name,_ in pairs(statsMod.creatureStats) do table.insert(allMobs, name) end
 
 local natureSpells = {
     "StarterStaffNature"

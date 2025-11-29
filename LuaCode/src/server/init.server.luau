@@ -6,7 +6,7 @@
 local collectionService = game:GetService("CollectionService")
 local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
-local magicMod = require(game.ReplicatedStorage.Shared.combatMod)
+local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
@@ -33,7 +33,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	
     -- set magic to enum of none
 	-- Persistence Attributes
-	player:SetAttribute("Magic", magicMod.MagicType.None)
+	player:SetAttribute("Magic", statsMod.MagicType.None)
 	player:SetAttribute("MagicLevel", 1)
 	player:SetAttribute("Enemy", "None")
 	player:SetAttribute("HasFallen", false)
@@ -159,7 +159,7 @@ function spawnferal()
 			creature.Parent = workspace:WaitForChild("Ferals")
 		end
 		
-		local height = combatMod.creatureStats["ArtifactGuardian"].height
+		local height = statsMod.creatureStats["ArtifactGuardian"].height
 
 		local offsetheight = height - point.Position.Y
 		local offsetCFrame = CFrame.new(point.Position.X, offsetheight, point.Position.Z)
@@ -177,9 +177,9 @@ local manaspawnpoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
 for _,point in pairs(manaspawnpoints) do
 	if point:GetAttribute("HasBuilding") ~= "Empty" then
 		point:SetAttribute("HasBuilding", "Spout")
-		local spout = serverstorage:WaitForChild("Buildings"):WaitForChild("ManaSpout"):Clone()
-		spout.Position = point.Position
-		spout.Parent = workspace.ManaPoints
+		local spoutModel = serverstorage.Buildings.ManaSpout:Clone()  -- now a Model
+		spoutModel:PivotTo(point.CFrame)  -- or point.CFrame * CFrame.new(0, offset, 0) if needed
+		spoutModel.Parent = workspace.ManaPoints
 	end
 end
 
@@ -212,14 +212,14 @@ adminEvent.OnServerEvent:Connect(function(player, command)
     if player.UserId == 2484051658 then
         if command == "IncrementMagic" then
             local currentType = player:GetAttribute("Magic")
-            if currentType == magicMod.MagicType.None then
-                player:SetAttribute("Magic", magicMod.MagicType.Artificer)
-            elseif currentType == magicMod.MagicType.Artificer then
-                player:SetAttribute("Magic", magicMod.MagicType.Primordial)
-			elseif currentType == magicMod.MagicType.Primordial then
-                player:SetAttribute("Magic", magicMod.MagicType.Nature)
-            elseif currentType == magicMod.MagicType.Nature then
-                player:SetAttribute("Magic", magicMod.MagicType.None)
+            if currentType == statsMod.MagicType.None then
+                player:SetAttribute("Magic", statsMod.MagicType.Artificer)
+            elseif currentType == statsMod.MagicType.Artificer then
+                player:SetAttribute("Magic", statsMod.MagicType.Primordial)
+			elseif currentType == statsMod.MagicType.Primordial then
+                player:SetAttribute("Magic", statsMod.MagicType.Nature)
+            elseif currentType == statsMod.MagicType.Nature then
+                player:SetAttribute("Magic", statsMod.MagicType.None)
             end
         end
         if command == "LevelUp" then
@@ -231,4 +231,4 @@ adminEvent.OnServerEvent:Connect(function(player, command)
     end
 end)
 
-local testMod = require(game.ReplicatedStorage.Shared.testMod)
+-- local testMod = require(game.ReplicatedStorage.Shared.testMod)

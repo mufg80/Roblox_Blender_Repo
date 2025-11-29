@@ -5,8 +5,9 @@ local PhysicsService      = game:GetService("PhysicsService")
 
 local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local utilMod   = require(ReplicatedStorage.Shared.utilMod)
+local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 
-local staffTable = combatMod.StaffStats
+local staffTable = statsMod.StaffStats
 local tool       = script.Parent
 
 local bulletStartPosition = tool:WaitForChild("BulletStartPosition")

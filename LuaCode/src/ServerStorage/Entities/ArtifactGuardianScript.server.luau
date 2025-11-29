@@ -6,6 +6,7 @@ local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
 local aggroMod = require(game.ReplicatedStorage.Shared.aggroMod)
+local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 
 local thisMob = combatMod.customTrim(model.Name)
 random = Random.new(utilMod.GetSeedFromName(thisMob))
@@ -108,7 +109,7 @@ task.spawn(function()
     end)
     model:SetAttribute("IdleStartTime", tick())
     local lastAttackTime = 0
-    local ATTACK_COOLDOWN = combatMod.DELAY * baseStats.attackDelay
+    local ATTACK_COOLDOWN = statsMod.DELAY * baseStats.attackDelay
     local homewardBound = false
     local ownedby = model:GetAttribute("OwnedBy")
     local spincooldown = true

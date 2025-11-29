@@ -1,10 +1,56 @@
 
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
-
+local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
+local serverStorage = game:GetService("ServerStorage")
 local buffMod = {}
 
-function buffMod.ReclaimPet(player, spell, max, mypets):boolean
+function buffMod.ConvertSpout(player):boolean
+    if not player.Character then return end
+    local spouts = workspace:WaitForChild("ManaPoints"):GetChildren()
+    for _,spout in pairs(spouts) do
 
+        if spout.Name ~= "ManaSpout" then continue end
+
+        local dist = utilMod.GetMagnitudeHelper(player.Character, spout)
+        if dist < statsMod.SpellInfo.ConvertSpout.range then
+            local magictype = player:GetAttribute("Magic")
+            if magictype == statsMod.MagicType.None then
+                return false
+            elseif magictype == statsMod.MagicType.Artificer then
+                local building: Model = serverStorage:WaitForChild("Buildings").ArtificerLith:Clone()
+                local spoutCFrame = spout:GetPivot()
+                building:PivotTo(spoutCFrame)
+                building.Parent = workspace.ManaPoints
+                building:SetAttribute("OwnedBy", player.UserId)
+                spout.Parent = nil
+                return true
+            elseif magictype == statsMod.MagicType.Primordial then
+                local building: Model = serverStorage:WaitForChild("Buildings").PrimordialLith:Clone()
+                local spoutCFrame = spout:GetPivot()
+                building:PivotTo(spoutCFrame)
+                building.Parent = workspace.ManaPoints
+                building:SetAttribute("OwnedBy", player.UserId)
+                spout.Parent = nil
+                return true
+            elseif magictype == statsMod.MagicType.Nature then
+                local building: Model = serverStorage:WaitForChild("Buildings").NatureLith:Clone()
+                local spoutCFrame = spout:GetPivot()
+                building:PivotTo(spoutCFrame)
+                building.Parent = workspace.ManaPoints
+                building:SetAttribute("OwnedBy", player.UserId)
+                spout.Parent = nil
+                return true
+            else
+                warn("Should not reach me.")
+            end
+            return false
+        end
+    end
+    return false
+end
+
+function buffMod.ReclaimPet(player, spellname, mypets):boolean
+    local spell = statsMod.SpellInfo[spellname]
     local range = spell.range
     local closestDis = math.huge
     local mypet = nil
