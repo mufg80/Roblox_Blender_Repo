@@ -79,10 +79,11 @@ function buffMod.ReclaimPet(player, spellname, mypets):boolean
     
 end
 
-function buffMod.ApplyHeals(player, heal, mypets, spelldamagemax): boolean
+function buffMod.ApplyHeals(player, healName, mypets): boolean
+    local heal = statsMod.SpellInfo[healName]
     local position = player.Character:FindFirstChild("HumanoidRootPart")
     if not position then return end
-    local strenth = heal.effectMultiplier * spelldamagemax
+    local strenth = heal.effectMultiplier * statsMod.MaxSpellDamage
     local range = heal.range
     local applied = false
 

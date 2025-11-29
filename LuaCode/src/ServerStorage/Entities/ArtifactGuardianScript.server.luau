@@ -33,6 +33,15 @@ end
 model:GetAttributeChangedSignal("OwnedBy"):Connect(setStats)
 setStats()
 
+local AddBuffDebuffEvent = Instance.new("BindableEvent")
+AddBuffDebuffEvent.Name = "BuffDebuffEvent"
+AddBuffDebuffEvent.Parent = model
+
+AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
+    print("Called buff debuff event ", player.UserId, " spell: ", spellname)
+
+end)
+
 -- === Threat API ===
 local AddThreatEvent = Instance.new("BindableEvent")
 AddThreatEvent.Name = "AddThreat"

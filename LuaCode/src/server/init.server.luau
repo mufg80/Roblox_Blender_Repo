@@ -1,8 +1,6 @@
 
---local funMod = require(game.ServerScriptService.FunModScript)----
---local ds = game:GetService("DataStoreService")
---local plrData = ds:GetDataStore("Testing_035")
---local dataStoreEnabled = false
+local ds = game:GetService("DataStoreService")
+local dataStoreEnabled = false
 local collectionService = game:GetService("CollectionService")
 local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
@@ -12,117 +10,150 @@ local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
 
 
+local function GetMagicType(player: Player): string
+	local currentType = player:GetAttribute("Magic")
+	if currentType == statsMod.MagicType.Artificer then
+		return "ArtificerLevel"
+	elseif currentType == statsMod.MagicType.Primordial then
+		return "PrimordialLevel"
+	elseif currentType == statsMod.MagicType.Nature then
+		return "NatureLevel"
+	else
+		warn("Should not reach me.")
+		return nil
+	end
+end
+
+
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	collectionService:AddTag(character, "Character")
 
-	-- local currPos = hrp.CFrame.Position
-	-- local rot = CFrame.Angles(0,math.rad(90),0)
-	-- hrp.CFrame = CFrame.new(currPos)*rot
-	
-	-- hum.BreakJointsOnDeath = false
-	-- hum.HealthChanged:Connect(function()
-		
-	-- end)
 end
 
 game.Players.PlayerAdded:Connect(function(player)
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
+
 	
+
     -- set magic to enum of none
 	-- Persistence Attributes
 	player:SetAttribute("Magic", statsMod.MagicType.None)
-	player:SetAttribute("MagicLevel", 1)
-	player:SetAttribute("Enemy", "None")
-	player:SetAttribute("HasFallen", false)
+	player:SetAttribute("ArtificerLevel", 1)
+	player:SetAttribute("PrimordialLevel", 1)
+	player:SetAttribute("NatureLevel", 1)
+	player:SetAttribute("ArtificerExperience", 1)
+	player:SetAttribute("PrimordialExperience", 1)
+	player:SetAttribute("NatureExperience", 1)
 
 
 	-- No persistence for these attributes
-	player:SetAttribute("MaxMana", player:GetAttribute("MagicLevel") * 20)
+	player:SetAttribute("MaxMana", 20)
 	player:SetAttribute("Mana", 20)
+	player:SetAttribute("HasFallen", false)
 
-	player:GetAttributeChangedSignal("MagicLevel"):Connect(function()
-		local level = player:GetAttribute("MagicLevel")
-		local max = level * 20
-		player:SetAttribute("MaxMana", max)
-		player:SetAttribute("Mana", max)
+	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
+		local currentmana = player:GetAttribute("Mana")
+		local currentMax = player:GetAttribute("MaxMana")
+
+		if currentMax < currentmana then
+			player:SetAttribute("Mana", currentMax)
+		end
 	end)
 	
-	-- if dataStoreEnabled then
-		
-	-- 	local data = plrData:GetAsync(player.UserId)
-		
-	-- 	if data ~= nil then
-			
-	-- 		for key,value in pairs(data)do
-				
-	-- 		end
-			
-	-- 		local allAtts = player:GetAttributes()
-	-- 		for dataKey, dataValue in pairs(data)do
-	-- 			for key,value in pairs(allAtts)do
-	-- 				if key == dataKey then
-	-- 					player:SetAttribute(key, dataValue)
-	-- 				end
-	-- 			end
-	-- 		end
-	-- 		print("PlayerData Loaded.")
-	-- 	else
-	-- 		data = {
-	-- 			["TotalApples"] = 0,
-	-- 			["TotalLogs"] = 0,
-	-- 			["HighScore"] = 0,
-	-- 			["TotalTrees"] = 0
-	-- 		}
-	-- 		local success,err = pcall(function()
-	-- 			plrData:SetAsync(player.UserId,data)
-	-- 		end)
-	-- 		if success then
-	-- 			print("New player saved")
-	-- 		else
-	-- 			warn("new player failed to save.")
-	-- 		end
-	-- 	end
-		
-	-- 	game:BindToClose(function()
-	-- 		-- Initialize the default data table
-	-- 		local data = {
-	-- 			["TotalApples"] = 0,
-	-- 			["TotalLogs"] = 0,
-	-- 			["HighScore"] = 0,
-	-- 			["TotalTrees"] = 0
-	-- 		}
+	player:GetAttributeChangedSignal("Magic"):Connect(function()
+		local currentType = player:GetAttribute("Magic")
+		if currentType == statsMod.MagicType.None then
+			player:SetAttribute("MaxMana", 1)
+		elseif currentType == statsMod.MagicType.Artificer then
+			player:SetAttribute("MaxMana", player:GetAttribute("ArtificerLevel") * 20)
+		elseif currentType == statsMod.MagicType.Primordial then
+			player:SetAttribute("MaxMana", player:GetAttribute("PrimordialLevel") * 20)
+		elseif currentType == statsMod.MagicType.Nature then
+			player:SetAttribute("MaxMana", player:GetAttribute("NatureLevel") * 20)
+		end
+	end)
 
-	-- 		-- Get all player attributes
-	-- 		local allAtts = player:GetAttributes()
+	player:GetAttributeChangedSignal("Mana"):Connect(function()
+		local currentmana = player:GetAttribute("Mana")
+		local currentMax = player:GetAttribute("MaxMana")
+		if currentmana > currentMax then
+			player:SetAttribute("Mana", currentMax)
+		end
+	end)
 
-	-- 		-- Update data table with matching attributes
-	-- 		for key, value in pairs(allAtts) do
-	-- 			if data[key] ~= nil then -- Check if the key exists in the data table
-	-- 				data[key] = value
-	-- 			end
-	-- 		end
 
-	-- 		-- Save the data once
-	-- 		local success, err = pcall(function()
-	-- 			plrData:SetAsync(player.UserId, data)
-	-- 		end)
 
-	-- 		if success then
-	-- 			print("Player data saved successfully for " .. player.Name)
-	-- 		else
-	-- 			warn("Failed to save player data for " .. player.Name .. ": " .. tostring(err))
-	-- 		end
-	-- 	end)
+
+	if dataStoreEnabled then
 		
+		local plrData = ds:GetDataStore("Testing_035")
+		local data = plrData:GetAsync(player.UserId)
 		
-	-- else
-	-- 	warn("Datastores disabled")
-	-- end
-	
+		if data ~= nil then
+			local allAtts = player:GetAttributes()
+			for dataKey, dataValue in pairs(data)do
+				for key,value in pairs(allAtts)do
+					if key == dataKey then
+						player:SetAttribute(key, dataValue)
+					end
+				end
+			end
+			print("PlayerData Loaded.")
+		else
+			data = {
+				["Magic"] = statsMod.MagicType.None,
+				["ArtificerLevel"] = 1,
+				["PrimordialLevel"] = 1,
+				["NatureLevel"] = 1,
+				["Experience"] = 1
+			}
+			local success,err = pcall(function()
+				plrData:SetAsync(player.UserId,data)
+			end)
+			if success then
+				print("New player saved")
+			else
+				warn("new player failed to save.")
+			end
+		end
 		
+		game:BindToClose(function()
+			-- Initialize the default data table
+			local data = {
+				["Magic"] = statsMod.MagicType.None,
+				["ArtificerLevel"] = 1,
+				["PrimordialLevel"] = 1,
+				["NatureLevel"] = 1,
+				["Experience"] = 1
+			}
+
+			-- Get all player attributes
+			local allAtts = player:GetAttributes()
+
+			-- Update data table with matching attributes
+			for key, value in pairs(allAtts) do
+				if data[key] ~= nil then -- Check if the key exists in the data table
+					data[key] = value
+				end
+			end
+
+			-- Save the data once
+			local success, err = pcall(function()
+				plrData:SetAsync(player.UserId, data)
+			end)
+
+			if success then
+				print("Player data saved successfully for " .. player.Name)
+			else
+				warn("Failed to save player data for " .. player.Name .. ": " .. tostring(err))
+			end
+		end)
+	else
+		warn("Datastores disabled")
+	end
 end)
 
 
@@ -205,6 +236,7 @@ task.spawn(function()
 end)
 
 
+
 -- admin area
 
 local adminEvent = repstore.Events.AdminEvent
@@ -223,9 +255,11 @@ adminEvent.OnServerEvent:Connect(function(player, command)
             end
         end
         if command == "LevelUp" then
-            local currentLevel = player:GetAttribute("MagicLevel")
+			local magictype = GetMagicType(player)
+			if not magictype or magictype == statsMod.MagicType.None then return end
+            local currentLevel = player:GetAttribute(magictype)
             if currentLevel < 7 then
-                player:SetAttribute("MagicLevel", currentLevel + 1)
+                player:SetAttribute(magictype, currentLevel + 1)
             end
         end
     end

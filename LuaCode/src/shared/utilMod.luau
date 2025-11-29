@@ -537,7 +537,7 @@ function utilMod.GetEnemyModelsWithinRange(player, range)
     local thisPos = thisHRP.Position
 
     local petsFolder = workspace:FindFirstChild("Pets")
-    local feralsFolder = workspace:FindFirstChild("ferals")
+    local feralsFolder = workspace:FindFirstChild("Ferals")
     
     local enemies = {}
 

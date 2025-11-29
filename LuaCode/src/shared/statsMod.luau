@@ -122,7 +122,7 @@ statsMod.SpellInfo = {
     StoneFall         = { manaCost = .4,  magicType = "Artificer", spellType = "damage", missChance = 0.2, range = 20,  cooldown = 5,  numberTargets = 1, effectMultiplier = .5   }, -- L2 single-target
     HardSkin          = { manaCost = .6,  magicType = "Artificer", spellType = "buff",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0.4 }, -- +40% armor/def for X sec
     ReviveSpirit      = { manaCost = .7, magicType = "Artificer", spellType = "heal",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = .15  }, -- big heal
-    StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 5   }, -- slow + small DoT
+    StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,   range = 30, cooldown = 5, numberTargets = 4, effectMultiplier = 5   }, -- slow + small DoT
     Avalanche         = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4,  range = 20,  cooldown = 5, numberTargets = 4, effectMultiplier = .2   }, -- AOE, lower per-target
 
     -- Primordial
@@ -130,7 +130,7 @@ statsMod.SpellInfo = {
     DormantVirus      = { manaCost = .4,  magicType = "Primordial", spellType = "damage", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .4   }, -- L2 single-target
     AnimatedAttacks   = { manaCost = .5,  magicType = "Primordial", spellType = "buff", missChance = 0.2, range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = 0.5 }, -- +50% attack speed/damage
     HalfLife          = { manaCost = .6,  magicType = "Primordial", spellType = "heal", missChance = 0.2,  range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .15 }, -- 50% max HP reduction
-    GooSwamp          = { manaCost = .7, magicType = "Primordial", spellType = "debuff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 5 },
+    GooSwamp          = { manaCost = .7, magicType = "Primordial", spellType = "debuff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 4, effectMultiplier = 5 },
     InhostpitableAtmosphere = { manaCost = .8, magicType = "Primordial", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .2 },
 
     -- Nature
@@ -138,7 +138,7 @@ statsMod.SpellInfo = {
     StingingSwarm     = { manaCost = .4,  magicType = "Nature", spellType = "damage",  missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .6   },-- L2 single-target
     AgilityoftheSquirrell = { manaCost = .6, magicType = "Nature", spellType = "buff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 0.6 }, -- big speed boost
     Regenerate        = { manaCost = .6,  magicType = "Nature", spellType = "heal", missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = .15  }, -- HoT or burst heal
-    Root              = { manaCost = .7,  magicType = "Nature", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 4   }, -- root + small damage
+    Root              = { manaCost = .7,  magicType = "Nature", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 5, effectMultiplier = 4   }, -- root + small damage
     NaturesDefenders  = { manaCost = .8, magicType = "Nature", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .3   },
 }
 

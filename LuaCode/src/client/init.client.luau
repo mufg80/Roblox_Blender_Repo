@@ -5,7 +5,7 @@ local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local players = game:GetService("Players")
 local uis = game:GetService("UserInputService")
 local playerGui = players.LocalPlayer:WaitForChild("PlayerGui")
-local magicgui = playerGui:WaitForChild("MagicGui")
+local magicgui = playerGui:WaitForChild("MagicGui", 15)
 local statsGui = playerGui:WaitForChild("StatsGui")
 local designFolder = replicatedstorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
@@ -13,14 +13,29 @@ local themes = designFolder:WaitForChild("ClassThemes")
 local artificertheme = themes:WaitForChild("ArtificerTheme")
 local primordialtheme = themes:WaitForChild("PrimordialTheme")
 local naturetheme = themes:WaitForChild("NatureTheme")
+local noneTheme = themes:WaitForChild("NoneTheme")
 local player = players.LocalPlayer
 local hum = player.Character:WaitForChild("Humanoid")
 local healthLabel = statsGui:WaitForChild("HealthFrame"):WaitForChild("HealthLabel")
 local manaLabel = statsGui:WaitForChild("HealthFrame"):WaitForChild("ManaLabel")
 
+function ReturnLevel()
+    local magictype = player:GetAttribute("Magic")
+
+    if magictype == statsMod.MagicType.None then
+        return 1
+    elseif magictype == statsMod.MagicType.Artificer then
+        return player:GetAttribute("ArtificerLevel")
+    elseif magictype == statsMod.MagicType.Primordial then
+        return player:GetAttribute("PrimordialLevel")
+    elseif magictype == statsMod.MagicType.Nature then
+        return player:GetAttribute("NatureLevel")
+
+    end
+end
 function updateMagicUI()
     local magic = player:GetAttribute("Magic")
-    local magicLevel = player:GetAttribute("MagicLevel")
+    local magicLevel = ReturnLevel()
     local typeTable = statsMod.MagicLevels[magic]
 
 
@@ -40,6 +55,7 @@ function updateMagicUI()
         magicgui.SpellFrame.Visible = true
         magicgui.CreatureFrame.Visible = true
     else
+        designSheet:SetDerives({noneTheme})
         magicgui.Enabled = false
         magicgui.SpellFrame.Visible = false
         magicgui.CreatureFrame.Visible = false
@@ -80,7 +96,14 @@ updateMagicUI()
 player:GetAttributeChangedSignal("Magic"):Connect(function()
     updateMagicUI()
 end)
-player:GetAttributeChangedSignal("MagicLevel"):Connect(function()
+player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
+    updateMagicUI()
+end)
+player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
+    updateMagicUI()
+end)
+player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
+    --local magictype = player:GetAttribute("Magic")
     updateMagicUI()
 end)
 
@@ -89,7 +112,6 @@ end)
 player:GetAttributeChangedSignal("Mana"):Connect(function()
     local newmana = player:GetAttribute("Mana")
     manaLabel.Text = "Mana: "..tostring(math.floor(newmana))
-
 end)
 
 local function health(health)
@@ -103,8 +125,7 @@ local function health(health)
 end
 hum.HealthChanged:Connect(health)
 health(hum.MaxHealth)
-player:SetAttribute("Mana", player:GetAttribute("Mana") - 1)
-
+player:SetAttribute("Mana", player:GetAttribute("Mana") + 1)
 local creaturebuttons = magicgui.CreatureFrame:GetChildren()
 local spellbuttons = magicgui.SpellFrame:GetChildren()
 
@@ -132,12 +153,19 @@ if players.LocalPlayer.UserId == 2484051658 then
     local typebutton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
     levelbutton.MouseButton1Click:Connect(function()
         print("Firing LevelUp")
+        local level = ReturnLevel()
+        if not level then return end
         replicatedstorage.Events.AdminEvent:FireServer("LevelUp")
-        levelbutton.Text = "Magic Level: "..tostring(player:GetAttribute("MagicLevel"))
+        task.wait(.1)
+        levelbutton.Text = "Magic Level: "..tostring(level + 1)
     end)
     typebutton.MouseButton1Click:Connect(function()
         print("Firing IncrementMagic")
         replicatedstorage.Events.AdminEvent:FireServer("IncrementMagic")
+        task.wait(.1)
         typebutton.Text = "Magic Type: "..tostring(player:GetAttribute("Magic"))
+        local level = ReturnLevel()
+        if not level then return end
+        levelbutton.Text = "Magic Level: "..tostring(level)
     end)
 end
