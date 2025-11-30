@@ -79,34 +79,107 @@ function buffMod.ReclaimPet(player, spellname, mypets):boolean
     
 end
 
-function buffMod.ApplyHeals(player, healName, mypets): boolean
-    local heal = statsMod.SpellInfo[healName]
-    local position = player.Character:FindFirstChild("HumanoidRootPart")
-    if not position then return end
-    local strenth = heal.effectMultiplier * statsMod.MaxSpellDamage
-    local range = heal.range
-    local applied = false
+local RUNNING_EFFECTS = {} -- [model] = { [spellname] = true } -- prevents duplicate coroutines
 
-    for _,pet in mypets do
-        local pethrp = pet:FindFirstChild("HumanoidRootPart")
-        if not pethrp then continue end
-        local thismags = utilMod.GetMagnitude(position, pethrp)
-        if thismags < range then
-            local hum = pet:FindFirstChild("Humanoid")
-            if not hum then return end
-            if hum.Health < hum.MaxHealth then
-                hum.Health = math.min(hum.Health + strenth, hum.MaxHealth)
-                applied = true
+-- Helper: Apply or remove stat changes directly to the Value objects
+local function ApplyStatChanges(model: Model, spellname: string, multiplier: number)
+    local buffInfo = statsMod.BuffInfo[spellname]
+    if not buffInfo then return end
+
+    local dataFolder = model:FindFirstChild("Data")
+    if not dataFolder then return end
+
+    for statName, changeValue in pairs(buffInfo) do
+        local valueObj = dataFolder:FindFirstChild(statName)
+        if valueObj and valueObj:IsA("ValueBase") then
+            -- Only modify if it's a number!
+            if typeof(valueObj.Value) == "number" then
+                valueObj.Value += changeValue * multiplier
             end
         end
     end
-    local myhum = player.Character:FindFirstChild("Humanoid")
-    if not myhum then return end
-    if myhum.Health < myhum.MaxHealth then        
-        myhum.Health = math.min(myhum.Health + strenth, myhum.MaxHealth)
-        applied = true
+end
+
+-- Main function
+function buffMod.BuffDebuffHeal(target: Model | Player, caster: Player?, spellname: string)
+    local modelInstance: Model
+    local player: Player?
+
+    -- Support both Player and NPC Model
+    if target:IsA("Player") then
+        player = target
+        modelInstance = target.Character
+    else
+        modelInstance = target
+        player = game.Players:GetPlayerFromCharacter(modelInstance)
     end
-    return applied
+
+    if not modelInstance or not modelInstance.Parent then return end
+
+    -- Prevent duplicate application
+    local key = tostring(modelInstance) .. spellname
+    if RUNNING_EFFECTS[key] then
+        return -- Already active
+    end
+    RUNNING_EFFECTS[key] = true
+
+    -- Mark as active
+    modelInstance:SetAttribute("Buff_" .. spellname, true)
+
+    local spellinfo = statsMod.SpellInfo[spellname]
+    local buffinfo = statsMod.BuffInfo[spellname]
+
+    if not spellinfo or not buffinfo then
+        RUNNING_EFFECTS[key] = nil
+        modelInstance:SetAttribute("Buff_" .. spellname, nil)
+        return
+    end
+
+    local duration = buffinfo.seconds or 0
+    local isHeal = spellinfo.spellType == "heal"
+    local isBuff = spellinfo.spellType == "buff"
+    local isDebuff = spellinfo.spellType == "debuff"
+
+    -- Apply instant changes
+    if isBuff then
+        ApplyStatChanges(modelInstance, spellname, 1)
+    elseif isDebuff then
+        ApplyStatChanges(modelInstance, spellname, 1) -- debuffs are usually negative values in BuffInfo
+    end
+
+    -- Start timer
+    task.spawn(function()
+        local elapsed = 0
+        local tickRate = 1 -- seconds
+
+        while elapsed < duration do
+            task.wait(tickRate)
+            elapsed += tickRate
+
+            if not modelInstance or not modelInstance.Parent then break end
+
+            -- Heal over time
+            if isHeal then
+                local hum = modelInstance:FindFirstChildWhichIsA("Humanoid")
+                if hum then
+                    local healPerTick = buffinfo.hitPoints / duration -- smooth heal
+                    if not healPerTick or healPerTick <= 0 then
+                        healPerTick = buffinfo.hitPoints -- fallback: heal all at once?
+                    end
+                    hum.Health = math.clamp(hum.Health + healPerTick, 0, hum.MaxHealth)
+                end
+            end
+        end
+
+        -- Remove effects when done
+        if isBuff or isDebuff then
+            ApplyStatChanges(modelInstance, spellname, -1)
+        end
+
+        -- Cleanup
+        modelInstance:SetAttribute("Buff_" .. spellname, nil)
+        RUNNING_EFFECTS[key] = nil
+    end)
 end
 
 

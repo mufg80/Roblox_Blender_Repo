@@ -610,4 +610,81 @@ function utilMod.MyPets(plr)
     return pets
 end
 
+-- Copies a flat table of stats into a "Data" Folder with Value objects inside the target Instance
+-- Returns the created/existing Data folder for convenience
+function utilMod.CopyStatsToFolder(targetInstance: Instance, statsTable: { [string]: any }, folderName: string?)
+    folderName = folderName or "Data"
+    
+    -- Find or create the Data folder
+    local dataFolder = targetInstance:FindFirstChild(folderName)
+    if not dataFolder then
+        dataFolder = Instance.new("Folder")
+        dataFolder.Name = folderName
+        dataFolder.Parent = targetInstance
+    else
+        -- Optional: clear old values to prevent duplicates/stale data
+        for _, child in ipairs(dataFolder:GetChildren()) do
+            if child:IsA("ValueBase") then
+                child:Destroy()
+            end
+        end
+    end
+
+    -- Helper to pick correct ValueBase type
+    local function createValue(name, value)
+        local valueType = typeof(value)
+        local valueObj
+
+        if valueType == "number" then
+            valueObj = Instance.new("NumberValue")
+        elseif valueType == "string" then
+            valueObj = Instance.new("StringValue")
+        elseif valueType == "boolean" then
+            valueObj = Instance.new("BoolValue")
+        elseif valueType == "Vector3" then
+            valueObj = Instance.new("Vector3Value")
+        --elseif valueType == "UDim2" then
+        --    valueObj = Instance.new("UDim2Value")
+        elseif valueType == "Color3" then
+            valueObj = Instance.new("Color3Value")
+        elseif valueType == "CFrame" then
+            valueObj = Instance.new("CFrameValue")
+        elseif valueType == "BrickColor" then
+            valueObj = Instance.new("BrickColorValue")
+        elseif valueType == "EnumItem" then
+            valueObj = Instance.new("StringValue") -- store as string, or use ObjectValue if you prefer
+            value = tostring(value)
+        else
+            warn(string.format("[utilMod.CopyStatsToFolder] Unsupported type '%s' for stat '%s' (value: %s)", valueType, name, tostring(value)))
+            return nil
+        end
+
+        valueObj.Name = name
+        valueObj.Value = value
+        valueObj.Parent = dataFolder
+        return valueObj
+    end
+
+    -- Copy each stat
+    for statName, statValue in pairs(statsTable) do
+        createValue(statName, statValue)
+    end
+
+    return dataFolder
+end
+
+function utilMod.GetStatsFromFolder(instance: Instance, folderName: string?)
+    folderName = folderName or "Data"
+    local folder = instance:FindFirstChild(folderName)
+    if not folder then return {} end
+
+    local stats = {}
+    for _, child in ipairs(folder:GetChildren()) do
+        if child:IsA("ValueBase") then
+            stats[child.Name] = child.Value
+        end
+    end
+    return stats
+end
+
 return utilMod

@@ -114,32 +114,113 @@ statsMod.MagicLevels = {
 
 statsMod.SpellInfo = {
     -- Shared
-    ConvertSpout      = { manaCost = .5,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = 0   }, -- just converts mana, no damage/heal
-    ReclaimPet        = { manaCost = .0,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0   },
+    ConvertSpout      = { manaCost = .5,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0   }, -- just converts mana, no damage/heal
+    ReclaimPet        = { manaCost = .0,  magicType = "Any",     spellType = "utility", missChance = 0, range = 20,  cooldown = 5, numberTargets = 1, aggro = 0, effectMultiplier = 0   },
 
     -- Artificer
-    StarterStaffArtificer         = { manaCost = 0,  magicType = "Artificer", spellType = "damage", missChance = 0, range = 20,  cooldown = 5,  numberTargets = 1,  effectMultiplier = .1   }, -- L2 single-target
-    StoneFall         = { manaCost = .4,  magicType = "Artificer", spellType = "damage", missChance = 0.2, range = 20,  cooldown = 5,  numberTargets = 1, effectMultiplier = .5   }, -- L2 single-target
-    HardSkin          = { manaCost = .6,  magicType = "Artificer", spellType = "buff",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = 0.4 }, -- +40% armor/def for X sec
-    ReviveSpirit      = { manaCost = .7, magicType = "Artificer", spellType = "heal",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = .15  }, -- big heal
-    StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,   range = 30, cooldown = 5, numberTargets = 4, effectMultiplier = 5   }, -- slow + small DoT
-    Avalanche         = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4,  range = 20,  cooldown = 5, numberTargets = 4, effectMultiplier = .2   }, -- AOE, lower per-target
+    StarterStaffArtificer         = { manaCost = 0,  magicType = "Artificer", spellType = "damage", missChance = 0, range = 20,  cooldown = 5,  numberTargets = 1, aggro = 10, effectMultiplier = .1   }, -- L2 single-target
+    StoneFall         = { manaCost = .4,  magicType = "Artificer", spellType = "damage", missChance = 0.2, range = 20,  cooldown = 5,  numberTargets = 1, aggro = 10, effectMultiplier = .5   }, -- L2 single-target
+    HardSkin          = { manaCost = .6,  magicType = "Artificer", spellType = "buff",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, aggro = 0, effectMultiplier = 0 }, -- +40% armor/def for X sec
+    ReviveSpirit      = { manaCost = .7, magicType = "Artificer", spellType = "heal",  missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, aggro = 0, effectMultiplier = 0  }, -- big heal
+    StoneonFoot       = { manaCost = .7,  magicType = "Artificer", spellType = "debuff", missChance = 0.2,   range = 30, cooldown = 5, numberTargets = 4, aggro = 10, effectMultiplier = 0   }, -- slow + small DoT
+    Avalanche         = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4,  range = 20,  cooldown = 5, numberTargets = 4, aggro = 10, effectMultiplier = .2   }, -- AOE, lower per-target
 
     -- Primordial
-    StarterStaffPrimordial      = { manaCost = 0,  magicType = "Primordial", spellType = "damage", missChance = 0, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .1   }, -- L2 single-target
-    DormantVirus      = { manaCost = .4,  magicType = "Primordial", spellType = "damage", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .4   }, -- L2 single-target
-    AnimatedAttacks   = { manaCost = .5,  magicType = "Primordial", spellType = "buff", missChance = 0.2, range = 20,  cooldown = 5, numberTargets = 1, effectMultiplier = 0.5 }, -- +50% attack speed/damage
-    HalfLife          = { manaCost = .6,  magicType = "Primordial", spellType = "heal", missChance = 0.2,  range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .15 }, -- 50% max HP reduction
-    GooSwamp          = { manaCost = .7, magicType = "Primordial", spellType = "debuff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 4, effectMultiplier = 5 },
-    InhostpitableAtmosphere = { manaCost = .8, magicType = "Primordial", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .2 },
+    StarterStaffPrimordial      = { manaCost = 0,  magicType = "Primordial", spellType = "damage", missChance = 0, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .1   }, -- L2 single-target
+    DormantVirus      = { manaCost = .4,  magicType = "Primordial", spellType = "damage", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 10,  effectMultiplier = .4   }, -- L2 single-target
+    AnimatedAttacks   = { manaCost = .5,  magicType = "Primordial", spellType = "buff", missChance = 0.2, range = 20,  cooldown = 5, numberTargets = 1, aggro = 0, effectMultiplier = 0 }, -- +50% attack speed/damage
+    HalfLife          = { manaCost = .6,  magicType = "Primordial", spellType = "heal", missChance = 0.2,  range = 20, cooldown = 5, numberTargets = 1, aggro = 0, effectMultiplier = 0 }, -- 50% max HP reduction
+    GooSwamp          = { manaCost = .7, magicType = "Primordial", spellType = "debuff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 4, aggro = 10, effectMultiplier = 0 },
+    InhostpitableAtmosphere = { manaCost = .8, magicType = "Primordial", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, aggro = 10,  effectMultiplier = .2 },
 
     -- Nature
-    StarterStaffNature     = { manaCost = 0,  magicType = "Nature", spellType = "damage", missChance = 0, range = 20, cooldown = 5, numberTargets = 1,   effectMultiplier = .1   },-- L2 single-target
-    StingingSwarm     = { manaCost = .4,  magicType = "Nature", spellType = "damage",  missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1,  effectMultiplier = .6   },-- L2 single-target
-    AgilityoftheSquirrell = { manaCost = .6, magicType = "Nature", spellType = "buff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = 0.6 }, -- big speed boost
-    Regenerate        = { manaCost = .6,  magicType = "Nature", spellType = "heal", missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1,  effectMultiplier = .15  }, -- HoT or burst heal
-    Root              = { manaCost = .7,  magicType = "Nature", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 5, effectMultiplier = 4   }, -- root + small damage
-    NaturesDefenders  = { manaCost = .8, magicType = "Nature", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, effectMultiplier = .3   },
+    StarterStaffNature     = { manaCost = 0,  magicType = "Nature", spellType = "damage", missChance = 0, range = 20, cooldown = 5, numberTargets = 1, aggro = 10,  effectMultiplier = .1   },-- L2 single-target
+    StingingSwarm     = { manaCost = .4,  magicType = "Nature", spellType = "damage",  missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 10,  effectMultiplier = .6   },-- L2 single-target
+    AgilityoftheSquirrell = { manaCost = .6, magicType = "Nature", spellType = "buff", missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0, effectMultiplier = 0 }, -- big speed boost
+    Regenerate        = { manaCost = .6,  magicType = "Nature", spellType = "heal", missChance = 0.2,   range = 20,  cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0  }, -- HoT or burst heal
+    Root              = { manaCost = .7,  magicType = "Nature", spellType = "debuff", missChance = 0.2,   range = 20, cooldown = 5, numberTargets = 5, aggro = 10, effectMultiplier = 0   }, -- root + small damage
+    NaturesDefenders  = { manaCost = .8, magicType = "Nature", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .3   },
+}
+
+statsMod.BuffInfo = {
+    HardSkin = {
+        attack = 0.05,
+        attackDelay = -0.1,
+        defense = 0.15,
+        armour = 0.20,
+        primordialmagicdefense = 0.15,
+        artificermagicdefense = 0.0,
+        naturemagicdefense = 0.05,
+        speed = 0.0,
+        seconds = 30
+    },
+    ReviveSpirit = {
+        hitPoints = 40,
+        seconds = 1
+    },
+    StoneonFoot = {
+        attack = -0.05,
+        attackDelay = 0.1,
+        defense = -0.15,
+        armour = -0.20,
+        primordialmagicdefense = -0.0,
+        artificermagicdefense = -0.2,
+        naturemagicdefense = -0.0,
+        speed = -0.15,
+        seconds = 30
+    },
+    AnimatedAttacks = {
+        attack = 0.09,
+        attackDelay = -0.15,
+        defense = 0.1,
+        armour = 0.15,
+        primordialmagicdefense = 0.0,
+        artificermagicdefense = 0.15,
+        naturemagicdefense = 0.1,
+        speed = 0.0,
+        seconds = 30
+    },
+    HalfLife = {
+        hitPoints = 15,
+        seconds = 12
+    },
+    GooSwamp = {
+        attack = -0.05,
+        attackDelay = 0.1,
+        defense = -0.15,
+        armour = -0.20,
+        primordialmagicdefense = -0.2,
+        artificermagicdefense = -0.0,
+        naturemagicdefense = -0.0,
+        speed = -0.1,
+        seconds = 30
+    },
+    AgilityoftheSquirrell = {
+        attack = 0.05,
+        attackDelay = -0.1,
+        defense = 0.15,
+        armour = 0.20,
+        primordialmagicdefense = 0.1,
+        artificermagicdefense = 0.1,
+        naturemagicdefense = 0.15,
+        speed = 0.1,
+        seconds = 30
+    },
+    Regenerate = {
+        hitPoints = 8,
+        seconds = 36
+    },
+    Root = {
+        attack = -0.05,
+        attackDelay = 0.05,
+        defense = -0.2,
+        armour = -0.0,
+        primordialmagicdefense = -0.15,
+        artificermagicdefense = -0.15,
+        naturemagicdefense = -0.15,
+        speed = -0.3,
+        seconds = 30
+    }
 }
 
 statsMod.StaffStats = {
@@ -150,7 +231,6 @@ statsMod.StaffStats = {
         bulletTrail = "#d5d506",
         visualSize = .2,
         visualTime = .5
-
     },
     StarterStaffPrimordial = {
         maxRange = 100,

@@ -7,20 +7,23 @@ local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
 local aggroMod = require(game.ReplicatedStorage.Shared.aggroMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
-
+local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 local thisMob = combatMod.customTrim(model.Name)
 random = Random.new(utilMod.GetSeedFromName(thisMob))
 local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
 if not humanoid or not hrp then return end
-local baseStats= combatMod.ShallowTableCopy(thisMob)
+
+local sourceStats = combatMod.ShallowTableCopy(thisMob)
+
+utilMod.CopyStatsToFolder(script.Parent, sourceStats)
 
 local IsStationary = model:GetAttribute("IsStationary") ~= false
 local IdleReset = model:GetAttribute("IdleReset") or 5
 local rangeLimit = model:GetAttribute("RangeLimit") or 50
 local spawnPosition = hrp.Position
 function setStats()
-    baseStats = combatMod.ShallowTableCopy(thisMob)
+    local baseStats = utilMod.GetStatsFromFolder(model)
     humanoid.MaxHealth = baseStats.hitPoints
     humanoid.Health = baseStats.hitPoints
     humanoid.WalkSpeed = 16 * baseStats.speed
@@ -39,7 +42,7 @@ AddBuffDebuffEvent.Parent = model
 
 AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
     print("Called buff debuff event ", player.UserId, " spell: ", spellname)
-
+    buffMod.BuffDebuffHeal(model, player, spellname )
 end)
 
 -- === Threat API ===
@@ -118,14 +121,14 @@ task.spawn(function()
     end)
     model:SetAttribute("IdleStartTime", tick())
     local lastAttackTime = 0
-    local ATTACK_COOLDOWN = statsMod.DELAY * baseStats.attackDelay
+    
     local homewardBound = false
     local ownedby = model:GetAttribute("OwnedBy")
     local spincooldown = true
 
     -- Main loop for npc state
     while task.wait(0.03) do
-
+        local ATTACK_COOLDOWN = statsMod.DELAY * model.Data.attackDelay.Value
         if humanoid.Health <= 0 then
             if not model:GetAttribute("HasFallen") then
                 utilMod.SetFlagsForDeath(model)
@@ -152,9 +155,9 @@ task.spawn(function()
             end
 
             if isPet then
-                aggroMod.hateListPet(baseStats, hateList, model, hrp)
+                aggroMod.hateListPet(model.Data.aggroRadius.Value, hateList, model, hrp)
             else
-                aggroMod.hateListFeral(baseStats, hateList, model, hrp)
+                aggroMod.hateListFeral(model.Data.aggroRadius.Value, hateList, model, hrp)
             end
 
             local hasEnemies = next(hateList) ~= nil   -- true if table has at least one entry

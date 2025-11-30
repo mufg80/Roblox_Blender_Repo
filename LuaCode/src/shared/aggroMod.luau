@@ -22,9 +22,9 @@ local function isAlly(model, targetId)
     return targetOwnerId and targetOwnerId == ownerId
 end
 
-function aggroMod.hateListPet(baseStats, hateList, model, hrp)
-    local aggroSqr = baseStats.aggroRadius ^ 2
-    local leashSqr = (baseStats.aggroRadius * 3) ^ 2
+function aggroMod.hateListPet(aggroRadius, hateList, model, hrp)
+    local aggroSqr = aggroRadius ^ 2
+    local leashSqr = (aggroRadius * 3) ^ 2
 
     -- Add nearby threats
     for _, player in ipairs(game.Players:GetPlayers()) do
@@ -110,12 +110,12 @@ function aggroMod.hateListPet(baseStats, hateList, model, hrp)
     end
 end
 
-function aggroMod.hateListFeral(baseStats, hateList, model, hrp)
+function aggroMod.hateListFeral(aggroRadius, hateList, model, hrp)
  ----------------------------------------------------------------
         -- THREAT / TARGET SELECTION
         ----------------------------------------------------------------
-        local aggroSqr = baseStats.aggroRadius ^ 2
-        local leashSqr = (baseStats.aggroRadius * 3) ^ 2
+        local aggroSqr = aggroRadius ^ 2
+        local leashSqr = (aggroRadius * 3) ^ 2
 
         -- Add nearby threats
         for _, player in ipairs(game.Players:GetPlayers()) do

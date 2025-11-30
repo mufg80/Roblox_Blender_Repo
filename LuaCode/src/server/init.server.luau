@@ -8,7 +8,7 @@ local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
-
+local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 
 local function GetMagicType(player: Player): string
 	local currentType = player:GetAttribute("Magic")
@@ -36,7 +36,14 @@ end
 game.Players.PlayerAdded:Connect(function(player)
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
 
-	
+	local AddBuffDebuffEvent = Instance.new("BindableEvent")
+	AddBuffDebuffEvent.Name = "BuffDebuffEvent"
+	AddBuffDebuffEvent.Parent = player
+
+	AddBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
+		print("Called buff debuff event ", player1.UserId, " spell: ", spellname)
+		buffMod.BuffDebuffHeal(player.Character, player1, spellname )
+	end)
 
     -- set magic to enum of none
 	-- Persistence Attributes
@@ -66,15 +73,27 @@ game.Players.PlayerAdded:Connect(function(player)
 	player:GetAttributeChangedSignal("Magic"):Connect(function()
 		local currentType = player:GetAttribute("Magic")
 		if currentType == statsMod.MagicType.None then
+			local sourceStats = combatMod.ShallowTableCopy("PlayerNone")
+			utilMod.CopyStatsToFolder(player, sourceStats)
 			player:SetAttribute("MaxMana", 1)
 		elseif currentType == statsMod.MagicType.Artificer then
+			local sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
+			utilMod.CopyStatsToFolder(player, sourceStats)
 			player:SetAttribute("MaxMana", player:GetAttribute("ArtificerLevel") * 20)
 		elseif currentType == statsMod.MagicType.Primordial then
+			local sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
+			utilMod.CopyStatsToFolder(player, sourceStats)
 			player:SetAttribute("MaxMana", player:GetAttribute("PrimordialLevel") * 20)
 		elseif currentType == statsMod.MagicType.Nature then
+			local sourceStats = combatMod.ShallowTableCopy("PlayerNature")
+			utilMod.CopyStatsToFolder(player, sourceStats)
 			player:SetAttribute("MaxMana", player:GetAttribute("NatureLevel") * 20)
 		end
+
+
 	end)
+	player:SetAttribute("Magic", statsMod.MagicType.Artificer)
+	player:SetAttribute("Magic", statsMod.MagicType.None)
 
 	player:GetAttributeChangedSignal("Mana"):Connect(function()
 		local currentmana = player:GetAttribute("Mana")
@@ -154,6 +173,15 @@ game.Players.PlayerAdded:Connect(function(player)
 	else
 		warn("Datastores disabled")
 	end
+
+	task.spawn(function()
+		while task.wait(5) do
+			local table = utilMod.GetStatsFromFolder(player)
+			if table then
+				print(table)
+			end
+		end
+	end)
 end)
 
 
@@ -218,7 +246,7 @@ task.spawn(function()
 	while task.wait(6) do
 		for _,plr in game.Players:GetPlayers() do
 			local mana = plr:GetAttribute("Mana")
-			local newmana = math.min(mana + 2, plr:GetAttribute("MaxMana"))
+			local newmana = math.min(mana + 12, plr:GetAttribute("MaxMana"))
 			plr:SetAttribute("Mana", newmana)
 		end
 	end

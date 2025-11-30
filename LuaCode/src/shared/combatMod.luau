@@ -8,17 +8,40 @@ local combatMod = {}
 local random = Random.new(tick())
 
 
-function combatMod.LeveltoManaCost(creatureName:string)
-    local creature = statsMod.creatureStats[creatureName]
+function combatMod.LeveltoManaCost(creatureInstance)
+    local creature = utilMod.GetStatsFromFolder(creatureInstance)
     if not creature then return math.huge end
     local tenth = creature.level * 0.1
     return tenth * statsMod.MaxSpellCost
 end
 
 -- SpellAttackResult - now accounts for caster level vs target level
-function combatMod.SpellAttackResult(attackerCreatureName, defenderCreatureName, spellName)
-    local attackerStats = statsMod.creatureStats[attackerCreatureName]
-    local defenderStats = statsMod.creatureStats[defenderCreatureName]
+function combatMod.SpellAttackResult(attackerCreatureInstance, defenderCreatureInstance, spellName)
+    local attackerStats = utilMod.GetStatsFromFolder(attackerCreatureInstance)
+    local defenderStats = utilMod.GetStatsFromFolder(defenderCreatureInstance)
+
+    if not attackerStats or next(attackerStats) == nil then
+        local plr = game.Players:GetPlayerFromCharacter(attackerCreatureInstance)
+        if plr then
+            attackerStats = utilMod.GetStatsFromFolder(plr)
+        end
+        if not attackerStats then
+            warn("should not reach me.")
+        end
+    end
+
+    if not defenderStats or next(defenderStats) == nil then
+        local plr = game.Players:GetPlayerFromCharacter(defenderCreatureInstance)
+        if plr then
+            defenderStats = utilMod.GetStatsFromFolder(plr)
+        end
+        if not defenderStats then
+            warn("should not reach me.")
+        end
+    end
+
+
+
     local spell = statsMod.SpellInfo[spellName]
     
     if not (attackerStats and defenderStats and spell) then return 0 end
@@ -48,7 +71,9 @@ function combatMod.SpellAttackResult(attackerCreatureName, defenderCreatureName,
     -- 4. Miss Chance: base + level difference penalty
     --    Level 1 vs Level 7 → big disadvantage
     -- =================================================================
-    
+    if not defenderLevel or not attackerLevel then
+        warn("should not reach me.")
+    end
     local levelDiff = ((defenderLevel - attackerLevel) * 4) * 0.01
     local levelPenalty = math.clamp(levelDiff + 0.15, 0.0, 0.30)  -- +0% to +35% miss chance if lower level
     
@@ -87,13 +112,23 @@ function combatMod.SpellAttackResult(attackerCreatureName, defenderCreatureName,
     -- =================================================================
     local finalmaxed = math.max(final, 1)
     local finalfloored = math.floor(finalmaxed + 0.5)
-    print(attackerCreatureName.." hits "..defenderCreatureName.." with "..spellName.." for "..finalfloored.." points of damage.")
+    print(attackerCreatureInstance.Name.." hits "..defenderCreatureInstance.Name.." with "..spellName.." for "..finalfloored.." points of damage.")
     return finalfloored
 end
 
 
 function combatMod.AcceptableDistanceToOpponent(model, enemy)
-    local enemyTable = combatMod.GetStatsSafelyForPlrorNpc(enemy)
+    local enemyTable = utilMod.GetStatsFromFolder(enemy)
+    if not enemyTable or next(enemyTable) == nil then
+        local plr = game.Players:GetPlayerFromCharacter(enemy)
+        if plr then
+            enemyTable = utilMod.GetStatsFromFolder(plr)
+        end
+        if not enemyTable then
+            warn("should not reach me.")
+        end
+    end
+
     local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
     local enemyhrp = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChildWhichIsA("BasePart")
     if not hrp or not enemyhrp then return false end
@@ -116,8 +151,8 @@ function combatMod.GetStatsSafelyForPlrorNpc(npc)
 end
 
 function combatMod.MeleeAttackResult(attacker, defender)
-    local attackerstats = combatMod.GetStatsSafelyForPlrorNpc(attacker)
-    local defenderstats = combatMod.GetStatsSafelyForPlrorNpc(defender)
+    local attackerstats = utilMod.GetStatsFromFolder(attacker)
+    local defenderstats = utilMod.GetStatsFromFolder(defender)
 
     -- MISS CHANCE CALCULATION (15% floor, 30% ceiling)
     local defenseAdvantage = defenderstats.defense - attackerstats.attack
@@ -189,6 +224,9 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
     local hitCharacter = hitPart:FindFirstAncestorWhichIsA("Model")
     if not hitCharacter then return false end
 
+    if hitCharacter:FindFirstChild("Humanoid") == nil then
+        return false
+    end
     -- === ALLY PROTECTION: Never damage own character OR anything you own ===
     local ownerUserId = ownerPlayer.UserId
 
@@ -207,13 +245,7 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
     local targetName = combatMod.customTrim(hitCharacter.Name)
 
     -- Calculate spell damage (your existing system)
-    local damage = combatMod.SpellAttackResult(
-        staffType:match("Artificer") and "PlayerArtificer" or
-        staffType:match("Nature") and "PlayerNature" or
-        "PlayerPrimordial",
-        targetName,
-        staffType
-    )
+    local damage = combatMod.SpellAttackResult(ownerPlayer, hitCharacter, staffType)
 
     if not damage or damage <= 0 then
         -- Still generate threat even on block/miss (good for PvP & PvE balance)
@@ -375,20 +407,20 @@ function combatMod.ApplySpell(player, spellname)
         local applied = false
 		if targetplayer and targetplayer.Character and utilMod.GetMagnitudeHelper(player.Character, targetplayer.Character) < info.range then
             local targetplayertype = combatMod.GetPlayerType(targetplayer)
-			local damage = combatMod.SpellAttackResult(playerType, targetplayertype, spellname)
+			local damage = combatMod.SpellAttackResult(player, targetplayer, spellname)
 			if combatMod.ExecuteDamageToBody(player.UserId, targetplayer.Character, damage) then applied = true end
 			return
 		end
 		local targetpet = utilMod.GetClosestModelSkipownPets(player, "Pets")
 		if targetpet and utilMod.GetMagnitudeHelper(player.Character, targetpet) < info.range then
-			local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(targetpet.Name), spellname)
+			local damage = combatMod.SpellAttackResult(player, targetpet, spellname)
 			if combatMod.ExecuteDamageToBody(player.UserId, targetpet, damage) then applied = true end
 			return
 		end
 
 		local targetferal = utilMod.GetClosestModelSkipownPets(player, "Ferals")
 		if targetferal and utilMod.GetMagnitudeHelper(player.Character, targetferal) < info.range then
-			local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(targetferal.Name), spellname)
+			local damage = combatMod.SpellAttackResult(player, targetferal, spellname)
 			if combatMod.ExecuteDamageToBody(player.UserId, targetferal, damage) then applied = true end
 			return
 		end
@@ -404,14 +436,14 @@ function combatMod.ApplySpell(player, spellname)
         for i,plr in ipairs(playerchars) do
             if mobs <= info.numberTargets then
                 local targetplayertype = combatMod.GetPlayerType(plr)
-                local damage = combatMod.SpellAttackResult(playerType, targetplayertype, spellname)
+                local damage = combatMod.SpellAttackResult(player, plr, spellname)
                 combatMod.ExecuteDamageToBody(player.UserId, plr.Character, damage)
             end
             mobs += 1
         end
         for i, mob in ipairs(models) do
             if mobs <= info.numberTargets then
-                local damage = combatMod.SpellAttackResult(playerType, combatMod.customTrim(mob.Name), spellname)
+                local damage = combatMod.SpellAttackResult(player, mob, spellname)
                 combatMod.ExecuteDamageToBody(player.UserId, mob, damage)                
             end
             mobs += 1
@@ -430,6 +462,11 @@ function combatMod.ApplySpell(player, spellname)
                 event:Fire(player, spellname)
             end
         end
+        local event = player:FindFirstChild("BuffDebuffEvent")
+        if event then
+                    event:Fire(player, spellname)
+        end
+
         if applied then
             player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
         end
@@ -440,7 +477,10 @@ function combatMod.ApplySpell(player, spellname)
         local applied = false
         if playerchars then
             for _,plr in ipairs(playerchars) do
-                
+                local event = plr:FindFirstChild("BuffDebuffEvent")
+                if event then
+                    event:Fire(player, spellname)
+                end
             end
         end
         
@@ -486,6 +526,8 @@ function combatMod.ApplySpell(player, spellname)
 	else
 		warn("should not reach me.")
 	end
+
+    
 
 end
 
