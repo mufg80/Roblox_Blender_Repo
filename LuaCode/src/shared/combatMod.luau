@@ -475,17 +475,9 @@ function combatMod.ApplySpell(player, spellname)
         if not mypets then warn("Nopets") return end
         local applied = false
         for _,pet in ipairs(mypets) do
-            local event = pet:FindFirstChild("BuffDebuffEvent")
-            if event then
-                applied = buffMod.BuffDebuffHeal(player, pet, spellname) or applied
-                event:Fire(player, spellname)
-            end
+            applied = buffMod.BuffDebuffHeal(player, pet, spellname) or applied
         end
-        local event = player:FindFirstChild("BuffDebuffEvent")
-        if event then
-            applied = buffMod.BuffDebuffHeal(player, player, spellname) or applied       
-            event:Fire(player, spellname)
-        end
+        applied = buffMod.BuffDebuffHeal(player, player, spellname) or applied
 
         if applied then
             player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
@@ -497,21 +489,13 @@ function combatMod.ApplySpell(player, spellname)
         local applied = false
         if playerchars then
             for _,plr in ipairs(playerchars) do
-                local event = plr:FindFirstChild("BuffDebuffEvent")
-                if event then
-                    applied = buffMod.BuffDebuffHeal(player, plr, spellname) or applied
-                    event:Fire(player, spellname)
-                end
+                applied = buffMod.BuffDebuffHeal(player, plr, spellname) or applied
             end
         end
         
         if models then
             for _,mob in ipairs(models) do
-                local event = mob:FindFirstChild("BuffDebuffEvent")
-                if event then
-                    applied = buffMod.BuffDebuffHeal(player, mob, spellname) or applied
-                    event:Fire(player, spellname)
-                end
+                applied = buffMod.BuffDebuffHeal(player, mob, spellname) or applied
             end
         end
         
