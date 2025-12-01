@@ -9,7 +9,7 @@ local random = Random.new(tick())
 
 
 function combatMod.LeveltoManaCost(creatureInstance)
-    local creature = utilMod.GetStatsFromFolder(creatureInstance)
+    local creature = statsMod.creatureStats[creatureInstance]
     if not creature then return math.huge end
     local tenth = creature.level * 0.1
     return tenth * statsMod.MaxSpellCost
@@ -112,7 +112,7 @@ function combatMod.SpellAttackResult(attackerCreatureInstance, defenderCreatureI
     -- =================================================================
     local finalmaxed = math.max(final, 1)
     local finalfloored = math.floor(finalmaxed + 0.5)
-    print(attackerCreatureInstance.Name.." hits "..defenderCreatureInstance.Name.." with "..spellName.." for "..finalfloored.." points of damage.")
+    -- print(attackerCreatureInstance.Name.." hits "..defenderCreatureInstance.Name.." with "..spellName.." for "..finalfloored.." points of damage.")
     return finalfloored
 end
 
@@ -154,6 +154,24 @@ function combatMod.MeleeAttackResult(attacker, defender)
     local attackerstats = utilMod.GetStatsFromFolder(attacker)
     local defenderstats = utilMod.GetStatsFromFolder(defender)
 
+    if not attackerstats or next(attackerstats) == nil then
+        local plr = game.Players:GetPlayerFromCharacter(attacker)
+        if plr then
+            attackerstats = utilMod.GetStatsFromFolder(plr)
+        end
+        if not attackerstats then
+            warn("should not reach me.")
+        end
+    end
+    if not defenderstats or next(defenderstats) == nil then
+        local plr = game.Players:GetPlayerFromCharacter(defender)
+        if plr then
+            defenderstats = utilMod.GetStatsFromFolder(plr)
+        end
+        if not defenderstats then
+            warn("should not reach me.")
+        end
+    end
     -- MISS CHANCE CALCULATION (15% floor, 30% ceiling)
     local defenseAdvantage = defenderstats.defense - attackerstats.attack
     local missChance = math.clamp(defenseAdvantage * 25, 0.15, 0.30)
@@ -188,7 +206,7 @@ function combatMod.MeleeAttackResult(attacker, defender)
     -- Ensure minimum 1 damage
     finalDamage = math.clamp(finalDamage, 1, maxPossibleDamage)
     local final = math.floor(finalDamage + 0.5)
-    print(attacker.Name.." hits "..defender.Name.." for "..final.." points of damage.")
+    -- print(attacker.Name.." hits "..defender.Name.." for "..final.." points of damage.")
     -- Return as integer
     return final
 end
@@ -197,7 +215,7 @@ function combatMod.ShallowTableCopy(name)
     local trimmed = combatMod.customTrim(tostring(name))
     local t = statsMod.creatureStats[trimmed]
     if not t then
-        print(trimmed)
+        -- print(trimmed)
         warn(name)
     end
     local copy = {}
@@ -459,12 +477,14 @@ function combatMod.ApplySpell(player, spellname)
         for _,pet in ipairs(mypets) do
             local event = pet:FindFirstChild("BuffDebuffEvent")
             if event then
+                applied = buffMod.BuffDebuffHeal(player, pet, spellname) or applied
                 event:Fire(player, spellname)
             end
         end
         local event = player:FindFirstChild("BuffDebuffEvent")
         if event then
-                    event:Fire(player, spellname)
+            applied = buffMod.BuffDebuffHeal(player, player, spellname) or applied       
+            event:Fire(player, spellname)
         end
 
         if applied then
@@ -479,6 +499,7 @@ function combatMod.ApplySpell(player, spellname)
             for _,plr in ipairs(playerchars) do
                 local event = plr:FindFirstChild("BuffDebuffEvent")
                 if event then
+                    applied = buffMod.BuffDebuffHeal(player, plr, spellname) or applied
                     event:Fire(player, spellname)
                 end
             end
@@ -488,6 +509,7 @@ function combatMod.ApplySpell(player, spellname)
             for _,mob in ipairs(models) do
                 local event = mob:FindFirstChild("BuffDebuffEvent")
                 if event then
+                    applied = buffMod.BuffDebuffHeal(player, mob, spellname) or applied
                     event:Fire(player, spellname)
                 end
             end
@@ -498,8 +520,13 @@ function combatMod.ApplySpell(player, spellname)
         end
 	elseif info.spellType == "heal" then
         local mypets = utilMod.MyPets(player)
-        local applied = buffMod.ApplyHeals(player, spellname, mypets)
-        
+        local applied = buffMod.BuffDebuffHeal(player, player, spellname)
+        for _, pet in mypets do
+            local healed = buffMod.BuffDebuffHeal(player, pet, spellname)
+            if healed then
+                applied = true
+            end
+        end
         if applied then
             player:SetAttribute("Mana", player:GetAttribute("Mana") - cost)
         end
@@ -595,7 +622,7 @@ function combatMod.ApplyMeleeDamage(attackerModel: Model, targetModel: Model)
 
     -- Apply damage
     targetHum.Health = math.max(targetHum.Health - damage, 0)
-
+    print(targetModel.Name.." has "..targetHum.Health.." health remaining.")
     return true
 end
 

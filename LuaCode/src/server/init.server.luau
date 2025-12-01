@@ -24,13 +24,43 @@ local function GetMagicType(player: Player): string
 	end
 end
 
+local function setStats(thisPlayer: Player)
+    local baseStats = utilMod.GetStatsFromFolder(thisPlayer)
+	local humanoid = thisPlayer.Character and thisPlayer.Character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		local secs = 0
+		while not humanoid and secs <= 5 do
+			task.wait(1)
+			secs += 1
+			humanoid = thisPlayer.Character and thisPlayer.Character:FindFirstChildOfClass("Humanoid")
+		end
+		if not humanoid then
+			warn("should not reach me")
+			return
+		end
+		
+	end
+    humanoid.MaxHealth = baseStats.hitPoints
+	if humanoid.Health > humanoid.MaxHealth then
+		humanoid.Health = humanoid.MaxHealth
+	end
+    humanoid.WalkSpeed = 16 * baseStats.speed
+end
 
+local function ReduceMana(player: Player)
+	local currentmana = player:GetAttribute("Mana")
+	local currentMax = player:GetAttribute("MaxMana")
+
+	if currentMax < currentmana then
+		player:SetAttribute("Mana", currentMax)
+	end
+end
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	collectionService:AddTag(character, "Character")
-
+	setStats(plr)
 end
 
 game.Players.PlayerAdded:Connect(function(player)
@@ -43,6 +73,16 @@ game.Players.PlayerAdded:Connect(function(player)
 	AddBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
 		print("Called buff debuff event ", player1.UserId, " spell: ", spellname)
 		buffMod.BuffDebuffHeal(player.Character, player1, spellname )
+		setStats(player)
+	end)
+
+	local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
+	RemoveBuffDebuffEvent.Name = "RemoveBuffDebuffEvent"
+	RemoveBuffDebuffEvent.Parent = player
+
+	RemoveBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
+		print("Called Remove buff debuff event ", player1.UserId, " spell: ", spellname)
+		setStats(player)
 	end)
 
     -- set magic to enum of none
@@ -62,12 +102,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("HasFallen", false)
 
 	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
-		local currentmana = player:GetAttribute("Mana")
-		local currentMax = player:GetAttribute("MaxMana")
-
-		if currentMax < currentmana then
-			player:SetAttribute("Mana", currentMax)
-		end
+		ReduceMana(player)
 	end)
 	
 	player:GetAttributeChangedSignal("Magic"):Connect(function()
@@ -75,23 +110,43 @@ game.Players.PlayerAdded:Connect(function(player)
 		if currentType == statsMod.MagicType.None then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerNone")
 			utilMod.CopyStatsToFolder(player, sourceStats)
+			setStats(player)
 			player:SetAttribute("MaxMana", 1)
 		elseif currentType == statsMod.MagicType.Artificer then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
 			utilMod.CopyStatsToFolder(player, sourceStats)
+			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("ArtificerLevel") * 20)
 		elseif currentType == statsMod.MagicType.Primordial then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
 			utilMod.CopyStatsToFolder(player, sourceStats)
+			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("PrimordialLevel") * 20)
 		elseif currentType == statsMod.MagicType.Nature then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerNature")
 			utilMod.CopyStatsToFolder(player, sourceStats)
+			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("NatureLevel") * 20)
 		end
-
-
 	end)
+
+
+	player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
+		if player:GetAttribute("Magic") == statsMod.MagicType.Artificer then
+			player:SetAttribute("MaxMana", player:GetAttribute("ArtificerLevel") * 20)
+		end
+	end)
+	player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
+		if player:GetAttribute("Magic") == statsMod.MagicType.Primordial then
+			player:SetAttribute("MaxMana", player:GetAttribute("PrimordialLevel") * 20)
+		end
+	end)
+	player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
+		if player:GetAttribute("Magic") == statsMod.MagicType.Nature then
+			player:SetAttribute("MaxMana", player:GetAttribute("NatureLevel") * 20)
+		end
+	end)
+
 	player:SetAttribute("Magic", statsMod.MagicType.Artificer)
 	player:SetAttribute("Magic", statsMod.MagicType.None)
 
@@ -174,14 +229,18 @@ game.Players.PlayerAdded:Connect(function(player)
 		warn("Datastores disabled")
 	end
 
-	task.spawn(function()
-		while task.wait(5) do
-			local table = utilMod.GetStatsFromFolder(player)
-			if table then
-				print(table)
-			end
-		end
-	end)
+	-- task.spawn(function()
+	-- 	while task.wait(5) do
+	-- 		local feral = workspace:FindFirstChild("Ferals"):FindFirstChildWhichIsA("Model")
+	-- 		if feral then
+	-- 			local table = utilMod.GetStatsFromFolder(feral)
+	-- 		if table then
+	-- 			print(table)
+	-- 		end
+	-- 		end
+			
+	-- 	end
+	-- end)
 end)
 
 

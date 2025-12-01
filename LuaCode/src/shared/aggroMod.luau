@@ -168,12 +168,18 @@ function aggroMod.hateListFeral(aggroRadius, hateList, model, hrp)
         for id, threat in pairs(hateList) do
             if threat > bestThreat then
                 local target = utilMod.GetModelByIDorName(id)
-                if target and not target:GetAttribute("HasFallen") and target:FindFirstChildOfClass("Humanoid") then
-                    bestId = id
-                    bestThreat = threat
-                else
+                local enemyhum = target and target:FindFirstChildOfClass("Humanoid")
+                if enemyhum and enemyhum.Health > 0 then
+                    if target and not target:GetAttribute("HasFallen") and enemyhum then
+                        bestId = id
+                        bestThreat = threat
+                    else
+                        hateList[id] = nil
+                    end
+                elseif enemyhum and enemyhum.Health < 1 then
                     hateList[id] = nil
                 end
+                
             end
         end
 

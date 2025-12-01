@@ -84,10 +84,15 @@ local RUNNING_EFFECTS = {} -- [model] = { [spellname] = true } -- prevents dupli
 -- Helper: Apply or remove stat changes directly to the Value objects
 local function ApplyStatChanges(model: Model, spellname: string, multiplier: number)
     local buffInfo = statsMod.BuffInfo[spellname]
-    if not buffInfo then return end
+    if not buffInfo then return false end
+
+    local player = game.Players:GetPlayerFromCharacter(model)
+    if player then
+         model = player
+    end
 
     local dataFolder = model:FindFirstChild("Data")
-    if not dataFolder then return end
+    if not dataFolder then return false end
 
     for statName, changeValue in pairs(buffInfo) do
         local valueObj = dataFolder:FindFirstChild(statName)
@@ -98,28 +103,27 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
             end
         end
     end
+    return true
 end
 
 -- Main function
-function buffMod.BuffDebuffHeal(target: Model | Player, caster: Player?, spellname: string)
+function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellname: string)
     local modelInstance: Model
-    local player: Player?
-
+    local targetIsPlayer = false
     -- Support both Player and NPC Model
     if target:IsA("Player") then
-        player = target
         modelInstance = target.Character
+        targetIsPlayer = true
     else
         modelInstance = target
-        player = game.Players:GetPlayerFromCharacter(modelInstance)
     end
 
-    if not modelInstance or not modelInstance.Parent then return end
+    if not modelInstance or not modelInstance.Parent then return false end
 
     -- Prevent duplicate application
     local key = tostring(modelInstance) .. spellname
     if RUNNING_EFFECTS[key] then
-        return -- Already active
+        return false -- Already active
     end
     RUNNING_EFFECTS[key] = true
 
@@ -132,19 +136,19 @@ function buffMod.BuffDebuffHeal(target: Model | Player, caster: Player?, spellna
     if not spellinfo or not buffinfo then
         RUNNING_EFFECTS[key] = nil
         modelInstance:SetAttribute("Buff_" .. spellname, nil)
-        return
+        return false
     end
 
     local duration = buffinfo.seconds or 0
     local isHeal = spellinfo.spellType == "heal"
     local isBuff = spellinfo.spellType == "buff"
     local isDebuff = spellinfo.spellType == "debuff"
-
+    local failed = false
     -- Apply instant changes
     if isBuff then
-        ApplyStatChanges(modelInstance, spellname, 1)
+        failed = ApplyStatChanges(modelInstance, spellname, 1)
     elseif isDebuff then
-        ApplyStatChanges(modelInstance, spellname, 1) -- debuffs are usually negative values in BuffInfo
+        failed = ApplyStatChanges(modelInstance, spellname, 1) -- debuffs are usually negative values in BuffInfo
     end
 
     -- Start timer
@@ -166,6 +170,7 @@ function buffMod.BuffDebuffHeal(target: Model | Player, caster: Player?, spellna
                     if not healPerTick or healPerTick <= 0 then
                         healPerTick = buffinfo.hitPoints -- fallback: heal all at once?
                     end
+                    print("healing "..hum.Parent.Name.." for "..healPerTick.." health.")
                     hum.Health = math.clamp(hum.Health + healPerTick, 0, hum.MaxHealth)
                 end
             end
@@ -175,18 +180,30 @@ function buffMod.BuffDebuffHeal(target: Model | Player, caster: Player?, spellna
         if isBuff or isDebuff then
             ApplyStatChanges(modelInstance, spellname, -1)
         end
+        if targetIsPlayer then
+            local player = game.Players:GetPlayerFromCharacter(modelInstance)
+            if player then
+                local event = player:FindFirstChild("RemoveBuffDebuffEvent")
+                if event then
+                    event:Fire(caster, spellname)
+                end
+            end
+        else
+            local event = modelInstance:FindFirstChild("RemoveBuffDebuffEvent")
+            if event then
+                event:Fire(caster, spellname)
+            end
+        end
 
         -- Cleanup
         modelInstance:SetAttribute("Buff_" .. spellname, nil)
         RUNNING_EFFECTS[key] = nil
     end)
+    if isBuff or isDebuff then
+            return failed
+    else
+        return true
+    end
 end
-
-
-
-
-
-
-
 
 return buffMod

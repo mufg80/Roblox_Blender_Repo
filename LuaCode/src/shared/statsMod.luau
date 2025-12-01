@@ -144,32 +144,36 @@ statsMod.SpellInfo = {
 
 statsMod.BuffInfo = {
     HardSkin = {
-        attack = 0.05,
-        attackDelay = -0.1,
-        defense = 0.15,
-        armour = 0.20,
+        hitPoints = 12,
+        attack = 0.04,
+        attackDelay = -0.05,
+        defense = 0.08,
+        armour = 0.10,
         primordialmagicdefense = 0.15,
         artificermagicdefense = 0.0,
         naturemagicdefense = 0.05,
         speed = 0.0,
-        seconds = 30
+        seconds = 60,
+        maxDamage = 0.19
     },
     ReviveSpirit = {
         hitPoints = 40,
         seconds = 1
     },
     StoneonFoot = {
-        attack = -0.05,
-        attackDelay = 0.1,
-        defense = -0.15,
-        armour = -0.20,
+        attack = -0.08,
+        attackDelay = 0.13,
+        defense = -0.19,
+        armour = -0.24,
         primordialmagicdefense = -0.0,
         artificermagicdefense = -0.2,
         naturemagicdefense = -0.0,
         speed = -0.15,
-        seconds = 30
+        seconds = 10,
+        maxDamage = -0.1
     },
     AnimatedAttacks = {
+        hitPoints = 40,
         attack = 0.09,
         attackDelay = -0.15,
         defense = 0.1,
@@ -178,11 +182,12 @@ statsMod.BuffInfo = {
         artificermagicdefense = 0.15,
         naturemagicdefense = 0.1,
         speed = 0.0,
-        seconds = 30
+        seconds = 30,
+        maxDamage = 0.15
     },
     HalfLife = {
-        hitPoints = 15,
-        seconds = 12
+        hitPoints = 30,
+        seconds = 15
     },
     GooSwamp = {
         attack = -0.05,
@@ -193,9 +198,11 @@ statsMod.BuffInfo = {
         artificermagicdefense = -0.0,
         naturemagicdefense = -0.0,
         speed = -0.1,
-        seconds = 30
+        seconds = 30,
+        maxDamage = -0.1
     },
     AgilityoftheSquirrell = {
+        hitPoints = 30,
         attack = 0.05,
         attackDelay = -0.1,
         defense = 0.15,
@@ -204,10 +211,11 @@ statsMod.BuffInfo = {
         artificermagicdefense = 0.1,
         naturemagicdefense = 0.15,
         speed = 0.1,
-        seconds = 30
+        seconds = 30,
+        maxDamage = 0.18
     },
     Regenerate = {
-        hitPoints = 8,
+        hitPoints = 50,
         seconds = 36
     },
     Root = {
@@ -219,7 +227,8 @@ statsMod.BuffInfo = {
         artificermagicdefense = -0.15,
         naturemagicdefense = -0.15,
         speed = -0.3,
-        seconds = 30
+        seconds = 30,
+        maxDamage = -0.1
     }
 }
 
@@ -256,7 +265,7 @@ statsMod.creatureStats = {
     -- ── None ─────────────────────────────────────────────────────
     ["PlayerNone"] = {
         magicType = "None",
-        hitPoints = 10,
+        hitPoints = 60,
         attack = 0.15,
         attackDelay = 0.15,
         defense = 0.15,
@@ -264,7 +273,7 @@ statsMod.creatureStats = {
         primordialmagicdefense = 0.15,
         artificermagicdefense = 0.15,
         naturemagicdefense = 0.15,
-        speed = 0.25,
+        speed = 1,
         maxDamage = 0.1,
         distanceForAttacker = 5,
         height = 2.7,
@@ -274,7 +283,7 @@ statsMod.creatureStats = {
     -- ── ARTIFICER ─────────────────────────────────────────────────────
     ["PlayerArtificer"] = {
         magicType = "Artificer",
-        hitPoints = 50,
+        hitPoints = 60,
         attack = 0.25,
         attackDelay = 0.75,
         defense = 0.25,
@@ -282,7 +291,7 @@ statsMod.creatureStats = {
         primordialmagicdefense = 0.20,
         artificermagicdefense = 0.45,
         naturemagicdefense = 0.25,
-        speed = 0.25,
+        speed = 1,
         maxDamage = 0.35,
         distanceForAttacker = 5,
         height = 2.7,
@@ -420,7 +429,7 @@ statsMod.creatureStats = {
         primordialmagicdefense = 0.45,
         artificermagicdefense = 0.20,
         naturemagicdefense = 0.30,
-        speed = 0.30,
+        speed = 1,
         maxDamage = 0.32,
         distanceForAttacker = 5,
         height = 2.9,
@@ -550,7 +559,7 @@ statsMod.creatureStats = {
     -- ── NATURE ───────────────────────────────────────────────────────
     ["PlayerNature"] = {
         magicType = "Nature",
-        hitPoints = 50,
+        hitPoints = 55,
         attack = 0.20,
         attackDelay = 0.80,
         defense = 0.22,
@@ -558,7 +567,7 @@ statsMod.creatureStats = {
         primordialmagicdefense = 0.30,
         artificermagicdefense = 0.25,
         naturemagicdefense = 0.45,
-        speed = 0.40,
+        speed = 1,
         maxDamage = 0.30,
         distanceForAttacker = 5,
         height = 5,
@@ -688,22 +697,21 @@ statsMod.creatureStats = {
     -- Feral
     ["FeralArtifactGuardian"] = {
         magicType = "Artificer",
-        hitPoints = 60,
-        attack = 0.85, --0.35,
-        attackDelay = 0.70,
-        defense = 0.35,
-        armour = 0.40,
-        primordialmagicdefense = 0.25,
-        artificermagicdefense = 0.55,
-        naturemagicdefense = 0.30,
-        speed = 0.30,
-        maxDamage = 1.0, -- 0.48,
+        hitPoints = 80,
+        attack = 0.48,
+        attackDelay = 0.63,
+        defense = 0.50,
+        armour = 0.45,
+        primordialmagicdefense = 0.65,
+        artificermagicdefense = 0.35,
+        naturemagicdefense = 0.45,
+        speed = 0.48,
+        maxDamage = 0.62,
         distanceForAttacker = 5,
-        height = 1,
+        height = 4.3,
         aggroRadius = 50,
         level = 2
     }
 }
-
 
 return statsMod

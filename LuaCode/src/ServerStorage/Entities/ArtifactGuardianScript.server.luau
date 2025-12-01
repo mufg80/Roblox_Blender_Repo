@@ -25,11 +25,13 @@ local spawnPosition = hrp.Position
 function setStats()
     local baseStats = utilMod.GetStatsFromFolder(model)
     humanoid.MaxHealth = baseStats.hitPoints
-    humanoid.Health = baseStats.hitPoints
+    if humanoid.Health > humanoid.MaxHealth then
+        humanoid.Health = humanoid.MaxHealth
+    end
     humanoid.WalkSpeed = 16 * baseStats.speed
     IsStationary = model:GetAttribute("IsStationary") ~= false
     IdleReset = model:GetAttribute("IdleReset") or 15
-    spawnPosition = hrp.Position
+    print(thisMob, baseStats)
 end
 
 
@@ -42,7 +44,17 @@ AddBuffDebuffEvent.Parent = model
 
 AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
     print("Called buff debuff event ", player.UserId, " spell: ", spellname)
-    buffMod.BuffDebuffHeal(model, player, spellname )
+    setStats()
+end)
+
+
+local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
+RemoveBuffDebuffEvent.Name = "RemoveBuffDebuffEvent"
+RemoveBuffDebuffEvent.Parent = model
+
+RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
+    print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
+    setStats()
 end)
 
 -- === Threat API ===
