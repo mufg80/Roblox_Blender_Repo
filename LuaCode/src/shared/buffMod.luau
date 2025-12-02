@@ -23,7 +23,7 @@ function buffMod.ConvertSpout(player: Player): boolean
     for _, spout in pairs(spouts) do
         if spout.Name ~= "ManaSpout" then continue end
 
-        local dist = utilMod.GetMagnitudeHelper(player.Character, spout)
+        local dist = utilMod.GetDistance(player.Character, spout)
         if dist < statsMod.SpellInfo.ConvertSpout.range then
             local magictype: number = player:GetAttribute("Magic") or statsMod.MagicType.None
             if magictype == statsMod.MagicType.None then
@@ -73,7 +73,7 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: {Model}):
 
     for _, pet in mypets do
         if pet:GetAttribute("RecycleMe") == true then continue end
-        local mag = utilMod.GetMagnitudeHelper(player.Character, pet)
+        local mag = utilMod.GetDistance(player.Character, pet)
         if mag < closestDis then
             closestDis = mag
             mypet = pet
@@ -82,10 +82,10 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: {Model}):
 
     if not mypet then return false end
 
-    local thismags = utilMod.GetMagnitudeHelper(player.Character, mypet)
+    local thismags = utilMod.GetDistance(player.Character, mypet)
     if thismags >= range then return false end
 
-    print("destroy pet")
+    --print("destroy pet")
     mypet:SetAttribute("RecycleMe", true)
     local currentmana: number = player:GetAttribute("Mana") or 0
     local maxmana: number = player:GetAttribute("MaxMana") or 100
@@ -185,18 +185,20 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
         local elapsed = 0
         local tickRate = 1
 
+        -- Tick event
+        local owner = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
+        local ev = owner:FindFirstChild("BuffDebuffEvent")
+        if ev and ev:IsA("BindableEvent") then
+            ev:Fire(caster, spellname)
+        end
+
         while elapsed < duration do
             task.wait(tickRate)
             elapsed += tickRate
 
             if not modelInstance or not modelInstance.Parent then break end
 
-            -- Tick event
-            local owner = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
-            local ev = owner:FindFirstChild("BuffDebuffEvent")
-            if ev and ev:IsA("BindableEvent") then
-                ev:Fire(caster, spellname)
-            end
+            
 
             -- Heal over time
             if isHeal then

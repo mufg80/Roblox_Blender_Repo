@@ -1,210 +1,10 @@
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
+local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local pathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
 
 local pathMod = {}
-
-pathMod.Pathing = {
-    StoneManaPriest = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    ArtifactGuardian = {
-    AgentRadius = 3,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    GrandPo = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    CoatArms = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    ArtifactProtector = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    SuitArms = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    FlyingGolem = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    MudPriest = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Dybb = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Blob = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    LithEater = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    GemEncrustedDybb = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    GiantAmoeba = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    FlyingEnergyField = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Druid = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Pog = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    WindSpirit = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Silverback = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    GreatTuskedPog = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Carnosaur = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    Griffin = {
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    },
-    FeralArtifactGuardian = {
-    AgentRadius = 3,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 3,
-    Costs = {
-        ["Danger"] = math.huge -- Avoid
-    }
-    }
-}
 
 local activePaths = {}        -- [model] = true / connection
 
@@ -266,7 +66,7 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
         activePaths[model] = nil
         return false
     end
-    local pathTable = pathMod.Pathing[combatMod.customTrim(model.Name)]
+    local pathTable = statsMod.Pathing[combatMod.customTrim(model.Name)]
     local path = pathfindingService:CreatePath(pathTable)
 
     local success, err = pcall(function()
@@ -304,7 +104,7 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 
         if tick() - startTick > 1 then
             startTick = tick()
-            if utilMod.GetMagnitude(lastpos, rootPart.Position) < 1 then
+            if utilMod.GetDistance(lastpos, rootPart.Position) < 1 then
                 connection:Disconnect()
                 activePaths[model] = nil
                 return
@@ -318,7 +118,7 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
         if mob then
             local mobhrp = mob:FindFirstChild("HumanoidRootPart") or mob:FindFirstChild("Torso")
             if mobhrp then
-                local waysoff = utilMod.GetMagnitude(mobhrp.Position, targetPosition)
+                local waysoff = utilMod.GetDistance(mobhrp.Position, targetPosition)
                 
                 if waysoff > 10 then  -- I recommend 10–15, not 5
                     -- RECURSIVE REPATH — seamless!
@@ -340,8 +140,7 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 
 
         local waypoint = waypoints[currentWaypointIndex]
-        local distanceToWaypoint = utilMod.GetMagnitude(rootPart.Position, waypoint.Position)
-        --local distancetoTargetPos = utilMod.GetMagnitude(rootPart.Position, targetPosition)
+        local distanceToWaypoint = utilMod.GetDistance(rootPart.Position, waypoint.Position)
 
         
         if distanceToWaypoint < 3 and currentWaypointIndex ~= #waypoints then
@@ -374,7 +173,7 @@ end
 
 
 -- short circuit travel
-function pathMod.ShortCircutTravel(model)
+function pathMod.ShortCircuitTravel(model)
     if activePaths[model] then
         if activePaths[model].connection then
             activePaths[model].connection:Disconnect()
@@ -391,13 +190,13 @@ function pathMod.GetTargetPet(model, targetIdOrName)
     
     local owningId = model:GetAttribute("OwnedBy")
     if owningId == targetIdOrName then
-        local player = utilMod.GetPlayerByUserId(owningId)
+        local player = game.Players:GetPlayerByUserId(owningId)
         if not player or not player.Character then return nil end
         
         local playerhrp = player.Character:FindFirstChild("HumanoidRootPart") or player.Character:FindFirstChildWhichIsA("BasePart")
         if not playerhrp then return nil end
         
-        local distance = utilMod.GetMagnitude(playerhrp, hrp)
+        local distance = utilMod.GetDistance(playerhrp.Position, hrp.Position)
         if distance >= 25 then
 
             local random = Random.new(utilMod.GetSeedFromName(model.Name))
@@ -431,4 +230,3 @@ function pathMod.GetTargetPet(model, targetIdOrName)
 end
 
 return pathMod
-

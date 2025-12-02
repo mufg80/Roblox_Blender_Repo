@@ -44,6 +44,19 @@ function recycleMod.resetNPC(npc)
         hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics) -- back to normal
     end
 
+	local event = npc:FindFirstChild("BuffDebuffEvent")
+	if event and event:IsA("BindableEvent") then
+		event.Parent = nil
+	end
+	local event = npc:FindFirstChild("RemoveBuffDebuffEvent")
+	if event and event:IsA("BindableEvent") then
+		event.Parent = nil
+	end
+	local event = npc:FindFirstChild("AddThreat")
+	if event and event:IsA("BindableEvent") then
+		event.Parent = nil
+	end
+
 
     -- Disable + re-enable scripts (restart clean)
     for _, s in ipairs(npc:GetDescendants()) do

@@ -45,6 +45,7 @@ local function setStats(thisPlayer: Player)
 		humanoid.Health = humanoid.MaxHealth
 	end
     humanoid.WalkSpeed = 16 * baseStats.speed
+	--print(thisPlayer, baseStats)
 end
 
 local function ReduceMana(player: Player)
@@ -72,7 +73,6 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	AddBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
 		print("Called buff debuff event ", player1.UserId, " spell: ", spellname)
-		buffMod.BuffDebuffHeal(player.Character, player1, spellname )
 		setStats(player)
 	end)
 
@@ -82,7 +82,38 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	RemoveBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
 		print("Called Remove buff debuff event ", player1.UserId, " spell: ", spellname)
-		setStats(player)
+		local atts = player.Character:GetAttributes()
+		if not atts then return end
+		local isbuffstartingwithBuffTrue = true
+		for attName, attValue in pairs(atts) do
+			if string.sub(attName, 1, 5) == "Buff_" then
+				isbuffstartingwithBuffTrue = false
+				break
+			end
+		end
+		if isbuffstartingwithBuffTrue then
+			print("Reset stats to base stats")
+			local currentType = player:GetAttribute("Magic")
+			if currentType == statsMod.MagicType.None then
+				local sourceStats = combatMod.ShallowTableCopy("PlayerNone")
+				utilMod.CopyStatsToFolder(player, sourceStats)
+				setStats(player)
+			elseif currentType == statsMod.MagicType.Artificer then
+				local sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
+				utilMod.CopyStatsToFolder(player, sourceStats)
+				setStats(player)
+			elseif currentType == statsMod.MagicType.Primordial then
+				local sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
+				utilMod.CopyStatsToFolder(player, sourceStats)
+				setStats(player)
+			elseif currentType == statsMod.MagicType.Nature then
+				local sourceStats = combatMod.ShallowTableCopy("PlayerNature")
+				utilMod.CopyStatsToFolder(player, sourceStats)
+				setStats(player)
+			end
+		else
+			setStats()
+		end
 	end)
 
     -- set magic to enum of none
@@ -175,7 +206,7 @@ game.Players.PlayerAdded:Connect(function(player)
 					end
 				end
 			end
-			print("PlayerData Loaded.")
+			--print("PlayerData Loaded.")
 		else
 			data = {
 				["Magic"] = statsMod.MagicType.None,
@@ -188,7 +219,7 @@ game.Players.PlayerAdded:Connect(function(player)
 				plrData:SetAsync(player.UserId,data)
 			end)
 			if success then
-				print("New player saved")
+				--print("New player saved")
 			else
 				warn("new player failed to save.")
 			end
@@ -220,7 +251,7 @@ game.Players.PlayerAdded:Connect(function(player)
 			end)
 
 			if success then
-				print("Player data saved successfully for " .. player.Name)
+				--print("Player data saved successfully for " .. player.Name)
 			else
 				warn("Failed to save player data for " .. player.Name .. ": " .. tostring(err))
 			end
@@ -246,20 +277,16 @@ end)
 
 local summonevent = repstore.Events:waitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player, creatureName)
- 	print("SummonEvent received from "..player.Name.." for creature "..creatureName)
 	combatMod.ApplyAbility(player, creatureName, recyleMod)
 end)
 
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
 spellevent.OnServerEvent:Connect(function(player, spellname)
-	print("SpellEvent received from "..player.Name.." for spell "..spellname)
 	combatMod.ApplySpell(player, spellname)
-	
 end)
 
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
-
 
 function spawnferal()
 	if spawnpoints then

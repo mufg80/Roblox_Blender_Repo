@@ -31,7 +31,7 @@ function setStats()
     humanoid.WalkSpeed = 16 * baseStats.speed
     IsStationary = model:GetAttribute("IsStationary") ~= false
     IdleReset = model:GetAttribute("IdleReset") or 15
-    print(thisMob, baseStats)
+    --print(thisMob, baseStats)
 end
 
 
@@ -54,7 +54,21 @@ RemoveBuffDebuffEvent.Parent = model
 
 RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
     print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
-    setStats()
+	local atts = model:GetAttributes()
+	local isbuffstartingwithBuffTrue = true
+	for attName, attValue in pairs(atts) do
+		if string.sub(attName, 1, 5) == "Buff_" then
+			isbuffstartingwithBuffTrue = false
+			break
+		end
+	end
+	if isbuffstartingwithBuffTrue then
+		utilMod.CopyStatsToFolder(script.Parent, sourceStats)
+		setStats()
+	else
+		setStats()
+	end
+    
 end)
 
 -- === Threat API ===
@@ -233,7 +247,7 @@ task.spawn(function()
                     end
                 else
                     if IsStationary then
-                        if utilMod.GetMagnitude(spawnPosition, hrp) > 3 and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset then
+                        if utilMod.GetDistance(spawnPosition, hrp.Position) > 3 and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset then
                             if not model:GetAttribute("IsMoving")then
                                 utilMod.SetFlagsForMoving(model)
                             end
@@ -244,12 +258,12 @@ task.spawn(function()
                             end
                         end
                     else
-                        local tooFar = utilMod.GetMagnitude(hrp, spawnPosition) > rangeLimit
+                        local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition) > rangeLimit
 
                         if tooFar and not homewardBound then
                             homewardBound = true
                             if pathMod.IsPathActive(model) then
-                                pathMod.ShortCircutTravel(model)
+                                pathMod.ShortCircuitTravel(model)
                             end
                             if not model:GetAttribute("IsIdle") then
                                 utilMod.SetFlagsForIdle(model)
@@ -288,7 +302,7 @@ task.spawn(function()
 
                 if combatTargetModel and pathMod.IsPathActive(model) then
                     if combatMod.AcceptableDistanceToOpponent(model, combatTargetModel) then
-                        pathMod.ShortCircutTravel(model)
+                        pathMod.ShortCircuitTravel(model)
                     end
                 end
                 if combatTargetModel and not pathMod.IsPathActive(model) then
@@ -327,7 +341,7 @@ task.spawn(function()
                     if target and not pathMod.IsPathActive(model) then
                         pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
                     elseif pathMod.GetCurrentTarget(model) ~= combatTargetModel then
-                        pathMod.ShortCircutTravel(model)
+                        pathMod.ShortCircuitTravel(model)
                         pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
                     end
                     
@@ -337,7 +351,7 @@ task.spawn(function()
                     if target and not pathMod.IsPathActive(model)then
                         pathMod.PathfindToPosition(model, target, owner)
                     elseif pathMod.GetCurrentTarget(model) ~= utilMod.GetModelByIDorName(owner) then
-                        pathMod.ShortCircutTravel(model)
+                        pathMod.ShortCircuitTravel(model)
                         pathMod.PathfindToPosition(model, target, owner)
                     end
 
@@ -345,7 +359,7 @@ task.spawn(function()
                     if not pathMod.IsPathActive(model)then
                         pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
                     elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
-                        pathMod.ShortCircutTravel(model)
+                        pathMod.ShortCircuitTravel(model)
                         pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
                     end
 
@@ -360,17 +374,17 @@ task.spawn(function()
                     if not pathMod.IsPathActive(model) then
                         pathMod.PathfindToPosition(model, vec, "SpawnPoint")
                     elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
-                        pathMod.ShortCircutTravel(model)
+                        pathMod.ShortCircuitTravel(model)
                         pathMod.PathfindToPosition(model, vec, "SpawnPoint")
                     end
                 elseif movingDirection == "HomewardBound" then
                     if not pathMod.IsPathActive(model)then
                         pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
                     elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
-                        pathMod.ShortCircutTravel(model)
+                        pathMod.ShortCircuitTravel(model)
                         pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
-                    elseif utilMod.GetMagnitude(hrp, spawnPosition) < 5 then
-                        pathMod.ShortCircutTravel(model)
+                    elseif utilMod.GetDistance(hrp.Position, spawnPosition) < 5 then
+                        pathMod.ShortCircuitTravel(model)
                         homewardBound = false
                     end
                 elseif movingDirection == "NotMoving" then
@@ -393,7 +407,7 @@ task.spawn(function()
                     animTracks.idle:AdjustSpeed(1.0)
                 end
                 if pathMod.IsPathActive(model) then
-                    pathMod.ShortCircutTravel(model)
+                    pathMod.ShortCircuitTravel(model)
                 end
 
                 if ownerInstance and (tick() - model:GetAttribute("IdleStartTime")) > random:NextInteger(10,20) and spincooldown then
