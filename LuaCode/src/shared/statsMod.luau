@@ -141,28 +141,28 @@ statsMod.MagicLevels = {
 
 -- Spell configuration
 statsMod.SpellInfo = {
-    ConvertSpout   = { manaCost = .5, magicType = "Any", spellType = "utility",    missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    ReclaimPet     = { manaCost = .0, magicType = "Any", spellType = "utility",    missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
+    ConvertSpout   = { manaCost = .5, magicType = "Any", spellType = "utility",    missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 10,  effectMultiplier = 0 },
+    ReclaimPet     = { manaCost = .0, magicType = "Any", spellType = "utility",    missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 10,  effectMultiplier = 0 },
 
-    StarterStaffArtificer = { manaCost = 0,  magicType = "Artificer", spellType = "damage",     missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .1 },
-    StoneFall             = { manaCost = .4, magicType = "Artificer", spellType = "damage",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .5 },
-    HardSkin              = { manaCost = .6, magicType = "Artificer", spellType = "buff",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    ReviveSpirit          = { manaCost = .7, magicType = "Artificer", spellType = "heal",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    StoneonFoot           = { manaCost = .7, magicType = "Artificer", spellType = "debuff",     missChance = 0.2, range = 30, cooldown = 5, numberTargets = 4, aggro = 10, effectMultiplier = 0 },
+    StarterStaffArtificer = { manaCost = 0,  magicType = "Artificer", spellType = "damage",     missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 20, effectMultiplier = .1 },
+    StoneFall             = { manaCost = .4, magicType = "Artificer", spellType = "damage",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 20, effectMultiplier = .5 },
+    HardSkin              = { manaCost = .6, magicType = "Artificer", spellType = "buff",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 50,  effectMultiplier = 0 },
+    ReviveSpirit          = { manaCost = .7, magicType = "Artificer", spellType = "heal",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 50,  effectMultiplier = 0 },
+    StoneonFoot           = { manaCost = .7, magicType = "Artificer", spellType = "debuff",     missChance = 0.2, range = 30, cooldown = 5, numberTargets = 4, aggro = 50, effectMultiplier = 0 },
     Avalanche             = { manaCost = .8, magicType = "Artificer", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 4, aggro = 10, effectMultiplier = .2 },
 
-    StarterStaffPrimordial      = { manaCost = 0,  magicType = "Primordial", spellType = "damage",     missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .1 },
-    DormantVirus                = { manaCost = .4, magicType = "Primordial", spellType = "damage",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .4 },
-    AnimatedAttacks             = { manaCost = .5, magicType = "Primordial", spellType = "buff",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    HalfLife                    = { manaCost = .6, magicType = "Primordial", spellType = "heal",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    GooSwamp                    = { manaCost = .7, magicType = "Primordial", spellType = "debuff",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 4, aggro = 10, effectMultiplier = 0 },
+    StarterStaffPrimordial      = { manaCost = 0,  magicType = "Primordial", spellType = "damage",     missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 20, effectMultiplier = .1 },
+    DormantVirus                = { manaCost = .4, magicType = "Primordial", spellType = "damage",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 20, effectMultiplier = .4 },
+    AnimatedAttacks             = { manaCost = .5, magicType = "Primordial", spellType = "buff",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 50,  effectMultiplier = 0 },
+    HalfLife                    = { manaCost = .6, magicType = "Primordial", spellType = "heal",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 50,  effectMultiplier = 0 },
+    GooSwamp                    = { manaCost = .7, magicType = "Primordial", spellType = "debuff",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 4, aggro = 50, effectMultiplier = 0 },
     InhostpitableAtmosphere    = { manaCost = .8, magicType = "Primordial", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .2 },
 
-    StarterStaffNature     = { manaCost = 0,  magicType = "Nature", spellType = "damage",     missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .1 },
-    StingingSwarm          = { manaCost = .4, magicType = "Nature", spellType = "damage",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .6 },
-    AgilityoftheSquirrell  = { manaCost = .6, magicType = "Nature", spellType = "buff",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    Regenerate             = { manaCost = .6, magicType = "Nature", spellType = "heal",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 0,  effectMultiplier = 0 },
-    Root                   = { manaCost = .7, magicType = "Nature", spellType = "debuff",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 5, aggro = 10, effectMultiplier = 0 },
+    StarterStaffNature     = { manaCost = 0,  magicType = "Nature", spellType = "damage",     missChance = 0,   range = 20, cooldown = 5, numberTargets = 1, aggro = 20, effectMultiplier = .1 },
+    StingingSwarm          = { manaCost = .4, magicType = "Nature", spellType = "damage",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 20, effectMultiplier = .6 },
+    AgilityoftheSquirrell  = { manaCost = .6, magicType = "Nature", spellType = "buff",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 50,  effectMultiplier = 0 },
+    Regenerate             = { manaCost = .6, magicType = "Nature", spellType = "heal",       missChance = 0.2, range = 20, cooldown = 5, numberTargets = 1, aggro = 50,  effectMultiplier = 0 },
+    Root                   = { manaCost = .7, magicType = "Nature", spellType = "debuff",     missChance = 0.2, range = 20, cooldown = 5, numberTargets = 5, aggro = 50, effectMultiplier = 0 },
     NaturesDefners         = { manaCost = .8, magicType = "Nature", spellType = "areaDamage", missChance = 0.4, range = 20, cooldown = 5, numberTargets = 1, aggro = 10, effectMultiplier = .3 },
 }
 

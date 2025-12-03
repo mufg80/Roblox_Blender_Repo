@@ -1,4 +1,3 @@
-
 local model = script.Parent
 local random = Random.new()
 
@@ -12,7 +11,9 @@ local thisMob = combatMod.customTrim(model.Name)
 random = Random.new(utilMod.GetSeedFromName(thisMob))
 local humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp = model:FindFirstChild("HumanoidRootPart")
-if not humanoid or not hrp then return end
+if not humanoid or not hrp then
+	return
+end
 
 local sourceStats = combatMod.ShallowTableCopy(thisMob)
 
@@ -23,17 +24,16 @@ local IdleReset = model:GetAttribute("IdleReset") or 5
 local rangeLimit = model:GetAttribute("RangeLimit") or 50
 local spawnPosition = hrp.Position
 function setStats()
-    local baseStats = utilMod.GetStatsFromFolder(model)
-    humanoid.MaxHealth = baseStats.hitPoints
-    if humanoid.Health > humanoid.MaxHealth then
-        humanoid.Health = humanoid.MaxHealth
-    end
-    humanoid.WalkSpeed = 16 * baseStats.speed
-    IsStationary = model:GetAttribute("IsStationary") ~= false
-    IdleReset = model:GetAttribute("IdleReset") or 15
-    --print(thisMob, baseStats)
+	local baseStats = utilMod.GetStatsFromFolder(model)
+	humanoid.MaxHealth = baseStats.hitPoints
+	if humanoid.Health > humanoid.MaxHealth then
+		humanoid.Health = humanoid.MaxHealth
+	end
+	humanoid.WalkSpeed = 16 * baseStats.speed
+	IsStationary = model:GetAttribute("IsStationary") ~= false
+	IdleReset = model:GetAttribute("IdleReset") or 15
+	--print(thisMob, baseStats)
 end
-
 
 model:GetAttributeChangedSignal("OwnedBy"):Connect(setStats)
 setStats()
@@ -43,17 +43,16 @@ AddBuffDebuffEvent.Name = "BuffDebuffEvent"
 AddBuffDebuffEvent.Parent = model
 
 AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
-    print("Called buff debuff event ", player.UserId, " spell: ", spellname)
-    setStats()
+	print("Called buff debuff event ", player.UserId, " spell: ", spellname)
+	setStats()
 end)
-
 
 local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
 RemoveBuffDebuffEvent.Name = "RemoveBuffDebuffEvent"
 RemoveBuffDebuffEvent.Parent = model
 
 RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
-    print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
+	print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
 	local atts = model:GetAttributes()
 	local isbuffstartingwithBuffTrue = true
 	for attName, attValue in pairs(atts) do
@@ -68,7 +67,6 @@ RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
 	else
 		setStats()
 	end
-    
 end)
 
 -- === Threat API ===
@@ -79,27 +77,28 @@ AddThreatEvent.Parent = model
 local hateList = {}
 
 AddThreatEvent.Event:Connect(function(attackerId, amount)
-    if typeof(attackerId) == "number" or typeof(attackerId) == "string" then
-        hateList[attackerId] = (hateList[attackerId] or 0) + (amount or 0)
-    end
+	if typeof(attackerId) == "number" or typeof(attackerId) == "string" then
+		hateList[attackerId] = (hateList[attackerId] or 0) + (amount or 0)
+	end
 end)
 
 -- === THREAT FROM TAKING DAMAGE (NOW WORKING) ===
 humanoid.HealthChanged:Connect(function(health)
-    -- Compare old vs new health
-    local damageTaken = humanoid:GetAttribute("LastHealth") and (humanoid:GetAttribute("LastHealth") - health) or 0
-    
-    -- Store the new health for next time
-    humanoid:SetAttribute("LastHealth", health)
-    local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
-    
-        
-    if creator and creator.Value then
-        local attacker = creator.Value
-        local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
-        AddThreatEvent:Fire(attackerId, combatMod.CalculateAggro(damageTaken))
-        if creator.Parent then creator:Destroy() end
-    end
+	-- Compare old vs new health
+	local damageTaken = humanoid:GetAttribute("LastHealth") and (humanoid:GetAttribute("LastHealth") - health) or 0
+
+	-- Store the new health for next time
+	humanoid:SetAttribute("LastHealth", health)
+	local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
+
+	if creator and creator.Value then
+		local attacker = creator.Value
+		local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
+		--AddThreatEvent:Fire(attackerId, combatMod.CalculateAggro(damageTaken))
+		if creator.Parent then
+			creator:Destroy()
+		end
+	end
 end)
 humanoid.Health = humanoid.MaxHealth - 1
 
@@ -107,29 +106,30 @@ humanoid.Health = humanoid.MaxHealth - 1
 local animator = humanoid:FindFirstChildOfClass("Animator")
 local animTracks = {}
 if animator then
-    local function load(name, looped)
-        local anim = model:FindFirstChild(name)
-        if anim then
-            local track = animator:LoadAnimation(anim)
-            if looped ~= nil then track.Looped = looped end
-            return track
-        end
-    end
-    animTracks.idle    = load("ArtGuardIdle", true)
-    animTracks.blink   = load("ArtGuardBlink", false)
-    animTracks.death   = load("ArtGuardFall", false)
-    animTracks.attack1 = load("ArtGuardAtt1", false)
-    animTracks.attack2 = load("ArtGuardAtt2", false)
-    animTracks.attack3 = load("ArtGuardAtt3", false)
+	local function load(name, looped)
+		local anim = model:FindFirstChild(name)
+		if anim then
+			local track = animator:LoadAnimation(anim)
+			if looped ~= nil then
+				track.Looped = looped
+			end
+			return track
+		end
+	end
+	animTracks.idle = load("ArtGuardIdle", true)
+	animTracks.blink = load("ArtGuardBlink", false)
+	animTracks.death = load("ArtGuardFall", false)
+	animTracks.attack1 = load("ArtGuardAtt1", false)
+	animTracks.attack2 = load("ArtGuardAtt2", false)
+	animTracks.attack3 = load("ArtGuardAtt3", false)
 end
-
 
 -- task.spawn(function()
 --     while true do
 --         if thisMob =="FeralArtifactGuardian" then
 --             print(hateList)
 --         end
-       
+
 --         task.wait(2)
 --     end
 
@@ -137,309 +137,308 @@ end
 
 -- === MAIN LOOP ===
 task.spawn(function()
-    -- Blink loop
-    task.spawn(function()
-        while task.wait(random:NextInteger(6,14)) do
-            if animTracks.blink and not model:GetAttribute("HasFallen") then
-                animTracks.blink:Play()
-            end
-        end
-    end)
-    model:SetAttribute("IdleStartTime", tick())
-    local lastAttackTime = 0
-    
-    local homewardBound = false
-    local ownedby = model:GetAttribute("OwnedBy")
-    local spincooldown = true
+	-- Blink loop
+	task.spawn(function()
+		while task.wait(random:NextInteger(6, 14)) do
+			if animTracks.blink and not model:GetAttribute("HasFallen") then
+				animTracks.blink:Play()
+			end
+		end
+	end)
+	model:SetAttribute("IdleStartTime", tick())
+	local lastAttackTime = 0
 
-    -- Main loop for npc state
-    while task.wait(0.03) do
-        local ATTACK_COOLDOWN = statsMod.DELAY * model.Data.attackDelay.Value
-        if humanoid.Health <= 0 then
-            if not model:GetAttribute("HasFallen") then
-                utilMod.SetFlagsForDeath(model)
-            end
-        end
-        local isPet = true;
-        local ownerInstance = nil
-        local combatTargetModel = nil
-        local acceptableDistance = nil
-        local movingDirection = "NotMoving"
-        if not model:GetAttribute("HasFallen") then
-            
-            
-            ----------------------------------------------------------------
-            -- Aggro
-            ----------------------------------------------------------------
-            
-            if ownedby == "" or ownedby == "None" or ownedby == "none" then
-                isPet = false
-            end
-            
-            if isPet then
-                ownerInstance = utilMod.GetModelByIDorName(model:GetAttribute("OwnedBy"))
-            end
+	local homewardBound = false
+	local ownedby = model:GetAttribute("OwnedBy")
+	local spincooldown = true
 
-            if isPet then
-                aggroMod.hateListPet(model.Data.aggroRadius.Value, hateList, model, hrp)
-            else
-                aggroMod.hateListFeral(model.Data.aggroRadius.Value, hateList, model, hrp)
-            end
+	-- Main loop for npc state
+	while task.wait(0.03) do
+		local ATTACK_COOLDOWN = statsMod.DELAY * model.Data.attackDelay.Value
+		if humanoid.Health <= 0 then
+			if not model:GetAttribute("HasFallen") then
+				utilMod.SetFlagsForDeath(model)
+			end
+		end
+		local isPet = true
+		local ownerInstance = nil
+		local combatTargetModel = nil
+		local acceptableDistance = nil
+		local movingDirection = "NotMoving"
+		if not model:GetAttribute("HasFallen") then
+			----------------------------------------------------------------
+			-- Aggro
+			----------------------------------------------------------------
 
-            local hasEnemies = next(hateList) ~= nil   -- true if table has at least one entry
+			if ownedby == "" or ownedby == "None" or ownedby == "none" then
+				isPet = false
+			end
 
-            if hasEnemies then
-                if model:GetAttribute("TargetIDorName") == "None" then
-                    warn("Should not reach me.")
-                end
-            end
+			if isPet then
+				ownerInstance = utilMod.GetModelByIDorName(model:GetAttribute("OwnedBy"))
+			end
 
-            ----------------------------------------------------------------
-            -- SetStates
-            ----------------------------------------------------------------
-            
-            local targetid = model:GetAttribute("TargetIDorName")
+			if isPet then
+				aggroMod.hateListPet(model.Data.aggroRadius.Value, hateList, model, hrp)
+			else
+				aggroMod.hateListFeral(model.Data.aggroRadius.Value, hateList, model, hrp)
+			end
 
-            if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
-                combatTargetModel = utilMod.GetModelByIDorName(targetid)
-            end
+			local hasEnemies = next(hateList) ~= nil -- true if table has at least one entry
 
-            if combatTargetModel then
-                acceptableDistance = combatMod.AcceptableDistanceToOpponent(model, combatTargetModel)
-            end
-            
+			if hasEnemies then
+				if model:GetAttribute("TargetIDorName") == "None" then
+					warn("Should not reach me.")
+				end
+			end
 
-            if hasEnemies and acceptableDistance then   -- next() returns nil if table is empty
-                if not model:GetAttribute("InCombat") then
-                    utilMod.SetFlagsForCombat(model)
-                end
-            end
-            
-            if hasEnemies and not acceptableDistance then   -- next() returns nil if table is empty
+			----------------------------------------------------------------
+			-- SetStates
+			----------------------------------------------------------------
 
-                if not model:GetAttribute("IsMoving") then
-                    utilMod.SetFlagsForMoving(model)
-                    movingDirection = "MovingToCombatTarget"
-                else
-                    local targ = pathMod.GetCurrentTarget(model)
-                    if targ ~= combatTargetModel then
-                        if not model:GetAttribute("IsIdle") then
-                            utilMod.SetFlagsForIdle(model)
-                        end
-                    else
-                        movingDirection = "MovingToCombatTarget"
-                    end
-                end
-            end
+			local targetid = model:GetAttribute("TargetIDorName")
 
-            if not hasEnemies then
-                if isPet then
-                    local check = ownerInstance and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
-                    if check then
-                        if not model:GetAttribute("IsMoving") then
-                            utilMod.SetFlagsForMoving(model)
-                        end
-                        movingDirection = "MovingToOwner"
-                    else
-                        if not model:GetAttribute("IsIdle") then
-                            utilMod.SetFlagsForIdle(model)
-                        end
-                    end
-                else
-                    if IsStationary then
-                        if utilMod.GetDistance(spawnPosition, hrp.Position) > 3 and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset then
-                            if not model:GetAttribute("IsMoving")then
-                                utilMod.SetFlagsForMoving(model)
-                            end
-                            movingDirection = "MovingToSpawnPosition"
-                        else
-                            if not model:GetAttribute("IsIdle") then
-                                utilMod.SetFlagsForIdle(model)
-                            end
-                        end
-                    else
-                        local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition) > rangeLimit
+			if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
+				combatTargetModel = utilMod.GetModelByIDorName(targetid)
+			end
 
-                        if tooFar and not homewardBound then
-                            homewardBound = true
-                            if pathMod.IsPathActive(model) then
-                                pathMod.ShortCircuitTravel(model)
-                            end
-                            if not model:GetAttribute("IsIdle") then
-                                utilMod.SetFlagsForIdle(model)
-                            end
-                        elseif homewardBound then
-                            if not model:GetAttribute("IsMoving") then
-                                utilMod.SetFlagsForMoving(model)
-                            end
-                            movingDirection = "HomewardBound"
-                        elseif (tick() - model:GetAttribute("IdleStartTime")) > IdleReset then
-                            if not model:GetAttribute("IsMoving") then
-                                utilMod.SetFlagsForMoving(model)
-                            elseif model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then
-                                if not model:GetAttribute("IsIdle") then
-                                    utilMod.SetFlagsForIdle(model)
-                                end
-                            end
-                            movingDirection = "MovingToRandom"
-                        else
-                            if not model:GetAttribute("IsIdle") then
-                                utilMod.SetFlagsForIdle(model)
-                            end
-                        end
-                    end
-                end
-            end
+			if combatTargetModel then
+				acceptableDistance = combatMod.AcceptableDistanceToOpponent(model, combatTargetModel)
+			end
 
-            ----------------------------------------------------------------
-                -- Actions
-            ----------------------------------------------------------------
+			if hasEnemies and acceptableDistance then -- next() returns nil if table is empty
+				if not model:GetAttribute("InCombat") then
+					utilMod.SetFlagsForCombat(model)
+				end
+			end
 
-            if model:GetAttribute("InCombat") then
-                ----------------------------------------------------------------
-                -- FACE TARGET / OWNER
-                ----------------------------------------------------------------
+			if hasEnemies and not acceptableDistance then -- next() returns nil if table is empty
+				if not model:GetAttribute("IsMoving") then
+					utilMod.SetFlagsForMoving(model)
+					movingDirection = "MovingToCombatTarget"
+				else
+					local targ = pathMod.GetCurrentTarget(model)
+					if targ ~= combatTargetModel then
+						if not model:GetAttribute("IsIdle") then
+							utilMod.SetFlagsForIdle(model)
+						end
+					else
+						movingDirection = "MovingToCombatTarget"
+					end
+				end
+			end
 
-                if combatTargetModel and pathMod.IsPathActive(model) then
-                    if combatMod.AcceptableDistanceToOpponent(model, combatTargetModel) then
-                        pathMod.ShortCircuitTravel(model)
-                    end
-                end
-                if combatTargetModel and not pathMod.IsPathActive(model) then
-                    
-                     -- Face target smoothly during combat
-                    utilMod.SpinToTargetInCombat(model, combatTargetModel, 0.3)
+			if not hasEnemies then
+				if isPet then
+					local check = ownerInstance
+						and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+					if check then
+						if not model:GetAttribute("IsMoving") then
+							utilMod.SetFlagsForMoving(model)
+						end
+						movingDirection = "MovingToOwner"
+					else
+						if not model:GetAttribute("IsIdle") then
+							utilMod.SetFlagsForIdle(model)
+						end
+					end
+				else
+					if IsStationary then
+						if
+							utilMod.GetDistance(spawnPosition, hrp.Position) > 3
+							and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset
+						then
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+							end
+							movingDirection = "MovingToSpawnPosition"
+						else
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						end
+					else
+						local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition) > rangeLimit
 
-                    if animTracks.idle and animTracks.idle.IsPlaying then
-                            animTracks.idle:Stop()
-                    end
+						if tooFar and not homewardBound then
+							homewardBound = true
+							if pathMod.IsPathActive(model) then
+								pathMod.ShortCircuitTravel(model)
+							end
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						elseif homewardBound then
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+							end
+							movingDirection = "HomewardBound"
+						elseif (tick() - model:GetAttribute("IdleStartTime")) > IdleReset then
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+							elseif model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then
+								if not model:GetAttribute("IsIdle") then
+									utilMod.SetFlagsForIdle(model)
+								end
+							end
+							movingDirection = "MovingToRandom"
+						else
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						end
+					end
+				end
+			end
 
-                    if tick() - lastAttackTime >= ATTACK_COOLDOWN then
-                        local track = animTracks["attack" .. random:NextInteger(1,3)]
-                        if track and not track.IsPlaying then
-                            track:Play()
-                            lastAttackTime = tick()
-                            -- NEW: All damage + threat + creator tag is now handled centrally
-                            combatMod.ApplyMeleeDamage(model, combatTargetModel)
-                        end
-                    end
-                end
-            end
-            ----------------------------------------------------------------
-                -- Moving
-            ----------------------------------------------------------------
-            if model:GetAttribute("IsMoving") then
-                if not animTracks.idle.IsPlaying then
-                    animTracks.idle:Play()
-                    animTracks.idle:AdjustSpeed(1.5)
-                else
-                    animTracks.idle:AdjustSpeed(1.5)
-                end
+			----------------------------------------------------------------
+			-- Actions
+			----------------------------------------------------------------
 
-                if movingDirection == "MovingToCombatTarget" then
-                    local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
-                    if target and not pathMod.IsPathActive(model) then
-                        pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
-                    elseif pathMod.GetCurrentTarget(model) ~= combatTargetModel then
-                        pathMod.ShortCircuitTravel(model)
-                        pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
-                    end
-                    
-                elseif movingDirection == "MovingToOwner" then
-                    local owner = model:GetAttribute("OwnedBy")
-                    local target = pathMod.GetTargetPet(model, owner)
-                    if target and not pathMod.IsPathActive(model)then
-                        pathMod.PathfindToPosition(model, target, owner)
-                    elseif pathMod.GetCurrentTarget(model) ~= utilMod.GetModelByIDorName(owner) then
-                        pathMod.ShortCircuitTravel(model)
-                        pathMod.PathfindToPosition(model, target, owner)
-                    end
+			if model:GetAttribute("InCombat") then
+				----------------------------------------------------------------
+				-- FACE TARGET / OWNER
+				----------------------------------------------------------------
 
-                elseif movingDirection == "MovingToSpawnPosition" then
-                    if not pathMod.IsPathActive(model)then
-                        pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
-                    elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
-                        pathMod.ShortCircuitTravel(model)
-                        pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
-                    end
+				if combatTargetModel and pathMod.IsPathActive(model) then
+					if combatMod.AcceptableDistanceToOpponent(model, combatTargetModel) then
+						pathMod.ShortCircuitTravel(model)
+					end
+				end
+				if combatTargetModel and not pathMod.IsPathActive(model) then
+					-- Face target smoothly during combat
+					utilMod.SpinToTargetInCombat(model, combatTargetModel, 0.3)
 
-                elseif movingDirection == "MovingToRandom" then
-                    local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
-                    if random:NextInteger(1,10) < 5 then
-                        local xpos = random:NextInteger(-10,10)
-                        local zpos = random:NextInteger(-10,10)
-                        vec = vec + Vector3.new(xpos, 0, zpos)
-                    end
-                    
-                    if not pathMod.IsPathActive(model) then
-                        pathMod.PathfindToPosition(model, vec, "SpawnPoint")
-                    elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
-                        pathMod.ShortCircuitTravel(model)
-                        pathMod.PathfindToPosition(model, vec, "SpawnPoint")
-                    end
-                elseif movingDirection == "HomewardBound" then
-                    if not pathMod.IsPathActive(model)then
-                        pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
-                    elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
-                        pathMod.ShortCircuitTravel(model)
-                        pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
-                    elseif utilMod.GetDistance(hrp.Position, spawnPosition) < 5 then
-                        pathMod.ShortCircuitTravel(model)
-                        homewardBound = false
-                    end
-                elseif movingDirection == "NotMoving" then
-                    warn("flag is moving but not target.")
-                else
-                    warn("Should not reach me.")
-                end
+					if animTracks.idle and animTracks.idle.IsPlaying then
+						animTracks.idle:Stop()
+					end
 
+					if tick() - lastAttackTime >= ATTACK_COOLDOWN then
+						local track = animTracks["attack" .. random:NextInteger(1, 3)]
+						if track and not track.IsPlaying then
+							track:Play()
+							lastAttackTime = tick()
+							-- NEW: All damage + threat + creator tag is now handled centrally
+							task.delay(0.5, function()
+								combatMod.ApplyMeleeDamage(model, combatTargetModel)
+							end)
+						end
+					end
+				end
+			end
+			----------------------------------------------------------------
+			-- Moving
+			----------------------------------------------------------------
+			if model:GetAttribute("IsMoving") then
+				if not animTracks.idle.IsPlaying then
+					animTracks.idle:Play()
+					animTracks.idle:AdjustSpeed(1.5)
+				else
+					animTracks.idle:AdjustSpeed(1.5)
+				end
 
+				if movingDirection == "MovingToCombatTarget" then
+					local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
+					if target and not pathMod.IsPathActive(model) then
+						pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
+					elseif pathMod.GetCurrentTarget(model) ~= combatTargetModel then
+						pathMod.ShortCircuitTravel(model)
+						pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
+					end
+				elseif movingDirection == "MovingToOwner" then
+					local owner = model:GetAttribute("OwnedBy")
+					local target = pathMod.GetTargetPet(model, owner)
+					if target and not pathMod.IsPathActive(model) then
+						pathMod.PathfindToPosition(model, target, owner)
+					elseif pathMod.GetCurrentTarget(model) ~= utilMod.GetModelByIDorName(owner) then
+						pathMod.ShortCircuitTravel(model)
+						pathMod.PathfindToPosition(model, target, owner)
+					end
+				elseif movingDirection == "MovingToSpawnPosition" then
+					if not pathMod.IsPathActive(model) then
+						pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
+					elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
+						pathMod.ShortCircuitTravel(model)
+						pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
+					end
+				elseif movingDirection == "MovingToRandom" then
+					local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
+					if random:NextInteger(1, 10) < 5 then
+						local xpos = random:NextInteger(-10, 10)
+						local zpos = random:NextInteger(-10, 10)
+						vec = vec + Vector3.new(xpos, 0, zpos)
+					end
 
-            end
-            ----------------------------------------------------------------
-                -- Idle
-            ----------------------------------------------------------------
-            if model:GetAttribute("IsIdle") then
-                if not animTracks.idle.IsPlaying then
-                    animTracks.idle:Play()
-                    animTracks.idle:AdjustSpeed(1.0)
-                else
-                    animTracks.idle:AdjustSpeed(1.0)
-                end
-                if pathMod.IsPathActive(model) then
-                    pathMod.ShortCircuitTravel(model)
-                end
+					if not pathMod.IsPathActive(model) then
+						pathMod.PathfindToPosition(model, vec, "SpawnPoint")
+					elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
+						pathMod.ShortCircuitTravel(model)
+						pathMod.PathfindToPosition(model, vec, "SpawnPoint")
+					end
+				elseif movingDirection == "HomewardBound" then
+					if not pathMod.IsPathActive(model) then
+						pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
+					elseif pathMod.GetCurrentTarget(model) ~= "SpawnPoint" then
+						pathMod.ShortCircuitTravel(model)
+						pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
+					elseif utilMod.GetDistance(hrp.Position, spawnPosition) < 5 then
+						pathMod.ShortCircuitTravel(model)
+						homewardBound = false
+					end
+				elseif movingDirection == "NotMoving" then
+					warn("flag is moving but not target.")
+				else
+					warn("Should not reach me.")
+				end
+			end
+			----------------------------------------------------------------
+			-- Idle
+			----------------------------------------------------------------
+			if model:GetAttribute("IsIdle") then
+				if not animTracks.idle.IsPlaying then
+					animTracks.idle:Play()
+					animTracks.idle:AdjustSpeed(1.0)
+				else
+					animTracks.idle:AdjustSpeed(1.0)
+				end
+				if pathMod.IsPathActive(model) then
+					pathMod.ShortCircuitTravel(model)
+				end
 
-                if ownerInstance and (tick() - model:GetAttribute("IdleStartTime")) > random:NextInteger(10,20) and spincooldown then
-                    spincooldown = false
+				if
+					ownerInstance
+					and (tick() - model:GetAttribute("IdleStartTime")) > random:NextInteger(10, 20)
+					and spincooldown
+				then
+					spincooldown = false
 
-                    utilMod.SpinToOwner(model, hrp, ownerInstance, random, spincooldown )
-                   
-                    -- Allow next turn after a random delay
-                    task.delay(random:NextInteger(8,15), function()
-                        spincooldown = true
-                    end)
-                end
-            end
-        else
-            ----------------------------------------------------------------
-                -- Death
-            ----------------------------------------------------------------
-            if animTracks.death and not animTracks.death.IsPlaying then
-                if animTracks.blink then
-                    animTracks.blink:Stop()
-                end
-                if animTracks.idle then
-                    animTracks.idle:Stop()
-                end
-                animTracks.death:Play()
-                task.wait(3)
-                model:SetAttribute("RecycleMe", true)
-            else
-                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-                humanoid.PlatformStand = true
-                model:SetAttribute("RecycleMe", true)
-            end
-        end
-    end
+					utilMod.SpinToOwner(model, hrp, ownerInstance, random, spincooldown)
+
+					-- Allow next turn after a random delay
+					task.delay(random:NextInteger(8, 15), function()
+						spincooldown = true
+					end)
+				end
+			end
+		else
+			----------------------------------------------------------------
+			-- Death
+			----------------------------------------------------------------
+			if animTracks.death and not animTracks.death.IsPlaying then
+				if animTracks.blink then
+					animTracks.blink:Stop()
+				end
+				if animTracks.idle then
+					animTracks.idle:Stop()
+				end
+				animTracks.death:Play()
+				task.wait(3)
+				model:SetAttribute("RecycleMe", true)
+			else
+				humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+				humanoid.PlatformStand = true
+				model:SetAttribute("RecycleMe", true)
+			end
+		end
+	end
 end)

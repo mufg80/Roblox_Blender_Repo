@@ -112,7 +112,7 @@ game.Players.PlayerAdded:Connect(function(player)
 				setStats(player)
 			end
 		else
-			setStats()
+			setStats(player)
 		end
 	end)
 
