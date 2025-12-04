@@ -16,8 +16,48 @@ local naturetheme = themes:WaitForChild("NatureTheme")
 local noneTheme = themes:WaitForChild("NoneTheme")
 local player = players.LocalPlayer
 local hum = player.Character:WaitForChild("Humanoid")
-local healthLabel = statsGui:WaitForChild("HealthFrame"):WaitForChild("HealthLabel")
-local manaLabel = statsGui:WaitForChild("HealthFrame"):WaitForChild("ManaLabel")
+
+
+-- health and mana
+function ChangeMana()
+    local newmana = player:GetAttribute("Mana")
+    local maxmana = player:GetAttribute("MaxMana")
+    local fraction = nil
+    if maxmana == 0 then
+        fraction = 0
+    else
+        fraction = math.clamp(newmana/maxmana,0,1)
+    end
+
+
+    local inner = statsGui.HudFrame.ManaMeterBar.InnerFill
+    inner.Size = UDim2.new(fraction,0,1,0)
+
+    
+
+end
+
+
+local function ChangeHealth()
+ -- Compare old vs new health
+    --local damageTaken = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - (health or 0)) or 0
+
+    -- Store the new health for next time
+    --hum:SetAttribute("LastHealth", health)
+   
+    
+    local inner = statsGui.HudFrame.HealthMeterBar.InnerFill
+    local den = hum.MaxHealth
+    local num = hum.Health
+    local fraction = nil
+    if den == 0 then
+        fraction = 0
+    else
+        fraction = math.clamp(num / den,0,1)
+    end
+    inner.Size = UDim2.new(fraction, 0, 1, 0)
+
+end
 
 function ReturnLevel()
     local magictype = player:GetAttribute("Magic")
@@ -33,6 +73,7 @@ function ReturnLevel()
 
     end
 end
+
 function updateMagicUI()
     local magic = player:GetAttribute("Magic")
     local magicLevel = ReturnLevel()
@@ -95,37 +136,34 @@ updateMagicUI()
 
 player:GetAttributeChangedSignal("Magic"):Connect(function()
     updateMagicUI()
+    ChangeHealth()
+    ChangeMana()
 end)
 player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
     updateMagicUI()
+    ChangeHealth()
+    ChangeMana()
 end)
 player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
     updateMagicUI()
+    ChangeHealth()
+    ChangeMana()
 end)
 player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
-    --local magictype = player:GetAttribute("Magic")
     updateMagicUI()
+    ChangeHealth()
+    ChangeMana()
 end)
-
--- health and mana
 
 player:GetAttributeChangedSignal("Mana"):Connect(function()
-    local newmana = player:GetAttribute("Mana")
-    manaLabel.Text = "Mana: "..tostring(math.floor(newmana))
+    ChangeMana()
 end)
 
-local function health(health)
- -- Compare old vs new health
-        local damageTaken = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - (health or 0)) or 0
-        
-        -- Store the new health for next time
-        hum:SetAttribute("LastHealth", health)
 
-        healthLabel.Text = "Health: "..tostring(math.floor(hum:GetAttribute("LastHealth")))
-end
-hum.HealthChanged:Connect(health)
-health(hum.MaxHealth)
-player:SetAttribute("Mana", player:GetAttribute("Mana") + 1)
+hum.HealthChanged:Connect(ChangeHealth)
+ChangeHealth()
+ChangeMana()
+
 local creaturebuttons = magicgui.CreatureFrame:GetChildren()
 local spellbuttons = magicgui.SpellFrame:GetChildren()
 

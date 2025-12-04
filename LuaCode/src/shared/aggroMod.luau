@@ -29,6 +29,9 @@ function aggroMod.hateListPet(aggroRadius, hateList, model, hrp)
     -- Add nearby threats
     for _, player in ipairs(game.Players:GetPlayers()) do
         if player.UserId ~= model:GetAttribute("OwnedBy") then
+            if player:GetAttribute("HasFallen") then
+                continue
+            end
             local root = player.Character and (player.Character.HumanoidRootPart or player.Character:FindFirstChild("Torso"))
             if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[player.UserId] then
                 hateList[player.UserId] = 8
@@ -79,7 +82,7 @@ function aggroMod.hateListPet(aggroRadius, hateList, model, hrp)
         
         if not root or (root.Position - hrp.Position).Magnitude^2 > leashSqr then
             hateList[id] = nil
-        elseif target and hum and hum.Health < 0 or target:GetAttribute("HasFallen") then
+        elseif target and hum and hum.Health <= 1 or target:GetAttribute("HasFallen") then
             hateList[id] = nil
         else
             hateList[id] = threat * 0.995
@@ -119,6 +122,9 @@ function aggroMod.hateListFeral(aggroRadius, hateList, model, hrp)
 
         -- Add nearby threats
         for _, player in ipairs(game.Players:GetPlayers()) do
+            if player:GetAttribute("HasFallen") then
+                continue
+            end
             local root = player.Character and (player.Character.HumanoidRootPart or player.Character:FindFirstChild("Torso"))
             if root and (root.Position - hrp.Position).Magnitude^2 <= aggroSqr and not hateList[player.UserId] then
                 hateList[player.UserId] = 10
@@ -156,7 +162,7 @@ function aggroMod.hateListFeral(aggroRadius, hateList, model, hrp)
             
             if not root or (root.Position - hrp.Position).Magnitude^2 > leashSqr then
                 hateList[id] = nil
-            elseif target and hum and hum.Health < 0 or target:GetAttribute("HasFallen") then
+            elseif target and hum and hum.Health <= 1 or target:GetAttribute("HasFallen") then
                 hateList[id] = nil
             else
                 hateList[id] = threat * 0.995

@@ -226,7 +226,7 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 							and (buffinfo.hitPoints / duration)
 						or buffinfo.hitPoints
 						or 0
-					hum.Health = math.clamp(hum.Health + healPerTick, 0, hum.MaxHealth)
+					hum.Health = math.clamp(hum.Health + healPerTick, 1, hum.MaxHealth)
 				end
 			end
 		end

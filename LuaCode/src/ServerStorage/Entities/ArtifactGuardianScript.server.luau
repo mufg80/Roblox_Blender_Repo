@@ -155,7 +155,7 @@ task.spawn(function()
 	-- Main loop for npc state
 	while task.wait(0.03) do
 		local ATTACK_COOLDOWN = statsMod.DELAY * model.Data.attackDelay.Value
-		if humanoid.Health <= 0 then
+		if humanoid.Health <= 1 then
 			if not model:GetAttribute("HasFallen") then
 				utilMod.SetFlagsForDeath(model)
 			end

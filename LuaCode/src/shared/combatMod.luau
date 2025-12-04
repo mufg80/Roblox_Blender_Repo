@@ -267,7 +267,7 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
 		end
 	end)
 
-	humanoid.Health = math.max(humanoid.Health - damage, 0)
+	humanoid.Health = math.max(humanoid.Health - damage, 1)
 	return true
 end
 
@@ -311,7 +311,7 @@ function combatMod.ExecuteSpellDamageToBody(playerId: number, target: Model, dam
 		end
 	end)
 
-	humanoid.Health = math.max(humanoid.Health - damage, 0)
+	humanoid.Health = math.max(humanoid.Health - damage, 1)
 	return true
 end
 
@@ -403,7 +403,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			combatMod.ExecuteSpellDamageToBody(player.UserId, target, damage)
 			player:SetAttribute("Mana", mana - cost)
 		end
-	elseif info.spellType == "areadamage" then
+	elseif info.spellType == "areaDamage" then
 		local affected = 0
 		local playersInRange = utilMod.GetEnemyPlayersWithinRange(player, info.range)
 		local modelsInRange = utilMod.GetEnemyModelsWithinRange(player, info.range)
@@ -531,7 +531,7 @@ function combatMod.ApplyMeleeDamage(attackerModel: Model, targetModel: Model): b
 		end
 	end)
 
-	targetHum.Health = math.max(targetHum.Health - damage, 0)
+	targetHum.Health = math.max(targetHum.Health - damage, 1)
 	print(targetModel.Name .. " has " .. targetHum.Health .. " health remaining.")
 	return true
 end
