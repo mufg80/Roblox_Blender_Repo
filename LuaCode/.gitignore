@@ -7,4 +7,4 @@
 
 sourcemap.json
 
-../BlenderAssets/Pics/*.png
+**/Pics/
