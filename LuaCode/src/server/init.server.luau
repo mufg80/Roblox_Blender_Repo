@@ -317,12 +317,21 @@ end)
 
 local summonevent = repstore.Events:waitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player, creatureName)
-	combatMod.ApplyAbility(player, creatureName, recyleMod)
+	local secs = statsMod.creatureStats[creatureName] and (statsMod.creatureStats[creatureName].level or 3 / 2)
+	task.delay(secs, function() 
+		local summonedCreature = combatMod.ApplyAbility(player, creatureName, recyleMod)
+		summonevent:FireClient(player, summonedCreature)
+	end)
+	
 end)
 
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
 spellevent.OnServerEvent:Connect(function(player, spellname)
-	combatMod.ApplySpell(player, spellname)
+	local secs = statsMod.SpellInfo[spellname] and (statsMod.SpellInfo[spellname].castTime or 3)
+	task.delay(secs, function()
+		combatMod.ApplySpell(player, spellname)
+		spellevent:FireClient(player, spellname)
+	end)
 end)
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()

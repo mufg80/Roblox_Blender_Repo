@@ -1,7 +1,7 @@
 local replicatedstorage = game:GetService("ReplicatedStorage")
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
-
-
+local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
+local runservice = game:GetService("RunService")
 local players = game:GetService("Players")
 local uis = game:GetService("UserInputService")
 local playerGui = players.LocalPlayer:WaitForChild("PlayerGui")
@@ -16,6 +16,9 @@ local naturetheme = themes:WaitForChild("NatureTheme")
 local noneTheme = themes:WaitForChild("NoneTheme")
 local player = players.LocalPlayer
 local hum = player.Character:WaitForChild("Humanoid")
+local spellCastColor = nil
+local db = true
+
 
 
 -- health and mana
@@ -85,21 +88,25 @@ function updateMagicUI()
         magicgui.Enabled = true
         magicgui.SpellFrame.Visible = true
         magicgui.CreatureFrame.Visible = true
+        spellCastColor = statsMod.Colors.Artificer
     elseif magic == statsMod.MagicType.Primordial then
         designSheet:SetDerives({primordialtheme})
         magicgui.Enabled = true
         magicgui.SpellFrame.Visible = true
         magicgui.CreatureFrame.Visible = true
+        spellCastColor = statsMod.Colors.Primordial
     elseif magic == statsMod.MagicType.Nature then
         designSheet:SetDerives({naturetheme})
         magicgui.Enabled = true
         magicgui.SpellFrame.Visible = true
         magicgui.CreatureFrame.Visible = true
+        spellCastColor = statsMod.Colors.Nature
     else
         designSheet:SetDerives({noneTheme})
         magicgui.Enabled = false
         magicgui.SpellFrame.Visible = false
         magicgui.CreatureFrame.Visible = false
+        spellCastColor = nil
         return
     end
 
@@ -170,7 +177,26 @@ local spellbuttons = magicgui.SpellFrame:GetChildren()
 for _, button in pairs(creaturebuttons) do
     if button:IsA("GuiButton") then
         button.MouseButton1Click:Connect(function()
+            if not db then return end
+            db = false
             replicatedstorage.Events.SummonEvent:FireServer(button.Text)
+            local secs = statsMod.creatureStats[button.Text] and (statsMod.creatureStats[button.Text].level or 3 / 2)
+            local startTime = time()
+            local connection
+            local Frame = magicgui:FindFirstChild("CastFrame")
+            Frame.Visible = true
+            local innerFill = Frame.InnerFill
+            innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
+            connection = runservice.RenderStepped:Connect(function(delta)
+                local elapse = (time() - startTime)
+                local fraction = elapse / secs
+                innerFill.Size = UDim2.new(fraction,0,1,0)
+                if elapse >= secs then
+                    connection:Disconnect()
+                    Frame.Visible = false
+                    db = true
+                end
+            end)
         end)
     end
 end
@@ -181,6 +207,67 @@ for _, button in pairs(spellbuttons) do
         end)
     end
 end
+
+replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature)
+    print("Summoned creature received on client:", summonedCreature)
+    -- You can add additional client-side logic here if needed
+
+    local existingFrame = statsGui.HudFrame:FindFirstChild(summonedCreature.Name .. "_PetFrame")
+    if existingFrame then
+        existingFrame:Destroy()
+    end
+
+    local petframe = replicatedstorage:WaitForChild("PetFrameContainer"):Clone()
+    petframe.Name = summonedCreature.Name .. "_PetFrame"
+    petframe.Parent = statsGui.HudFrame
+    petframe.Visible = true
+    local petimage = petframe.PetImageLabel
+    petimage.Image = statsMod.Pics[combatMod.customTrim(summonedCreature.Name)]
+    local hum = summonedCreature:FindFirstChild("Humanoid")
+    if not hum then warn("should not reach me") return end
+    local connection
+
+    local function updateHealth()
+        
+        local inner = petframe.PetMeterBar.InnerFill
+        local den = hum.MaxHealth
+        local num = hum.Health
+        local fraction = nil
+        if den == 0 then
+            fraction = 0
+        else
+            fraction = math.clamp(num / den,0,1)
+        end
+        inner.Size = UDim2.new(fraction, 0, 1, 0)
+        if hum.Health <= 1 then
+            petframe:Destroy()
+        end
+
+    end
+    updateHealth()
+    
+    connection = hum.HealthChanged:Connect(updateHealth)
+    local ancestryConnection
+    ancestryConnection = summonedCreature.AncestryChanged:Connect(function(child, parent)
+        if not parent then
+            if connection then
+                connection:Disconnect()
+            end
+            if ancestryConnection then
+                ancestryConnection:Disconnect()
+            end
+            if petframe then
+                petframe:Destroy()
+            end
+        end
+    end)
+   
+end)
+
+replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname)
+    print("Spell cast confirmed on client:", spellname)
+    -- You can add additional client-side logic here if needed
+end)
 
 
 -- admin area

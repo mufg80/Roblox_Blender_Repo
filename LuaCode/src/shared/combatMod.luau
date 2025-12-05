@@ -370,6 +370,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 	local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
 	if creatureHRP then
 		creatureHRP.CFrame = CFrame.new(mobPos, mobPos + lookAt)
+		return summonedCreature
 	else
 		warn("Summoned creature has no HumanoidRootPart:", creatureName)
 	end
