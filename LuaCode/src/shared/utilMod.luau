@@ -305,9 +305,13 @@ function utilMod.FindClearSpawnPoint(player: Player, distance: number): Vector3?
 		local dir = Vector3.new(math.cos(rad), 0, -math.sin(rad))
 		local target = origin + dir * distance
 
-		local rayOrigin = origin + Vector3.new(0, 2, 0)
+		local rayOrigin = origin + Vector3.new(0, 0, 0)
 		local result = Workspace:Raycast(rayOrigin, dir * (distance * 1.5), params)
-		if not result or (result.Position - origin).Magnitude > distance - 1 then
+
+		local rayOrigin1 = origin + Vector3.new(0, 4, 0)
+		local result1 = Workspace:Raycast(rayOrigin1, dir * (distance * 1.5), params)
+
+		if not result and not result1 then
 			return target
 		end
 	end

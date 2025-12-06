@@ -9,6 +9,54 @@ local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
 local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 
+local function setStaff(player: Player)
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local prim = character:GetChildren()
+	for _, item in pairs(prim) do
+		if item:IsA("Tool") then
+			for key, stat in statsMod.StaffStats do
+				if item.Name == stat.name then
+					item:Destroy()
+					continue
+				end
+			end
+		end
+	end
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if backpack then
+		local items = backpack:GetChildren()
+		for _, item in pairs(items) do
+			if item:IsA("Tool") then
+				for key, stat in statsMod.StaffStats do
+					if item.Name == stat.name then
+						item:Destroy()
+						continue
+					end
+				end
+			end
+		end
+	end
+
+	local currentType = player:GetAttribute("Magic")
+	if currentType == statsMod.MagicType.Artificer then
+		local artstaff = serverstorage.Staffs:FindFirstChild("StarterStaffArtificer"):Clone()
+		artstaff.Parent = backpack
+	elseif currentType == statsMod.MagicType.Primordial then
+		local primstaff = serverstorage.Staffs:FindFirstChild("StarterStaffPrimordial"):Clone()
+		primstaff.Parent = backpack
+	elseif currentType == statsMod.MagicType.Nature then
+		local naturestaff = serverstorage.Staffs:FindFirstChild("StarterStaffNature"):Clone()
+		naturestaff.Parent = backpack
+	else
+		return
+	end
+
+end
+
 local function GetMagicType(player: Player): string
 	local currentType = player:GetAttribute("Magic")
 	if currentType == statsMod.MagicType.Artificer then
@@ -58,15 +106,12 @@ end
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
 	local hum = character:FindFirstChild("Humanoid")
-	local hrp = character:FindFirstChild("HumanoidRootPart")
-	collectionService:AddTag(character, "Character")
 	setStats(plr)
 	local connection = nil
 	if hum then
 		hum.HealthChanged:Connect(function(health)
-			
 			local damageTaken = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - health) or 0
-			
+
 			hum:SetAttribute("LastHealth", health)
 			if damageTaken > 0 then
 				plr:SetAttribute("InCombat", true)
@@ -91,9 +136,6 @@ local function CharacterAdded(character)
 					end
 				end
 			end
-
-
-
 		end)
 	end
 end
@@ -178,21 +220,25 @@ game.Players.PlayerAdded:Connect(function(player)
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", 20)
+			setStaff(player)
 		elseif currentType == statsMod.MagicType.Artificer then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("ArtificerLevel") * 20)
+			setStaff(player)
 		elseif currentType == statsMod.MagicType.Primordial then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("PrimordialLevel") * 20)
+			setStaff(player)
 		elseif currentType == statsMod.MagicType.Nature then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerNature")
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("NatureLevel") * 20)
+			setStaff(player)
 		end
 	end)
 
@@ -318,17 +364,22 @@ end)
 local summonevent = repstore.Events:waitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player, creatureName)
 	local secs = statsMod.creatureStats[creatureName] and (statsMod.creatureStats[creatureName].level or 3 / 2)
-	task.delay(secs, function() 
+	task.delay(secs, function()
+		if player:GetAttribute("HasFallen") then
+			return
+		end
 		local summonedCreature = combatMod.ApplyAbility(player, creatureName, recyleMod)
 		summonevent:FireClient(player, summonedCreature)
 	end)
-	
 end)
 
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
 spellevent.OnServerEvent:Connect(function(player, spellname)
 	local secs = statsMod.SpellInfo[spellname] and (statsMod.SpellInfo[spellname].castTime or 3)
 	task.delay(secs, function()
+		if player:GetAttribute("HasFallen") then
+			return
+		end
 		combatMod.ApplySpell(player, spellname)
 		spellevent:FireClient(player, spellname)
 	end)

@@ -98,39 +98,40 @@
             "$path": "src/ServerStorage/Entities/WindSpiritScript.server.luau"
           }
         }
-      }
-    },
-
-     "StarterPack": {
-      "$className": "StarterPack",
-
-      "StarterStaffPrimordial": {
+      },
+      "Staffs": {
+      "$className": "Folder",
+        "StarterStaffPrimordial": {
         "$path": "models/StarterStaffPrimordial.rbxm",
         "StarterStaffServerScript": {
-          "$path": "src/StarterStaffPrimordial/StarterStaffServerScript.server.luau"
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
         },
         "StarterStaffLocalScript": {
-          "$path": "src/StarterStaffPrimordial/StarterStaffLocalScript.client.luau"
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
       },
-
       "StarterStaffArtificer": {
         "$path": "models/StarterStaffArtificer.rbxm",
         "StarterStaffServerScript": {
-          "$path": "src/StarterStaffArtificer/StarterStaffServerScript.server.luau"
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
         },
         "StarterStaffLocalScript": {
-          "$path": "src/StarterStaffArtificer/StarterStaffLocalScript.client.luau"
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
       }, "StarterStaffNature": {
         "$path": "models/StarterStaffNature.rbxm",
         "StarterStaffServerScript": {
-          "$path": "src/StarterStaffNature/StarterStaffServerScript.server.luau"
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
         },
         "StarterStaffLocalScript": {
-          "$path": "src/StarterStaffNature/StarterStaffLocalScript.client.luau"
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
       }
+    }
+    },
+
+     "StarterPack": {
+      "$className": "StarterPack"      
     }
   }
 }

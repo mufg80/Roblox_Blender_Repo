@@ -102,6 +102,39 @@ humanoid.HealthChanged:Connect(function(health)
 end)
 humanoid.Health = humanoid.MaxHealth - 1
 
+local playerConnection
+
+local function setupOwnerConnection(ownerId)
+    -- Disconnect old
+    if playerConnection then
+        playerConnection:Disconnect()
+        playerConnection = nil
+    end
+    
+    -- Validate & setup new
+    local ownerUserId = tonumber(ownerId)
+    if not ownerUserId then return end  -- Invalid ID → no connection
+    
+    playerConnection = game.Players.PlayerRemoving:Connect(function(leavingPlayer)
+        if leavingPlayer.UserId == ownerUserId then
+            model:SetAttribute("RecycleMe", true)
+        end
+    end)
+end
+
+local function onOwnerChanged()
+    local ownerId = model:GetAttribute("OwnedBy")
+    if ownerId and ownerId ~= "" and ownerId ~= "None" and ownerId ~= "none" then
+        setupOwnerConnection(ownerId)
+    else
+        setupOwnerConnection(nil)  -- Clear connection
+    end
+end
+
+-- Initial setup & listen for changes
+onOwnerChanged()
+model:GetAttributeChangedSignal("OwnedBy"):Connect(onOwnerChanged)
+
 -- === Animations ===
 local animator = humanoid:FindFirstChildOfClass("Animator")
 local animTracks = {}

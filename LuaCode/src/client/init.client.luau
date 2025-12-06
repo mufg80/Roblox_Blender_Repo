@@ -191,7 +191,7 @@ for _, button in pairs(creaturebuttons) do
                 local elapse = (time() - startTime)
                 local fraction = elapse / secs
                 innerFill.Size = UDim2.new(fraction,0,1,0)
-                if elapse >= secs then
+                if elapse >= secs or hum.Health <= 1 then
                     connection:Disconnect()
                     Frame.Visible = false
                     db = true
@@ -203,12 +203,36 @@ end
 for _, button in pairs(spellbuttons) do
     if button:IsA("GuiButton") then
         button.MouseButton1Click:Connect(function()
+            if not db then return end
+            db = false
+            local secs = statsMod.spellStats[button.Text] and (statsMod.SpellInfo[button.Text].castTime or 2)
+            local startTime = time()
+            local connection
+            local Frame = magicgui:FindFirstChild("CastFrame")
+            Frame.Visible = true
+            local innerFill = Frame.InnerFill
+            innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
+            connection = runservice.RenderStepped:Connect(function(delta)
+                local elapse = (time() - startTime)
+                local fraction = elapse / secs
+                innerFill.Size = UDim2.new(fraction,0,1,0)
+                if elapse >= secs or hum.Health <= 2 then
+                    connection:Disconnect()
+                    Frame.Visible = false
+                    db = true
+                end
+            end)
             replicatedstorage.Events.SpellCastEvent:FireServer(button.Text)
         end)
     end
 end
 
 replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature)
+    if not summonedCreature then
+        warn("No summoned creature received on client")
+        return
+    end
+    
     print("Summoned creature received on client:", summonedCreature)
     -- You can add additional client-side logic here if needed
 
@@ -274,6 +298,8 @@ end)
 if players.LocalPlayer.UserId == 2484051658 then
     print("Admin detected, enabling admin GUI")
     local adminGui = playerGui:WaitForChild("AdminGui")
+    adminGui.Frame.Visible = true
+    adminGui.closeButton.Visible = true
     local levelbutton = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
     local typebutton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
     levelbutton.MouseButton1Click:Connect(function()
@@ -293,4 +319,5 @@ if players.LocalPlayer.UserId == 2484051658 then
         if not level then return end
         levelbutton.Text = "Magic Level: "..tostring(level)
     end)
+
 end
