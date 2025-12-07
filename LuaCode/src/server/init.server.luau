@@ -1,13 +1,11 @@
 local ds = game:GetService("DataStoreService")
 local dataStoreEnabled = false
-local collectionService = game:GetService("CollectionService")
 local repstore = game:GetService("ReplicatedStorage")
 local serverstorage = game:GetService("ServerStorage")
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
-local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 
 local function setStaff(player: Player)
 	local character = player.Character
@@ -18,11 +16,9 @@ local function setStaff(player: Player)
 	local prim = character:GetChildren()
 	for _, item in pairs(prim) do
 		if item:IsA("Tool") then
-			for key, stat in statsMod.StaffStats do
-				if item.Name == stat.name then
-					item:Destroy()
-					continue
-				end
+			local stype = item:GetAttribute("StaffType")
+			if stype then
+				item:Destroy()
 			end
 		end
 	end
@@ -31,13 +27,11 @@ local function setStaff(player: Player)
 		local items = backpack:GetChildren()
 		for _, item in pairs(items) do
 			if item:IsA("Tool") then
-				for key, stat in statsMod.StaffStats do
-					if item.Name == stat.name then
-						item:Destroy()
-						continue
-					end
-				end
+			local stype = item:GetAttribute("StaffType")
+			if stype then
+				item:Destroy()
 			end
+		end
 		end
 	end
 
@@ -208,6 +202,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("MaxMana", 20)
 	player:SetAttribute("Mana", 20)
 	player:SetAttribute("HasFallen", false)
+	player:SetAttribute("AllyId", 0)
 
 	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
 		ReduceMana(player)

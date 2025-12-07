@@ -205,7 +205,7 @@ for _, button in pairs(spellbuttons) do
         button.MouseButton1Click:Connect(function()
             if not db then return end
             db = false
-            local secs = statsMod.spellStats[button.Text] and (statsMod.SpellInfo[button.Text].castTime or 2)
+            local secs = statsMod.SpellInfo[button.Text].castTime or 2
             local startTime = time()
             local connection
             local Frame = magicgui:FindFirstChild("CastFrame")

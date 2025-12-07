@@ -476,32 +476,35 @@ statsMod.BuffInfo = {
 -- Visual projectile settings
 statsMod.StaffStats = {
 	StarterStaffArtificer = {
+		magicType = "Artificer",
 		name = "StarterStaffArtificer",
 		maxRange = 100,
 		bulletSpeed = 50,
 		arcHeight = 5,
 		bulletTrail = "#d5d506",
-		visualSize = 0.2,
-		visualTime = 0.5,
+		visualSize = 0.5,
+		visualTime = 0.8,
     	BulletTemplate = "StarterStaffBullet"  -- Opt
 	},
 	StarterStaffPrimordial = {
+		magicType = "Primordial",
 		name = "StarterStaffPrimordial",
 		maxRange = 100,
 		bulletSpeed = 50,
 		arcHeight = 5,
 		bulletTrail = "#1d1674",
-		visualSize = 0.2,
+		visualSize = 0.5,
 		visualTime = 0.5,
     	BulletTemplate = "StarterStaffBullet"  -- Opt
 	},
 	StarterStaffNature = {
+		magicType = "Nature",
 		name = "StarterStaffNature",
 		maxRange = 100,
 		bulletSpeed = 50,
 		arcHeight = 5,
 		bulletTrail = "#217a22",
-		visualSize = 0.2,
+		visualSize = 0.5,
 		visualTime = 0.5,
     	BulletTemplate = "StarterStaffBullet"  -- Opt
 	},

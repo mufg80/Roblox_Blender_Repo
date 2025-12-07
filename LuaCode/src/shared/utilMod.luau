@@ -318,30 +318,66 @@ function utilMod.FindClearSpawnPoint(player: Player, distance: number): Vector3?
 	return nil
 end
 
---==============================================================================
--- Simple visual explosion effect
---==============================================================================
+
 function utilMod.createCustomExplosion(position: Vector3, visualSize: number, lifetime: number, color: Color3)
-	local attachment = Instance.new("Attachment")
-	attachment.WorldPosition = position
-	attachment.Parent = Workspace.Terrain
+	local container = Instance.new("Part")
+	container.Anchored = true
+	container.CanCollide = false
+	container.Transparency = 1
+	container.Size = Vector3.new(0.5, 0.5, 0.5)
+	container.Position = position + Vector3.new(0, 0.5, 0)
+	container.Parent = workspace
+
+	
 
 	local pe = Instance.new("ParticleEmitter")
-	pe.Texture = "rbxassetid://241359587" -- Default explosion texture
-	pe.Color = ColorSequence.new(color)
-	pe.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.1, visualSize * 1.5),
-		NumberSequenceKeypoint.new(1, 0),
-	})
-	pe.Transparency = NumberSequence.new(0, 1)
-	pe.Lifetime = NumberRange.new(0.3, 0.6)
-	pe.Rate = 500
-	pe.Speed = NumberRange.new(10, 40)
-	pe.SpreadAngle = Vector2.new(360, 360)
-	pe.Parent = attachment
+	pe.Parent = container
 
-	Debris:AddItem(attachment, lifetime)
+	pe.Texture = "rbxassetid://104995764302392"
+	pe.LightEmission = 0.6
+
+	pe.LightInfluence = 1
+	pe.Color = ColorSequence.new(color)
+	pe.Orientation = Enum.ParticleOrientation.FacingCameraWorldUp
+	
+	pe.Transparency = NumberSequence.new{
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 0.5),
+		NumberSequenceKeypoint.new(1, 1)
+	}
+	pe.Squash = NumberSequence.new{
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1,0 )
+	}
+	
+	pe.Size = NumberSequence.new{
+		NumberSequenceKeypoint.new(0, visualSize * 0.8),
+		NumberSequenceKeypoint.new(1, visualSize * 0.1)
+	}
+	pe.ZOffset = 0
+	pe.Lifetime = NumberRange.new(0.1, lifetime) -- slightly longer
+	pe.Rate = 500
+	pe.Speed = NumberRange.new(5, 6)
+	pe.SpreadAngle = Vector2.new(45, 45)
+	pe.EmissionDirection = Enum.NormalId.Top
+	pe.Enabled = true
+	pe.Rotation = NumberRange.new(-45, 45)
+	pe.RotSpeed = NumberRange.new(-90, 90)
+	pe.Shape = Enum.ParticleEmitterShape.Sphere
+	pe.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+	pe.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+	pe.ShapePartial = 1
+
+	-- Emit after initialization
+	task.defer(function()
+		pe:Emit(100)
+	end)
+
+	game.Debris:AddItem(container, lifetime)
+	task.delay(0.2, function()
+		pe.Enabled = false
+	end)
 end
 
 --==============================================================================
@@ -567,9 +603,9 @@ function utilMod.ApplyThreat(attacker: Model | Player, target: Model | Player, t
 	if target:IsA("Player") then
 		-- return players dont use hatetable
 		return false
-	elseif not target:IsA(("Model")) then
+	elseif not target:IsA("Model") then
 		return false
-	elseif target:IsA(("Model")) and game.Players:GetPlayerFromCharacter(target) ~= nil then
+	elseif target:IsA("Model") and game.Players:GetPlayerFromCharacter(target) ~= nil then
 		return false
 	end
 
@@ -590,7 +626,7 @@ function utilMod.ApplyThreat(attacker: Model | Player, target: Model | Player, t
 	return false
 end
 
-function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userId:number): { Model }
+function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userId: number): { Model }
 	local hrp = utilMod.GetRootPart(player.Character)
 	if not hrp then
 		return {}
@@ -633,6 +669,7 @@ export type UtilMod = {
 	DistancetoGround: (position: Vector3) -> number?,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
 	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
+	createColorExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
 	uniqueName: (baseName: string) -> string,
 	GetSeedFromName: (name: string, useTime: boolean?) -> number,
 
@@ -645,7 +682,7 @@ export type UtilMod = {
 	CopyStatsToFolder: (target: Instance, stats: { [string]: any }, folderName: string?) -> Folder,
 	GetStatsFromFolder: (instance: Instance, folderName: string?) -> { [string]: any },
 	ApplyThreat: (attacker: Model | Player, target: Model | Player, threatAmount: number) -> boolean,
-	GetOpposingPetsWithinRange: (player: Player, range: number, userId:number) -> { Model },
+	GetOpposingPetsWithinRange: (player: Player, range: number, userId: number) -> { Model },
 }
 
 return utilMod :: UtilMod

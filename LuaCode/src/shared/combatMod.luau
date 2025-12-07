@@ -55,7 +55,7 @@ function combatMod.SpellAttackResult(
 	end
 
 	local spell = statsMod.SpellInfo[spellName]
-	if not (attackerStats and defenderStats and spell) then
+	if not attackerStats or not defenderStats or not spell then
 		return 0
 	end
 
@@ -161,7 +161,7 @@ function combatMod.MeleeAttackResult(attacker: Instance, defender: Instance): nu
 			defenderstats = utilMod.GetStatsFromFolder(plr)
 		end
 	end
-	if not (attackerstats and defenderstats) then
+	if not attackerstats or not defenderstats then
 		return 0
 	end
 
