@@ -236,8 +236,7 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
 	if ownerPlayer.Character == hitCharacter then
 		return false
 	end
-	local targetOwnerId = hitCharacter:GetAttribute("OwnedBy")
-	if targetOwnerId and targetOwnerId == ownerUserId then
+	if utilMod.IsAlly(ownerPlayer.Character, hitCharacter) then
 		return false
 	end
 
@@ -283,9 +282,7 @@ function combatMod.ExecuteSpellDamageToBody(playerId: number, target: Model, dam
 	if not owningplayer.Character or owningplayer.Character == target then
 		return false
 	end
-
-	local targetOwnerId = target:GetAttribute("OwnedBy")
-	if targetOwnerId and targetOwnerId == playerId then
+	if utilMod.IsAlly(owningplayer.Character, target) then
 		return false
 	end
 
@@ -395,8 +392,8 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 	if info.spellType == "damage" then
 		local target = utilMod.GetClosestPlayer(player)
-			or utilMod.GetClosestModelSkipOwnPets(player, "Pets")
-			or utilMod.GetClosestModelSkipOwnPets(player, "Ferals")
+			or utilMod.GetClosestModelSkipAllyPets(player, "Pets")
+			or utilMod.GetClosestModelSkipAllyPets(player, "Ferals")
 
 		local dis = utilMod.GetDistance(player.Character, target)
 		if target and dis and dis < info.range then

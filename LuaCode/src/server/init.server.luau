@@ -1,3 +1,4 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ds = game:GetService("DataStoreService")
 local dataStoreEnabled = false
 local repstore = game:GetService("ReplicatedStorage")
@@ -7,7 +8,7 @@ local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
 
-local function setStaff(player: Player)
+local function setStaffandPets(player: Player)
 	local character = player.Character
 	if not character then
 		return
@@ -36,6 +37,14 @@ local function setStaff(player: Player)
 	end
 
 	local currentType = player:GetAttribute("Magic")
+	local pets = utilMod.MyPets(player)
+	for _, pet in pairs(pets) do
+		if statsMod.creatureStats[pet.Name] and statsMod.creatureStats[pet.Name].magicType ~= currentType then
+			pet:Destroy()
+			local soul = player:GetAttribute("Souls")
+			player:SetAttribute("Souls", soul + 1)
+		end
+	end
 	if currentType == statsMod.MagicType.Artificer then
 		local artstaff = serverstorage.Staffs:FindFirstChild("StarterStaffArtificer"):Clone()
 		artstaff.Parent = backpack
@@ -203,6 +212,8 @@ game.Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("Mana", 20)
 	player:SetAttribute("HasFallen", false)
 	player:SetAttribute("AllyId", 0)
+	player:SetAttribute("Souls", 4)
+	player:SetAttribute("MaxSouls", 4)
 
 	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
 		ReduceMana(player)
@@ -215,25 +226,25 @@ game.Players.PlayerAdded:Connect(function(player)
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", 20)
-			setStaff(player)
+			setStaffandPets(player)
 		elseif currentType == statsMod.MagicType.Artificer then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("ArtificerLevel") * 20)
-			setStaff(player)
+			setStaffandPets(player)
 		elseif currentType == statsMod.MagicType.Primordial then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("PrimordialLevel") * 20)
-			setStaff(player)
+			setStaffandPets(player)
 		elseif currentType == statsMod.MagicType.Nature then
 			local sourceStats = combatMod.ShallowTableCopy("PlayerNature")
 			utilMod.CopyStatsToFolder(player, sourceStats)
 			setStats(player)
 			player:SetAttribute("MaxMana", player:GetAttribute("NatureLevel") * 20)
-			setStaff(player)
+			setStaffandPets(player)
 		end
 	end)
 
@@ -364,7 +375,14 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
 			return
 		end
 		local summonedCreature = combatMod.ApplyAbility(player, creatureName, recyleMod)
-		summonevent:FireClient(player, summonedCreature)
+		local souls = player:GetAttribute("Souls")
+		if souls > 0 then
+			player:SetAttribute("Souls", souls - 1)
+		else
+			return
+		end
+		ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"))
+		summonevent:FireClient(player, summonedCreature, player:GetAttribute("Souls"))
 	end)
 end)
 

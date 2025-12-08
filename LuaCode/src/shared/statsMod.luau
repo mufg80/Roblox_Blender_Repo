@@ -158,7 +158,7 @@ statsMod.SpellInfo = {
 		magicType = "Any",
 		spellType = "utility",
 		missChance = 0,
-		range = 20,
+		range = 30,
 		cooldown = 5,
 		numberTargets = 1,
 		aggro = 10,
@@ -384,7 +384,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 	},
-	NaturesDefners = {
+	NaturesDefenders = {
 		manaCost = 0.8,
 		magicType = "Nature",
 		spellType = "areaDamage",

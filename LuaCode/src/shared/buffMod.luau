@@ -2,12 +2,28 @@
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local serverStorage = game:GetService("ServerStorage")
-
+local repstore = game:GetService("ReplicatedStorage")
 local buffMod = {}
 
 -- At the top of the module (next to RUNNING_EFFECTS)
 local RUNNING_EFFECTS: { [string]: thread } = {} -- now stores the coroutine thread itself
 -- (change from boolean to thread)
+
+function buffMod.CheckDistanceOnSpouts(player: Player): boolean
+	if not player.Character then
+		return false
+	end
+	for _, child in pairs(workspace.ManaPoints:GetChildren()) do
+		if child.Name ~= "ManaSpout" then
+			continue
+		end
+		local dist = utilMod.GetDistance(player.Character, child)
+		if dist and dist < statsMod.SpellInfo.ConvertSpout.range then
+			return true
+		end
+	end
+	return false
+end
 
 --[[
     Attempts to convert a nearby Mana Spout into a magic-specific lith (building)
@@ -102,6 +118,9 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: { Model }
 	local currentmana: number = player:GetAttribute("Mana") or 0
 	local maxmana: number = player:GetAttribute("MaxMana") or 100
 	player:SetAttribute("Mana", math.min(currentmana + 50, maxmana))
+	local maxSouls = player:GetAttribute("MaxSouls")
+	player:SetAttribute("Souls", math.min((player:GetAttribute("Souls") or 0) + 1, maxSouls))
+	repstore.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"))
 	return true
 end
 

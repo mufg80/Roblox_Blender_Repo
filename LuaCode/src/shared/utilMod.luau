@@ -9,6 +9,92 @@ local Debris = game:GetService("Debris")
 
 local utilMod = {}
 
+-- Robust ally check: takes two models (character or NPC/pet)
+-- Returns true if they belong to the same owner OR are allied via AllyId
+function utilMod.IsAlly(sourceModel: Model, targetModel: Model): boolean
+	if not sourceModel or not targetModel then
+		return false
+	end
+	if sourceModel == targetModel then
+		return true
+	end -- same entity = always ally (optional, but safe)
+
+	-- Helper: extract effective owner UserId from a model (player char or pet)
+	local function getOwnerId(model: Model): number | nil
+		if not model or not model.Parent then
+			return nil
+		end
+
+		-- Case 1: It's a player's character
+		local player = game.Players:GetPlayerByUserId(model:GetAttribute("UserId") or 0)
+		if not player then
+			-- Try finding player via Humanoid or legacy methods
+			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+			if humanoid then
+				player = game.Players:GetPlayerFromCharacter(model)
+			end
+		end
+		if player then
+			return player.UserId
+		end
+
+		-- Case 2: It's a pet/NPC with OwnedBy attribute
+		local ownedBy = model:GetAttribute("OwnedBy")
+		if ownedBy and ownedBy ~= "None" and ownedBy ~= "none" and ownedBy ~= "" then
+			return tonumber(ownedBy)
+		end
+
+		return nil -- not owned by anyone → not an ally to anyone
+	end
+
+	-- Get actual owners
+	local sourceOwnerId = getOwnerId(sourceModel)
+	local targetOwnerId = getOwnerId(targetModel)
+
+	-- If either has no owner → only allies with themselves (already handled above)
+	if not sourceOwnerId or not targetOwnerId then
+		return false
+	end
+
+	-- If same direct owner → definitely allies
+	if sourceOwnerId == targetOwnerId then
+		return true
+	end
+
+	-- Now check alliance via AllyId
+	local sourcePlayer = game.Players:GetPlayerByUserId(sourceOwnerId)
+	local targetPlayer = game.Players:GetPlayerByUserId(targetOwnerId)
+
+	-- Only players can have alliances
+	if not sourcePlayer or not targetPlayer then
+		return false
+	end
+
+	local sourceAllyId = sourcePlayer:GetAttribute("AllyId")
+	local targetAllyId = targetPlayer:GetAttribute("AllyId")
+
+	-- Convert to number if needed
+	if typeof(sourceAllyId) == "string" then
+		sourceAllyId = (sourceAllyId == "None" or sourceAllyId == "none" or sourceAllyId == "") and nil
+			or tonumber(sourceAllyId)
+	else
+		sourceAllyId = (sourceAllyId == nil or sourceAllyId == 0) and nil or sourceAllyId
+	end
+
+	if typeof(targetAllyId) == "string" then
+		targetAllyId = (targetAllyId == "None" or targetAllyId == "none" or targetAllyId == "") and nil
+			or tonumber(targetAllyId)
+	else
+		targetAllyId = (targetAllyId == nil or targetAllyId == 0) and nil or targetAllyId
+	end
+
+	-- Two-way alliance check
+	local sourceSeesTargetAsAlly = (sourceAllyId and sourceAllyId == targetOwnerId)
+	local targetSeesSourceAsAlly = (targetAllyId and targetAllyId == sourceOwnerId)
+
+	return sourceSeesTargetAsAlly or targetSeesSourceAsAlly
+end
+
 --==============================================================================
 -- Returns the primary part used for positioning (HRP > Torso > any BasePart)
 --==============================================================================
@@ -318,7 +404,6 @@ function utilMod.FindClearSpawnPoint(player: Player, distance: number): Vector3?
 	return nil
 end
 
-
 function utilMod.createCustomExplosion(position: Vector3, visualSize: number, lifetime: number, color: Color3)
 	local container = Instance.new("Part")
 	container.Anchored = true
@@ -327,8 +412,6 @@ function utilMod.createCustomExplosion(position: Vector3, visualSize: number, li
 	container.Size = Vector3.new(0.5, 0.5, 0.5)
 	container.Position = position + Vector3.new(0, 0.5, 0)
 	container.Parent = workspace
-
-	
 
 	local pe = Instance.new("ParticleEmitter")
 	pe.Parent = container
@@ -339,22 +422,22 @@ function utilMod.createCustomExplosion(position: Vector3, visualSize: number, li
 	pe.LightInfluence = 1
 	pe.Color = ColorSequence.new(color)
 	pe.Orientation = Enum.ParticleOrientation.FacingCameraWorldUp
-	
-	pe.Transparency = NumberSequence.new{
+
+	pe.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0),
 		NumberSequenceKeypoint.new(0.5, 0.5),
-		NumberSequenceKeypoint.new(1, 1)
-	}
-	pe.Squash = NumberSequence.new{
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	pe.Squash = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0),
 		NumberSequenceKeypoint.new(0.5, 0),
-		NumberSequenceKeypoint.new(1,0 )
-	}
-	
-	pe.Size = NumberSequence.new{
+		NumberSequenceKeypoint.new(1, 0),
+	})
+
+	pe.Size = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, visualSize * 0.8),
-		NumberSequenceKeypoint.new(1, visualSize * 0.1)
-	}
+		NumberSequenceKeypoint.new(1, visualSize * 0.1),
+	})
 	pe.ZOffset = 0
 	pe.Lifetime = NumberRange.new(0.1, lifetime) -- slightly longer
 	pe.Rate = 500
@@ -452,7 +535,7 @@ function utilMod.GetClosestPlayer(player: Player): Player?
 	return closest
 end
 
-function utilMod.GetClosestModelSkipOwnPets(player: Player, folderName: "Pets" | "Ferals"): Model?
+function utilMod.GetClosestModelSkipAllyPets(player: Player, folderName: "Pets" | "Ferals"): Model?
 	local myPos = utilMod.GetPosition(player.Character)
 	if not myPos then
 		return nil
@@ -467,14 +550,11 @@ function utilMod.GetClosestModelSkipOwnPets(player: Player, folderName: "Pets" |
 	local bestDist = math.huge
 
 	for _, model in folder:GetChildren() do
-		if model:IsA("Model") then
-			local ownerId = model:GetAttribute("OwnedBy")
-			if folderName ~= "Pets" or (ownerId ~= player.UserId) then
-				local dist = utilMod.GetDistance(model, myPos)
-				if dist and dist < bestDist then
-					bestDist = dist
-					closest = model
-				end
+		if model:IsA("Model") and not utilMod.IsAlly(player.Character, model) then
+			local dist = utilMod.GetDistance(model, myPos)
+			if dist and dist < bestDist then
+				bestDist = dist
+				closest = model
 			end
 		end
 	end
@@ -492,13 +572,10 @@ function utilMod.GetEnemyModelsWithinRange(player: Player, range: number): { Mod
 		local folder = Workspace:FindFirstChild(folderName)
 		if folder then
 			for _, model in folder:GetChildren() do
-				if model:IsA("Model") then
-					local ownerId = model:GetAttribute("OwnedBy")
-					if folderName ~= "Pets" or (ownerId ~= player.UserId) then
-						local dist = utilMod.GetDistance(model, myPos)
-						if dist and dist <= range then
-							table.insert(result, model)
-						end
+				if model:IsA("Model") and not utilMod.IsAlly(player.Character, model) then
+					local dist = utilMod.GetDistance(model, myPos)
+					if dist and dist <= range then
+						table.insert(result, model)
 					end
 				end
 			end
@@ -515,7 +592,7 @@ function utilMod.GetEnemyPlayersWithinRange(player: Player, range: number): { Mo
 	end
 
 	for _, other in Players:GetPlayers() do
-		if other ~= player and other.Character then
+		if other ~= player and other.Character and not utilMod.IsAlly(player.Character, other.Character) then
 			local dist = utilMod.GetDistance(other.Character, myPos)
 			if dist and dist <= range then
 				table.insert(result, other.Character)
@@ -523,6 +600,38 @@ function utilMod.GetEnemyPlayersWithinRange(player: Player, range: number): { Mo
 		end
 	end
 	return result
+end
+
+function utilMod.IsEnemyInRange(player: Player, range: number): boolean
+	local myPos = utilMod.GetPosition(player.Character)
+	if not myPos then
+		return false
+	end
+
+	for _, folderName in { "Pets", "Ferals" } do
+		local folder = Workspace:FindFirstChild(folderName)
+		if folder then
+			for _, model in folder:GetChildren() do
+				if model:IsA("Model") and not utilMod.IsAlly(player.Character, model) then
+					local dist = utilMod.GetDistance(model, myPos)
+					if dist and dist <= range then
+						return true
+					end
+				end
+			end
+		end
+	end
+
+	for _, other in Players:GetPlayers() do
+		if other ~= player and other.Character and not utilMod.IsAlly(player.Character, other.Character) then
+			local dist = utilMod.GetDistance(other.Character, myPos)
+			if dist and dist <= range then
+				return true
+			end
+		end
+	end
+
+	return false
 end
 
 function utilMod.MyPets(player: Player): { Model }
@@ -595,7 +704,7 @@ function utilMod.GetStatsFromFolder(instance: Instance, folderName: string?): { 
 	return stats
 end
 
-function utilMod.ApplyThreat(attacker: Model | Player, target: Model | Player, threatAmount: number): boolean
+function utilMod.ApplyThreat(attacker: Model | Player, target: Model, threatAmount: number): boolean
 	if not attacker or not target or threatAmount == 0 then
 		return false
 	end
@@ -612,7 +721,13 @@ function utilMod.ApplyThreat(attacker: Model | Player, target: Model | Player, t
 	local attackerid = nil
 	if attacker:IsA("Player") then
 		attackerid = attacker.UserId
+		if utilMod.IsAlly(attacker.Character, target) then
+			return false
+		end
 	elseif attacker:IsA("Model") then
+		if utilMod.IsAlly(attacker, target) then
+			return false
+		end
 		attackerid = attacker.Name
 	else
 		return false
@@ -634,7 +749,7 @@ function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userI
 	local result = {}
 	local pets = game.Workspace:FindFirstChild("Pets")
 	for _, pet in pets:GetChildren() do
-		if pet:IsA("Model") and pet:GetAttribute("OwnedBy") ~= userId then
+		if pet:IsA("Model") and not utilMod.IsAlly(player.Character, pet) then
 			local petroot = utilMod.GetRootPart(pet)
 			if not petroot then
 				continue
@@ -652,7 +767,7 @@ export type UtilMod = {
 	GetRootPart: (subject: Instance?) -> BasePart?,
 	GetPosition: (subject: Instance | Vector3) -> Vector3?,
 	GetDistance: (a: Instance | Vector3, b: Instance | Vector3) -> number?,
-
+	IsAlly: (sourceModel: Model, targetModel: Model) -> boolean,
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
 
@@ -674,11 +789,11 @@ export type UtilMod = {
 	GetSeedFromName: (name: string, useTime: boolean?) -> number,
 
 	GetClosestPlayer: (player: Player) -> Player?,
-	GetClosestModelSkipOwnPets: (player: Player, folderName: "Pets" | "Ferals") -> Model?,
+	GetClosestModelSkipAllyPets: (player: Player, folderName: "Pets" | "Ferals") -> Model?,
 	GetEnemyModelsWithinRange: (player: Player, range: number) -> { Model },
 	GetEnemyPlayersWithinRange: (player: Player, range: number) -> { Model },
 	MyPets: (player: Player) -> { Model },
-
+	IsEnemyInRange: (player: Player, range: number) -> boolean,
 	CopyStatsToFolder: (target: Instance, stats: { [string]: any }, folderName: string?) -> Folder,
 	GetStatsFromFolder: (instance: Instance, folderName: string?) -> { [string]: any },
 	ApplyThreat: (attacker: Model | Player, target: Model | Player, threatAmount: number) -> boolean,

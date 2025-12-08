@@ -4,31 +4,6 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 
 local aggroMod = {}
 
--- Add this helper function inside the module, above the main functions
-local function isAlly(model, targetId)
-    local ownerId = model:GetAttribute("OwnedBy")
-    local ownerplayer
-    if not ownerId then return false end
-    if ownerId ~= "None" and ownerId ~= "none" and ownerId ~= "" then
-       ownerplayer = game.Players:GetPlayerByUserId(tonumber(ownerId))
-    end
-    
-    if not ownerplayer then return false end
-    local ally = ownerplayer:GetAttribute("AllyId")
-
-    -- Case 1: Target is a player (UserId)
-    if typeof(targetId) == "number" then
-        return targetId == ownerId or targetId == ally
-    end
-
-    -- Case 2: Target is a pet/NPC (by Name)
-    local targetModel = utilMod.GetModelByIDorName(targetId)
-    if not targetModel then return false end
-
-    local targetOwnerId = targetModel:GetAttribute("OwnedBy")
-    return targetOwnerId and targetOwnerId == ownerId or targetOwnerId == ally
-end
-
 function aggroMod.hateListPet(aggroRadius, hateList, model, hrp)
     local aggroSqr = aggroRadius ^ 2
     local leashSqr = (aggroRadius * 3) ^ 2
@@ -75,7 +50,8 @@ function aggroMod.hateListPet(aggroRadius, hateList, model, hrp)
     local ownerId = model:GetAttribute("OwnedBy")
     if ownerId then
         for id, _ in pairs(hateList) do
-            if isAlly(model, id) then
+            local mod = utilMod.GetModelByIDorName(id)
+            if mod and utilMod.IsAlly()(model, mod) then
                 hateList[id] = nil
             end
         end
@@ -155,7 +131,8 @@ function aggroMod.hateListFeral(aggroRadius, hateList, model, hrp)
         local ownerId = model:GetAttribute("OwnedBy")
         if ownerId then
             for id, _ in pairs(hateList) do
-                if isAlly(model, id) then
+                local mod = utilMod.GetModelByIDorName(id)
+                if utilMod.IsAlly(model, mod) then
                     hateList[id] = nil
                 end
             end
