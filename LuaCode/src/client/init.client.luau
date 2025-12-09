@@ -27,6 +27,7 @@ local globalCooldown = time()
 function ChangeMana()
 	local newmana = player:GetAttribute("Mana")
 	local maxmana = player:GetAttribute("MaxMana")
+	if not newmana or not maxmana then return end
 	local fraction = nil
 	if maxmana == 0 then
 		fraction = 0

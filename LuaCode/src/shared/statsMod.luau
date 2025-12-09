@@ -19,6 +19,9 @@ export type SpellInfo = {
 	numberTargets: number,
 	aggro: number,
 	effectMultiplier: number,
+	castTime: number,
+	effectTime: number,
+	effectOffsetXZ: number,
 }
 
 export type BuffInfo = {
@@ -51,6 +54,7 @@ export type CreatureStats = {
 	height: number,
 	aggroRadius: number,
 	level: number,
+	width: number,
 }
 
 -- Pathfinding parameters passed directly to PathfindingService:CreatePath()
@@ -164,6 +168,8 @@ statsMod.SpellInfo = {
 		aggro = 10,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	ReclaimPet = {
 		manaCost = 0.0,
@@ -176,6 +182,8 @@ statsMod.SpellInfo = {
 		aggro = 10,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 
 	StarterStaffArtificer = {
@@ -189,6 +197,8 @@ statsMod.SpellInfo = {
 		aggro = 20,
 		effectMultiplier = 0.1,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	StoneFall = {
 		manaCost = 0.4,
@@ -201,6 +211,8 @@ statsMod.SpellInfo = {
 		aggro = 20,
 		effectMultiplier = 0.5,
         castTime = 3,
+		effectTime = 4,
+		effectOffsetXZ = 0,
 	},
 	HardSkin = {
 		manaCost = 0.6,
@@ -213,6 +225,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	ReviveSpirit = {
 		manaCost = 0.7,
@@ -225,6 +239,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	StoneonFoot = {
 		manaCost = 0.7,
@@ -237,6 +253,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	Avalanche = {
 		manaCost = 0.8,
@@ -249,6 +267,8 @@ statsMod.SpellInfo = {
 		aggro = 10,
 		effectMultiplier = 0.2,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 
 	StarterStaffPrimordial = {
@@ -262,6 +282,8 @@ statsMod.SpellInfo = {
 		aggro = 20,
 		effectMultiplier = 0.1,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	DormantVirus = {
 		manaCost = 0.4,
@@ -274,6 +296,8 @@ statsMod.SpellInfo = {
 		aggro = 20,
 		effectMultiplier = 0.4,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 0,
 	},
 	AnimatedAttacks = {
 		manaCost = 0.5,
@@ -286,6 +310,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	HalfLife = {
 		manaCost = 0.6,
@@ -298,6 +324,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	GooSwamp = {
 		manaCost = 0.7,
@@ -310,6 +338,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	InhostpitableAtmosphere = {
 		manaCost = 0.8,
@@ -322,6 +352,8 @@ statsMod.SpellInfo = {
 		aggro = 10,
 		effectMultiplier = 0.2,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 
 	StarterStaffNature = {
@@ -335,6 +367,8 @@ statsMod.SpellInfo = {
 		aggro = 20,
 		effectMultiplier = 0.1,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	StingingSwarm = {
 		manaCost = 0.4,
@@ -347,6 +381,8 @@ statsMod.SpellInfo = {
 		aggro = 20,
 		effectMultiplier = 0.6,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 0,
 	},
 	AgilityoftheSquirrell = {
 		manaCost = 0.6,
@@ -359,6 +395,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	Regenerate = {
 		manaCost = 0.6,
@@ -371,6 +409,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	Root = {
 		manaCost = 0.7,
@@ -383,6 +423,8 @@ statsMod.SpellInfo = {
 		aggro = 50,
 		effectMultiplier = 0,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 	NaturesDefenders = {
 		manaCost = 0.8,
@@ -395,6 +437,8 @@ statsMod.SpellInfo = {
 		aggro = 10,
 		effectMultiplier = 0.3,
         castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 5,
 	},
 }
 
@@ -528,6 +572,7 @@ statsMod.creatureStats = {
 		height = 2.7,
 		aggroRadius = 50,
 		level = 1,
+		width = 5,
 	},
 
 	-- ARTIFICER LINE
@@ -547,6 +592,7 @@ statsMod.creatureStats = {
 		height = 2.7,
 		aggroRadius = 50,
 		level = 5,
+		width = 5,
 	},
 	["StoneManaPriest"] = {
 		magicType = "Artificer",
@@ -564,6 +610,7 @@ statsMod.creatureStats = {
 		height = 2.7,
 		aggroRadius = 50,
 		level = 1,
+		width = 5,
 	},
 	["ArtifactGuardian"] = {
 		magicType = "Artificer",
@@ -581,6 +628,7 @@ statsMod.creatureStats = {
 		height = 1,
 		aggroRadius = 50,
 		level = 2,
+		width = 5,
 	},
 	["GrandPo"] = {
 		magicType = "Artificer",
@@ -598,6 +646,7 @@ statsMod.creatureStats = {
 		height = 2.5,
 		aggroRadius = 50,
 		level = 3,
+		width = 10,
 	},
 	["CoatArms"] = {
 		magicType = "Artificer",
@@ -615,6 +664,7 @@ statsMod.creatureStats = {
 		height = 4.1,
 		aggroRadius = 50,
 		level = 4,
+		width = 5,
 	},
 	["ArtifactProtector"] = {
 		magicType = "Artificer",
@@ -632,6 +682,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 5,
+		width = 5,
 	},
 	["SuitArms"] = {
 		magicType = "Artificer",
@@ -649,6 +700,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 6,
+		width = 5,
 	},
 	["FlyingGolem"] = {
 		magicType = "Artificer",
@@ -666,6 +718,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 7,
+		width = 5,
 	},
 
 	-- PRIMORDIAL LINE
@@ -685,6 +738,7 @@ statsMod.creatureStats = {
 		height = 2.9,
 		aggroRadius = 50,
 		level = 5,
+		width = 5,
 	},
 	["MudPriest"] = {
 		magicType = "Primordial",
@@ -702,6 +756,7 @@ statsMod.creatureStats = {
 		height = 2.9,
 		aggroRadius = 50,
 		level = 1,
+		width = 5,
 	},
 	["Dybb"] = {
 		magicType = "Primordial",
@@ -719,6 +774,7 @@ statsMod.creatureStats = {
 		height = 2.0,
 		aggroRadius = 50,
 		level = 2,
+		width = 5,
 	},
 	["Blob"] = {
 		magicType = "Primordial",
@@ -736,6 +792,7 @@ statsMod.creatureStats = {
 		height = 0.6,
 		aggroRadius = 50,
 		level = 3,
+		width = 5,
 	},
 	["LithEater"] = {
 		magicType = "Primordial",
@@ -753,6 +810,7 @@ statsMod.creatureStats = {
 		height = 4.3,
 		aggroRadius = 50,
 		level = 4,
+		width = 5,
 	},
 	["GemEncrustedDybb"] = {
 		magicType = "Primordial",
@@ -770,6 +828,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 5,
+		width = 5,
 	},
 	["GiantAmoeba"] = {
 		magicType = "Primordial",
@@ -787,6 +846,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 6,
+		width = 5,
 	},
 	["FlyingEnergyField"] = {
 		magicType = "Primordial",
@@ -804,6 +864,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 7,
+		width = 5,
 	},
 
 	-- NATURE LINE
@@ -823,6 +884,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 5,
+		width = 5,
 	},
 	["Druid"] = {
 		magicType = "Nature",
@@ -840,6 +902,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 1,
+		width = 5,
 	},
 	["Pog"] = {
 		magicType = "Nature",
@@ -857,6 +920,7 @@ statsMod.creatureStats = {
 		height = 3.0,
 		aggroRadius = 50,
 		level = 2,
+		width = 5,
 	},
 	["WindSpirit"] = {
 		magicType = "Nature",
@@ -874,6 +938,7 @@ statsMod.creatureStats = {
 		height = 0.55,
 		aggroRadius = 50,
 		level = 3,
+		width = 5,
 	},
 	["Silverback"] = {
 		magicType = "Nature",
@@ -891,6 +956,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 4,
+		width = 5,
 	},
 	["GreatTuskedPog"] = {
 		magicType = "Nature",
@@ -908,6 +974,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 5,
+		width = 5,
 	},
 	["Carnosaur"] = {
 		magicType = "Nature",
@@ -925,6 +992,7 @@ statsMod.creatureStats = {
 		height = 5,
 		aggroRadius = 50,
 		level = 6,
+		width = 5,
 	},
 	["Griffin"] = {
 		magicType = "Nature",
@@ -942,6 +1010,7 @@ statsMod.creatureStats = {
 		height = 7.3,
 		aggroRadius = 50,
 		level = 7,
+		width = 5,
 	},
 
 	-- SPECIAL / FERAL
@@ -961,6 +1030,7 @@ statsMod.creatureStats = {
 		height = 4.3,
 		aggroRadius = 50,
 		level = 2,
+		width = 5,
 	},
 }
 

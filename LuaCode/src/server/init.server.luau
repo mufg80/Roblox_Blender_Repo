@@ -7,6 +7,7 @@ local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
+local effectMod = require(game.ReplicatedStorage.Shared.effectMod)
 
 local function setStaffandPets(player: Player)
 	local character = player.Character
@@ -369,12 +370,19 @@ end)
 
 local summonevent = repstore.Events:waitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player, creatureName)
+
+	local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
+	if not spawnpoint then
+		warn("No clear spawn point")
+		return
+	end
+
 	local secs = statsMod.creatureStats[creatureName] and (statsMod.creatureStats[creatureName].level or 3 / 2)
 	task.delay(secs, function()
 		if player:GetAttribute("HasFallen") then
 			return
 		end
-		local summonedCreature = combatMod.ApplyAbility(player, creatureName, recyleMod)
+		local summonedCreature = combatMod.ApplyAbility(player, creatureName, recyleMod, spawnpoint)
 		local souls = player:GetAttribute("Souls")
 		if souls > 0 then
 			player:SetAttribute("Souls", souls - 1)
@@ -384,6 +392,9 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
 		ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"))
 		summonevent:FireClient(player, summonedCreature, player:GetAttribute("Souls"))
 	end)
+
+	effectMod.SummonCreatureEffect(spawnpoint, creatureName, secs)
+
 end)
 
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
@@ -396,6 +407,8 @@ spellevent.OnServerEvent:Connect(function(player, spellname)
 		combatMod.ApplySpell(player, spellname)
 		spellevent:FireClient(player, spellname)
 	end)
+
+
 end)
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()

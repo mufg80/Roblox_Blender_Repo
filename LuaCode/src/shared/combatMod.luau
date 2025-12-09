@@ -3,11 +3,14 @@
 -- Combat calculation & damage application utilities
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
+local effectMod = require(ReplicatedStorage.Shared.effectMod)
 
 local combatMod = {}
 
@@ -315,7 +318,7 @@ end
 --==============================================================================
 -- Summons or recycles a creature/pet for a player
 --==============================================================================
-function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod: any)
+function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3): ()
 	local cost = combatMod.LeveltoManaCost(creatureName)
 	local mana = player:GetAttribute("Mana") or 0
 	if mana < cost then
@@ -339,11 +342,6 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 	end
 
 	local height = statsMod.creatureStats[creatureName].height
-	local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
-	if not spawnpoint then
-		warn("No clear spawn point")
-		return
-	end
 
 	local groundY = utilMod.DistancetoGround(spawnpoint)
 	local mobPos = Vector3.new(spawnpoint.X, groundY + height + 1, spawnpoint.Z)
@@ -363,6 +361,34 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		summonedCreature.Parent = workspace:WaitForChild("Pets")
 		player:SetAttribute("Mana", mana - cost)
 	end
+	for _, part in pairs(summonedCreature:GetDescendants()) do
+		if part:IsA("MeshPart") then
+			part.Transparency = 1
+		end
+	end
+	local isFinished = false
+	RunService.Heartbeat:Connect(function(delta)
+		if isFinished then
+			for _, part in pairs(summonedCreature:GetDescendants()) do
+				if part:IsA("MeshPart") then
+					part.Transparency = 0
+				end
+			end
+			return
+		end
+		if summonedCreature.Parent == nil then
+			return
+		end
+		for _, part in pairs(summonedCreature:GetDescendants()) do
+			if part:IsA("MeshPart") then
+				if part.Transparency > 0 then
+					part.Transparency = math.clamp(part.Transparency - delta, 0, 1)
+				else
+					isFinished = true
+				end
+			end
+		end
+	end)
 
 	local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
 	if creatureHRP then
@@ -397,9 +423,13 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 		local dis = utilMod.GetDistance(player.Character, target)
 		if target and dis and dis < info.range then
+			if target:IsA("Player") then
+				target = target.Character
+			end
 			local damage = combatMod.SpellAttackResult(player, target, spellname)
 			combatMod.ExecuteSpellDamageToBody(player.UserId, target, damage)
 			player:SetAttribute("Mana", mana - cost)
+			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart").Position, spellname)
 		end
 	elseif info.spellType == "areaDamage" then
 		local affected = 0
