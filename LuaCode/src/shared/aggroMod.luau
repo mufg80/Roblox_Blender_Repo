@@ -51,7 +51,7 @@ function aggroMod.hateListPet(aggroRadius, hateList, model, hrp)
     if ownerId then
         for id, _ in pairs(hateList) do
             local mod = utilMod.GetModelByIDorName(id)
-            if mod and utilMod.IsAlly()(model, mod) then
+            if mod and utilMod.IsAlly(model, mod) then
                 hateList[id] = nil
             end
         end
