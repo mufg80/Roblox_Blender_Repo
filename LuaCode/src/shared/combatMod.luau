@@ -164,7 +164,7 @@ function combatMod.MeleeAttackResult(attacker: Instance, defender: Instance): nu
 			defenderstats = utilMod.GetStatsFromFolder(plr)
 		end
 	end
-	if not attackerstats or not defenderstats then
+	if not attackerstats or not defenderstats or not attackerstats.defense or not defenderstats.defense then
 		return 0
 	end
 
@@ -202,7 +202,7 @@ end
 -- Creates a shallow copy of a creature's stats table (used for safe stat access)
 --==============================================================================
 function combatMod.ShallowTableCopy(name: any): table?
-	local trimmed = combatMod.customTrim(tostring(name))
+	local trimmed = utilMod.customTrim(tostring(name))
 	local t = statsMod.creatureStats[trimmed]
 	if not t then
 		warn("No stats found for:", name)
@@ -214,15 +214,6 @@ function combatMod.ShallowTableCopy(name: any): table?
 	return copy
 end
 
---==============================================================================
--- Trims trailing underscore + alphanumerics (used to normalise creature names)
---==============================================================================
-function combatMod.customTrim(input: string?): string
-	if typeof(input) ~= "string" then
-		return ""
-	end
-	return input:gsub("_[%w]*$", "")
-end
 
 --==============================================================================
 -- Applies staff spell damage (called from tool hit detection)
@@ -453,22 +444,39 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 		if affected > 0 then
 			player:SetAttribute("Mana", mana - cost)
+			local hrpPos = player.Character:FindFirstChild("HumanoidRootPart").Position
+			if hrpPos then
+				effectMod.AOEDamageEffect(hrpPos, spellname)
+			end
 		end
 	elseif info.spellType == "buff" or info.spellType == "debuff" or info.spellType == "heal" then
 		local applied = false
 		if info.spellType == "heal" or info.spellType == "buff" then
+			local charcontainer = {}
 			applied = buffMod.BuffDebuffHeal(player, player, spellname) or applied
+			if applied then table.insert(charcontainer, player.Character) end
 			for _, pet in utilMod.MyPets(player) do
 				applied = buffMod.BuffDebuffHeal(player, pet, spellname) or applied
+				if applied then table.insert(charcontainer, pet) end
+			end
+			if applied then
+				effectMod.BuffEffects(charcontainer, spellname)
 			end
 		end
 
 		if info.spellType == "debuff" then
+			local charcontainer = {}
+		
 			for _, plr in utilMod.GetEnemyPlayersWithinRange(player, info.range) do
 				applied = buffMod.BuffDebuffHeal(player, plr, spellname) or applied
+				if applied then table.insert(charcontainer, plr.Character) end
 			end
 			for _, mob in utilMod.GetEnemyModelsWithinRange(player, info.range) do
 				applied = buffMod.BuffDebuffHeal(player, mob, spellname) or applied
+				if applied then table.insert(charcontainer, mob) end
+			end
+			if applied then
+				effectMod.DeBuffEffects(charcontainer, spellname)
 			end
 		end
 		if applied then
@@ -578,7 +586,6 @@ export type CombatMod = {
 	GetStatsSafelyForPlrorNpc: (npc: Instance) -> table?,
 	MeleeAttackResult: (attacker: Instance, defender: Instance) -> number,
 	ShallowTableCopy: (name: any) -> table?,
-	customTrim: (input: string?) -> string,
 	ApplyStaffDamage: (hitPart: BasePart, ownerPlayer: Player, staffType: string) -> boolean,
 	ExecuteSpellDamageToBody: (playerId: number, target: Model, damage: number?) -> boolean,
 	ApplyAbility: (player: Player, creatureName: string, recyleMod: any) -> (),

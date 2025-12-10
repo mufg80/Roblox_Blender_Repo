@@ -66,7 +66,7 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
         activePaths[model] = nil
         return false
     end
-    local pathTable = statsMod.Pathing[combatMod.customTrim(model.Name)]
+    local pathTable = statsMod.Pathing[utilMod.customTrim(model.Name)]
     local path = pathfindingService:CreatePath(pathTable)
 
     local success, err = pcall(function()

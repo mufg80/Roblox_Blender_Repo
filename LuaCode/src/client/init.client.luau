@@ -370,7 +370,7 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 	petframe.Parent = statsGui.HudFrame
 	petframe.Visible = true
 	local petimage = petframe.PetImageLabel
-	petimage.Image = statsMod.Pics[combatMod.customTrim(summonedCreature.Name)]
+	petimage.Image = statsMod.Pics[utilMod.customTrim(summonedCreature.Name)]
 	local hum = summonedCreature:FindFirstChild("Humanoid")
 	if not hum then
 		warn("should not reach me")

@@ -169,7 +169,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	ReclaimPet = {
 		manaCost = 0.0,
@@ -183,7 +183,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 
 	StarterStaffArtificer = {
@@ -198,7 +198,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0.1,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	StoneFall = {
 		manaCost = 0.4,
@@ -226,7 +226,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	ReviveSpirit = {
 		manaCost = 0.7,
@@ -240,7 +240,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	StoneonFoot = {
 		manaCost = 0.7,
@@ -254,7 +254,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	Avalanche = {
 		manaCost = 0.8,
@@ -268,7 +268,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0.2,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 
 	StarterStaffPrimordial = {
@@ -283,7 +283,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0.1,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	DormantVirus = {
 		manaCost = 0.4,
@@ -311,7 +311,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	HalfLife = {
 		manaCost = 0.6,
@@ -325,7 +325,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	GooSwamp = {
 		manaCost = 0.7,
@@ -339,7 +339,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	InhostpitableAtmosphere = {
 		manaCost = 0.8,
@@ -353,7 +353,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0.2,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 
 	StarterStaffNature = {
@@ -368,7 +368,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0.1,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	StingingSwarm = {
 		manaCost = 0.4,
@@ -396,7 +396,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	Regenerate = {
 		manaCost = 0.6,
@@ -410,7 +410,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	Root = {
 		manaCost = 0.7,
@@ -424,7 +424,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 	NaturesDefenders = {
 		manaCost = 0.8,
@@ -438,7 +438,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0.3,
         castTime = 3,
 		effectTime = 5,
-		effectOffsetXZ = 5,
+		effectOffsetXZ = 0,
 	},
 }
 

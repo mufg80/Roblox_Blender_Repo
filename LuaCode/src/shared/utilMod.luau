@@ -361,8 +361,16 @@ function utilMod.DistancetoGround(position: Vector3): number?
 	local rayDirection = Vector3.new(0, -10000, 0)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { Workspace.Pets, Workspace.Ferals, Players }
 	params.IgnoreWater = true
+
+	-- Build ignore list dynamically
+	local ignoreList = { workspace.Pets, workspace.Ferals, workspace:FindFirstChild("SpawnLocation") } -- Your folders
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(ignoreList, player.Character)
+		end
+	end
+	params.FilterDescendantsInstances = ignoreList
 
 	local result = Workspace:Raycast(rayOrigin, rayDirection, params)
 	return result and result.Position.Y
@@ -763,6 +771,16 @@ function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userI
 	return result
 end
 
+--==============================================================================
+-- Trims trailing underscore + alphanumerics (used to normalise creature names)
+--==============================================================================
+function utilMod.customTrim(input: string?): string
+	if typeof(input) ~= "string" then
+		return ""
+	end
+	return input:gsub("_[%w]*$", "")
+end
+
 export type UtilMod = {
 	GetRootPart: (subject: Instance?) -> BasePart?,
 	GetPosition: (subject: Instance | Vector3) -> Vector3?,
@@ -775,6 +793,8 @@ export type UtilMod = {
 	SetFlagsForCombat: (model: Model) -> (),
 	SetFlagsForDeath: (model: Model) -> (),
 	SetFlagsForIdle: (model: Model) -> (),
+
+	customTrim: (input: string?) -> string,
 
 	HexToColor3: (hex: string) -> Color3,
 	SpinToTargetInCombat: (model: Model, targetModel: Model, lerpAlpha: number?) -> (),
