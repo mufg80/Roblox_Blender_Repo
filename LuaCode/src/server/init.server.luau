@@ -215,6 +215,10 @@ game.Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("AllyId", 0)
 	player:SetAttribute("Souls", 4)
 	player:SetAttribute("MaxSouls", 4)
+	player:SetAttribute("PetAttack", true)
+	player:SetAttribute("PetFollow", true)
+	player:SetAttribute("PetTakeLith", false)
+	player:SetAttribute("PetDefendLith", false)
 
 	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
 		ReduceMana(player)
@@ -410,6 +414,20 @@ spellevent.OnServerEvent:Connect(function(player, spellname)
 
 
 end)
+
+local petEvents = repstore.Events:WaitForChild("PetEvent")
+petEvents.OnServerEvent:Connect(function(plr, commands)
+	--local commands = {isPetFollowing, isPetAttacking, isPetTakingLith, isPetDefendingLith}
+	local following     = commands.Following     -- always correct
+	local attacking     = commands.Attacking
+	local takingLith    = commands.TakingLith
+	local defendingLith = commands.DefendingLith
+	plr:SetAttribute("PetAttack", attacking)
+	plr:SetAttribute("PetFollow", following)
+	plr:SetAttribute("PetTakeLith", takingLith)
+	plr:SetAttribute("PetDefendLith", defendingLith)
+end)
+
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
 

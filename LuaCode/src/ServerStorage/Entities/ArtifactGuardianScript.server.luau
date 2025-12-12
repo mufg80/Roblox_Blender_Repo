@@ -23,6 +23,117 @@ local IsStationary = model:GetAttribute("IsStationary") ~= false
 local IdleReset = model:GetAttribute("IdleReset") or 5
 local rangeLimit = model:GetAttribute("RangeLimit") or 50
 local spawnPosition = hrp.Position
+local lithTakePosition = nil
+local lithDefendPosition = nil
+
+local function SetTakeLithPosition()
+	local id = model:GetAttribute("OwnedBy")
+	if id == "None" or id == "none" or id == "" then
+		return
+	end
+	local plr = game.Players:GetPlayerByUserId(id)
+	if not plr then
+		return
+	end
+	local points = workspace:WaitForChild("ManaPoints"):GetChildren()
+	if not points then
+		return
+	end
+
+	local closestPointDist = math.huge()
+	local closestPoint = nil
+	for _,point in pairs(points) do
+		local dist = utilMod.GetDistance(point:FindFirstChildOfClass("MeshPart").Position, hrp.Position)
+		if dist < closestPointDist then
+			closestPointDist = dist
+			closestPoint = point
+		end
+	end
+	if closestPoint then
+		lithTakePosition = closestPoint:FindFirstChildOfClass("MeshPart").Position
+	else 
+		lithTakePosition = nil
+	end
+
+end
+
+local function SetLithDefendPosition()
+	local id = model:GetAttribute("OwnedBy")
+	if id == "None" or id == "none" or id == "" then
+		return
+	end
+	local plr = game.Players:GetPlayerByUserId(id)
+	if not plr then
+		return
+	end
+
+	local points = workspace:WaitForChild("ManaPoints"):GetChildren()
+	if not points then
+		return
+	end
+
+	local thoseUnderAttack = {}
+	local allliths
+	for _, point in pairs(points) do
+		local ownedby = point:GetAttribute("OwnedBy")
+		local underAttack = point:GetAttribute("IsUnderAttack")
+		if ownedby == plr.UserId and underAttack then
+			table.insert(thoseUnderAttack, point)
+			table.insert(allliths, point)
+		elseif ownedby == plr.UserId then
+			table.insert(allliths, point)
+		end
+	end
+
+	if #thoseUnderAttack == 0 then
+		-- go to nearest lith
+		if #allliths < 1 then
+			lithDefendPosition = nil
+			return
+		elseif #allliths == 1 then
+			lithDefendPosition = allliths[1]:FindFirstChildOfClass("MeshPart").Position
+			return
+		else
+			local closestLithdist = math.huge()
+			local closestLith = nil
+			for _, lith in pairs(allliths) do
+				local lithpos = lith:FindFirstChildOfClass("MeshPart").Position
+				if lithpos and utilMod.GetDistance(hrp.Position, lithpos) < closestLithdist then
+					closestLith = lith
+				end
+			end
+			if closestLith then
+				lithDefendPosition = closestLith:FindFirstChildOfClass("MeshPart").Position
+			else
+				lithDefendPosition = nil
+			end
+			return
+		end
+	elseif #thoseUnderAttack == 1 then
+		-- go to lith that is being attacked
+		lithDefendPosition = thoseUnderAttack[1]:FindFirstChildOfClass("MeshPart").Position
+		return
+	elseif #thoseUnderAttack > 1 then
+		-- go to closest
+		local closestLithdist = math.huge()
+		local closestLith = nil
+		for _, lith in pairs(thoseUnderAttack) do
+			local lithpos = lith:FindFirstChildOfClass("MeshPart").Position
+			if lithpos and utilMod.GetDistance(hrp.Position, lithpos) < closestLithdist then
+				closestLith = lith
+			end
+		end
+		if closestLith then
+			lithDefendPosition = closestLith:FindFirstChildOfClass("MeshPart").Position
+		else
+			lithDefendPosition = nil
+		end
+	else
+		-- none go to is nil
+		lithDefendPosition = nil
+	end
+end
+
 function setStats()
 	local baseStats = utilMod.GetStatsFromFolder(model)
 	humanoid.MaxHealth = baseStats.hitPoints
@@ -35,7 +146,6 @@ function setStats()
 	--print(thisMob, baseStats)
 end
 
-model:GetAttributeChangedSignal("OwnedBy"):Connect(setStats)
 setStats()
 
 local AddBuffDebuffEvent = Instance.new("BindableEvent")
@@ -103,32 +213,86 @@ end)
 humanoid.Health = humanoid.MaxHealth - 1
 
 local playerConnection
+local petattackConnection
+local petfollowConnection
+local pettakeLithConnection
+local petdefendLithConnection
+
+local petAttack = true
+local petFollow = true
+local petTakeLith = false
+local petDefendlith = false
 
 local function setupOwnerConnection(ownerId)
-    -- Disconnect old
-    if playerConnection then
-        playerConnection:Disconnect()
-        playerConnection = nil
-    end
-    
-    -- Validate & setup new
-    local ownerUserId = tonumber(ownerId)
-    if not ownerUserId then return end  -- Invalid ID → no connection
-    
-    playerConnection = game.Players.PlayerRemoving:Connect(function(leavingPlayer)
-        if leavingPlayer.UserId == ownerUserId then
-            model:SetAttribute("RecycleMe", true)
-        end
-    end)
+	-- Disconnect old
+	if playerConnection then
+		playerConnection:Disconnect()
+		playerConnection = nil
+	end
+	if petattackConnection then
+		petattackConnection:Disconnect()
+		petattackConnection = nil
+	end
+	if petfollowConnection then
+		petfollowConnection:Disconnect()
+		petfollowConnection = nil
+	end
+	if pettakeLithConnection then
+		pettakeLithConnection:Disconnect()
+		pettakeLithConnection = nil
+	end
+	if petdefendLithConnection then
+		petdefendLithConnection:Disconnect()
+		petdefendLithConnection = nil
+	end
+
+	-- Validate & setup new
+	local ownerUserId = tonumber(ownerId)
+	if not ownerUserId then
+		return
+	end -- Invalid ID → no connection
+
+	local plrowner = game.Players:GetPlayerByUserId(ownerUserId)
+	if plrowner then
+		petattackConnection = plrowner:GetAttributeChangedSignal("PetAttack"):Connect(function()
+			petAttack = plrowner:GetAttribute("PetAttack")
+		end)
+		petfollowConnection = plrowner:GetAttributeChangedSignal("PetFollow"):Connect(function()
+			petFollow = plrowner:GetAttribute("PetFollow")
+		end)
+		petattackConnection = plrowner:GetAttributeChangedSignal("PetTakeLith"):Connect(function()
+			petTakeLith = plrowner:GetAttribute("PetTakeLith")
+			if petTakeLith then
+				SetTakeLithPosition()
+			end
+		end)
+		petattackConnection = plrowner:GetAttributeChangedSignal("PetDefendLith"):Connect(function()
+			petDefendlith = plrowner:GetAttribute("PetDefendLith")
+			if petDefendlith then
+				SetLithDefendPosition()
+			end
+		end)
+	end
+
+	playerConnection = game.Players.PlayerRemoving:Connect(function(leavingPlayer)
+		if leavingPlayer.UserId == ownerUserId then
+			petattackConnection:Disconnect()
+			petfollowConnection:Disconnect()
+			pettakeLithConnection:Disconnect()
+			petdefendLithConnection:Disconnect()
+			model:SetAttribute("RecycleMe", true)
+		end
+	end)
 end
 
 local function onOwnerChanged()
-    local ownerId = model:GetAttribute("OwnedBy")
-    if ownerId and ownerId ~= "" and ownerId ~= "None" and ownerId ~= "none" then
-        setupOwnerConnection(ownerId)
-    else
-        setupOwnerConnection(nil)  -- Clear connection
-    end
+	local ownerId = model:GetAttribute("OwnedBy")
+	setStats()
+	if ownerId and ownerId ~= "" and ownerId ~= "None" and ownerId ~= "none" then
+		setupOwnerConnection(ownerId)
+	else
+		setupOwnerConnection(nil) -- Clear connection
+	end
 end
 
 -- Initial setup & listen for changes
@@ -229,6 +393,11 @@ task.spawn(function()
 			-- SetStates
 			----------------------------------------------------------------
 
+			-- local petattack = true
+			-- local petfollow = true
+			-- local pettakelith = false
+			-- local petdefendlith = false
+
 			local targetid = model:GetAttribute("TargetIDorName")
 
 			if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
@@ -239,24 +408,47 @@ task.spawn(function()
 				acceptableDistance = combatMod.AcceptableDistanceToOpponent(model, combatTargetModel)
 			end
 
-			if hasEnemies and acceptableDistance then -- next() returns nil if table is empty
-				if not model:GetAttribute("InCombat") then
-					utilMod.SetFlagsForCombat(model)
-				end
-			end
+			if isPet then
 
-			if hasEnemies and not acceptableDistance then -- next() returns nil if table is empty
-				if not model:GetAttribute("IsMoving") then
-					utilMod.SetFlagsForMoving(model)
-					movingDirection = "MovingToCombatTarget"
-				else
-					local targ = pathMod.GetCurrentTarget(model)
-					if targ ~= combatTargetModel then
-						if not model:GetAttribute("IsIdle") then
-							utilMod.SetFlagsForIdle(model)
-						end
-					else
+				if hasEnemies and acceptableDistance and petattack then -- next() returns nil if table is empty
+					if not model:GetAttribute("InCombat") then
+						utilMod.SetFlagsForCombat(model)
+					end
+				end
+				if hasEnemies and not acceptableDistance and petattack then -- next() returns nil if table is empty
+					if not model:GetAttribute("IsMoving") then
+						utilMod.SetFlagsForMoving(model)
 						movingDirection = "MovingToCombatTarget"
+					else
+						local targ = pathMod.GetCurrentTarget(model)
+						if targ ~= combatTargetModel then
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						else
+							movingDirection = "MovingToCombatTarget"
+						end
+					end
+				end
+			else
+				if hasEnemies and acceptableDistance then -- next() returns nil if table is empty
+					if not model:GetAttribute("InCombat") then
+						utilMod.SetFlagsForCombat(model)
+					end
+				end
+				if hasEnemies and not acceptableDistance then -- next() returns nil if table is empty
+					if not model:GetAttribute("IsMoving") then
+						utilMod.SetFlagsForMoving(model)
+						movingDirection = "MovingToCombatTarget"
+					else
+						local targ = pathMod.GetCurrentTarget(model)
+						if targ ~= combatTargetModel then
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						else
+							movingDirection = "MovingToCombatTarget"
+						end
 					end
 				end
 			end

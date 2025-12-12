@@ -9,6 +9,7 @@ local uis = game:GetService("UserInputService")
 local playerGui = players.LocalPlayer:WaitForChild("PlayerGui")
 local magicgui = playerGui:WaitForChild("MagicGui", 15)
 local statsGui = playerGui:WaitForChild("StatsGui")
+local petsGui = playerGui:WaitForChild("PetGui")
 local designFolder = replicatedstorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
 local themes = designFolder:WaitForChild("ClassThemes")
@@ -27,7 +28,9 @@ local globalCooldown = time()
 function ChangeMana()
 	local newmana = player:GetAttribute("Mana")
 	local maxmana = player:GetAttribute("MaxMana")
-	if not newmana or not maxmana then return end
+	if not newmana or not maxmana then
+		return
+	end
 	local fraction = nil
 	if maxmana == 0 then
 		fraction = 0
@@ -106,27 +109,27 @@ local function DisableButtons()
 					player:SetAttribute("button_" .. button.Text, nil)
 				end
 			end
-            if button.Text == "ConvertSpout" then
-                if not buffMod.CheckDistanceOnSpouts(player) then
-                    DiableButton(button)
-                end
-            end
-            if button.Text == "ReclaimPet" then
-                local mypets = utilMod.MyPets(player)
-                if not mypets or #mypets == 0 then
-                    DiableButton(button)
-                end
-            end
-            local spell = statsMod.SpellInfo[button.Text]
-            if spell then
-                local spelltype = spell.spellType
-                if spelltype and spelltype == "damage" or spelltype == "areaDamage" or spelltype == "debuff" then
-                    local target = utilMod.IsEnemyInRange(player, spell.range)
-                    if not target then
-                        DiableButton(button)
-                    end
-                end
-            end
+			if button.Text == "ConvertSpout" then
+				if not buffMod.CheckDistanceOnSpouts(player) then
+					DiableButton(button)
+				end
+			end
+			if button.Text == "ReclaimPet" then
+				local mypets = utilMod.MyPets(player)
+				if not mypets or #mypets == 0 then
+					DiableButton(button)
+				end
+			end
+			local spell = statsMod.SpellInfo[button.Text]
+			if spell then
+				local spelltype = spell.spellType
+				if spelltype and spelltype == "damage" or spelltype == "areaDamage" or spelltype == "debuff" then
+					local target = utilMod.IsEnemyInRange(player, spell.range)
+					if not target then
+						DiableButton(button)
+					end
+				end
+			end
 		end
 	end
 	for _, button in pairs(creaturebuttons) do
@@ -416,6 +419,106 @@ replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname
 	print("Spell cast confirmed on client:", spellname)
 	-- You can add additional client-side logic here if needed
 end)
+--Pet commands Area
+-- Variables (put these at the top, in a LocalScript)
+local isPetAttacking = false
+local isPetFollowing = true -- default: pet follows when passive
+local isPetDefendingLith = false
+local isPetTakingLith = false
+
+local followButton = petsGui:WaitForChild("FollowButton")
+local defendLithButton = petsGui:WaitForChild("DefendLithButton")
+local attackButton = petsGui:WaitForChild("AttackButton")
+local takeLithButton = petsGui:WaitForChild("TakeLithButton")
+
+-- Helper: Update button visuals (example)
+local function UpdateButtonVisuals()
+	followButton.BackgroundColor3 = isPetFollowing and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(80, 80, 80)
+	attackButton.BackgroundColor3 = isPetAttacking and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(80, 80, 80)
+	defendLithButton.BackgroundColor3 = isPetDefendingLith and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(80, 80, 80)
+	takeLithButton.BackgroundColor3 = isPetTakingLith and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(80, 80, 80)
+
+	-- Disable lith buttons visually if attack is off
+	defendLithButton.Active = isPetAttacking
+	takeLithButton.Active = isPetAttacking
+	defendLithButton.AutoButtonColor = isPetAttacking
+	takeLithButton.AutoButtonColor = isPetAttacking
+end
+
+local function PetEventActivation()
+	local commands = {
+		Following     = isPetFollowing,
+		Attacking     = isPetAttacking,
+		TakingLith    = isPetTakingLith,
+		DefendingLith = isPetDefendingLith,
+	}
+	replicatedstorage.Events.PetEvent:FireServer(commands)
+end
+-- FOLLOW BUTTON
+followButton.MouseButton1Click:Connect(function()
+	if not isPetAttacking then
+		isPetFollowing = not isPetFollowing
+	else
+		-- When attacking, Follow is one of the 3 mutually exclusive modes
+		isPetFollowing = true
+		isPetDefendingLith = false
+		isPetTakingLith = false
+	end
+	PetEventActivation()
+	UpdateButtonVisuals()
+end)
+
+-- DEFEND LITH BUTTON
+defendLithButton.MouseButton1Click:Connect(function()
+	if not isPetAttacking then
+		-- Do nothing — or show "Attack must be on" message
+		return
+	end
+
+	isPetDefendingLith = true
+	isPetTakingLith = false
+	isPetFollowing = false
+
+	PetEventActivation()
+	UpdateButtonVisuals()
+end)
+
+-- TAKE LITH BUTTON
+takeLithButton.MouseButton1Click:Connect(function()
+	if not isPetAttacking then
+		return
+	end
+
+	isPetTakingLith = true
+	isPetDefendingLith = false
+	isPetFollowing = false
+
+	PetEventActivation()
+	UpdateButtonVisuals()
+end)
+
+-- ATTACK BUTTON (Master Toggle)
+attackButton.MouseButton1Click:Connect(function()
+	isPetAttacking = not isPetAttacking
+
+	if not isPetAttacking then
+		-- Turn off aggressive modes, but keep Follow state intact
+		isPetDefendingLith = false
+		isPetTakingLith = false
+	else
+		-- Optional: Auto-enter Follow when attack turned on (or keep last mode)
+		-- Here we default to Follow for smoothness
+		if not (isPetDefendingLith or isPetTakingLith) then
+			isPetFollowing = true
+		end
+	end
+
+	PetEventActivation()
+	UpdateButtonVisuals()
+end)
+
+-- Initial visual update
+UpdateButtonVisuals()
 
 -- admin area
 if players.LocalPlayer.UserId == 2484051658 then
