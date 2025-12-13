@@ -40,21 +40,20 @@ local function SetTakeLithPosition()
 		return
 	end
 
-	local closestPointDist = math.huge()
+	local closestPointDist = math.huge
 	local closestPoint = nil
-	for _,point in pairs(points) do
+	for _, point in pairs(points) do
 		local dist = utilMod.GetDistance(point:FindFirstChildOfClass("MeshPart").Position, hrp.Position)
-		if dist < closestPointDist then
+		if dist < closestPointDist and point:GetAttribute("OwnedBy") ~= plr.UserId and point.Name ~= "ManaSpout" then
 			closestPointDist = dist
 			closestPoint = point
 		end
 	end
 	if closestPoint then
 		lithTakePosition = closestPoint:FindFirstChildOfClass("MeshPart").Position
-	else 
+	else
 		lithTakePosition = nil
 	end
-
 end
 
 local function SetLithDefendPosition()
@@ -73,7 +72,7 @@ local function SetLithDefendPosition()
 	end
 
 	local thoseUnderAttack = {}
-	local allliths
+	local allliths = {}
 	for _, point in pairs(points) do
 		local ownedby = point:GetAttribute("OwnedBy")
 		local underAttack = point:GetAttribute("IsUnderAttack")
@@ -94,7 +93,7 @@ local function SetLithDefendPosition()
 			lithDefendPosition = allliths[1]:FindFirstChildOfClass("MeshPart").Position
 			return
 		else
-			local closestLithdist = math.huge()
+			local closestLithdist = math.huge
 			local closestLith = nil
 			for _, lith in pairs(allliths) do
 				local lithpos = lith:FindFirstChildOfClass("MeshPart").Position
@@ -115,7 +114,7 @@ local function SetLithDefendPosition()
 		return
 	elseif #thoseUnderAttack > 1 then
 		-- go to closest
-		local closestLithdist = math.huge()
+		local closestLithdist = math.huge
 		local closestLith = nil
 		for _, lith in pairs(thoseUnderAttack) do
 			local lithpos = lith:FindFirstChildOfClass("MeshPart").Position
@@ -276,10 +275,23 @@ local function setupOwnerConnection(ownerId)
 
 	playerConnection = game.Players.PlayerRemoving:Connect(function(leavingPlayer)
 		if leavingPlayer.UserId == ownerUserId then
-			petattackConnection:Disconnect()
-			petfollowConnection:Disconnect()
-			pettakeLithConnection:Disconnect()
-			petdefendLithConnection:Disconnect()
+			if petattackConnection then
+				petattackConnection:Disconnect()
+				petattackConnection = nil
+			end
+			if petfollowConnection then
+				petfollowConnection:Disconnect()
+				petfollowConnection = nil
+			end
+			if pettakeLithConnection then
+				pettakeLithConnection:Disconnect()
+				pettakeLithConnection = nil
+			end
+			if petdefendLithConnection then
+				petdefendLithConnection:Disconnect()
+				petdefendLithConnection = nil
+			end
+
 			model:SetAttribute("RecycleMe", true)
 		end
 	end)
@@ -334,11 +346,18 @@ end
 
 -- === MAIN LOOP ===
 task.spawn(function()
+	local lithDefendRandomLoc = nil
+	local lithTakeRandomLoc = nil
 	-- Blink loop
 	task.spawn(function()
-		while task.wait(random:NextInteger(6, 14)) do
+		while task.wait(random:NextInteger(4, 15)) do
 			if animTracks.blink and not model:GetAttribute("HasFallen") then
 				animTracks.blink:Play()
+				-- Set locs to nil so npc can move randomly around lith.
+				if random:NextInteger(1, 20) > 10 then
+					lithTakeRandomLoc = nil
+					lithDefendRandomLoc = nil
+				end
 			end
 		end
 	end)
@@ -363,6 +382,20 @@ task.spawn(function()
 		local acceptableDistance = nil
 		local movingDirection = "NotMoving"
 		if not model:GetAttribute("HasFallen") then
+			-- starting over using pet commands integrated into state logic.
+
+			-- these variables are set in events which are triggered by player, a function will put a vector3 or nil in these variables
+
+			-- local spawnPosition = hrp.Position
+			-- local lithTakePosition = nil
+			-- local lithDefendPosition = nil
+
+			-- I am uploading all for reference but only work in if blocks that I call out with comments, so that I can test between iterations.
+			-- a new movingDirection value will need added for going to liths, "MovingToNearestLith"
+			-- when entering a branch such as going to lith, check the pathMod.GetCurrentTarget(model) It will provide "Lith"
+			-- if it doesnt, set to idle, (Idle logic checks if pathing target and cancels farther down. This function scans every
+			-- 0.03 seconds and this way it will be clear to change back to moving on the next iteration.
+
 			----------------------------------------------------------------
 			-- Aggro
 			----------------------------------------------------------------
@@ -393,11 +426,6 @@ task.spawn(function()
 			-- SetStates
 			----------------------------------------------------------------
 
-			-- local petattack = true
-			-- local petfollow = true
-			-- local pettakelith = false
-			-- local petdefendlith = false
-
 			local targetid = model:GetAttribute("TargetIDorName")
 
 			if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
@@ -409,66 +437,305 @@ task.spawn(function()
 			end
 
 			if isPet then
-
-				if hasEnemies and acceptableDistance and petattack then -- next() returns nil if table is empty
-					if not model:GetAttribute("InCombat") then
-						utilMod.SetFlagsForCombat(model)
-					end
+				-- pet logic
+				if petFollow then
+					lithDefendRandomLoc = nil
+					lithTakeRandomLoc = nil
 				end
-				if hasEnemies and not acceptableDistance and petattack then -- next() returns nil if table is empty
-					if not model:GetAttribute("IsMoving") then
-						utilMod.SetFlagsForMoving(model)
-						movingDirection = "MovingToCombatTarget"
+
+				if
+					petAttack and petFollow
+					or petAttack and petDefendlith and lithDefendPosition == nil
+					or petAttack and petTakeLith and lithTakePosition == nil
+				then
+					-- if has enemies move to and atack else follow owner
+					-- pet/follower style state logic
+					if hasEnemies then
+						if acceptableDistance then
+							-- hasEnemies and acceptableDistance
+							if not model:GetAttribute("InCombat") then
+								utilMod.SetFlagsForCombat(model)
+							end
+						else
+							-- hasEnemies and not acceptableDistance
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+								movingDirection = "MovingToCombatTarget"
+							else
+								local targ = pathMod.GetCurrentTarget(model)
+								if targ ~= combatTargetModel then
+									if not model:GetAttribute("IsIdle") then
+										utilMod.SetFlagsForIdle(model)
+									end
+								else
+									movingDirection = "MovingToCombatTarget"
+								end
+							end
+						end
 					else
-						local targ = pathMod.GetCurrentTarget(model)
-						if targ ~= combatTargetModel then
+						-- not hasEnemies
+
+						-- not hasEnemies and isPet
+						local check = ownerInstance
+							and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+						if check then
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+							end
+							movingDirection = "MovingToOwner"
+						else
 							if not model:GetAttribute("IsIdle") then
 								utilMod.SetFlagsForIdle(model)
 							end
-						else
-							movingDirection = "MovingToCombatTarget"
 						end
 					end
-				end
-			else
-				if hasEnemies and acceptableDistance then -- next() returns nil if table is empty
-					if not model:GetAttribute("InCombat") then
-						utilMod.SetFlagsForCombat(model)
-					end
-				end
-				if hasEnemies and not acceptableDistance then -- next() returns nil if table is empty
-					if not model:GetAttribute("IsMoving") then
-						utilMod.SetFlagsForMoving(model)
-						movingDirection = "MovingToCombatTarget"
+				elseif petAttack and petDefendlith then
+					-- Do logic work here.
+					-- finish combat by checking targetcombatmodel and if within acceptable distance. If so set to combat to keep fighting
+					-- if has enemy but not within acceptable distance, dont move to target, go ahead and move to lith lithDefendPosition, nil state of position is taken care of in petattack petfollow logic., if nil continue battle disregard command.
+					-- Once at lith make hateList = nil (reset aggro) Hatelist will begin
+					-- repopulating earlier in logic, this is so that pet does not return to earlier combat.
+
+					-- Pet is in "Attack + Defend Lith" mode
+					if hasEnemies then
+						if acceptableDistance then
+							-- In combat range with an enemy → stay and fight
+							if not model:GetAttribute("InCombat") then
+								utilMod.SetFlagsForCombat(model)
+							end
+						-- Do NOT move toward lith while still fighting
+						else
+							-- Enemy exists but too far → prioritize finishing combat, do NOT move to lith yet
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+								movingDirection = "MovingToCombatTarget"
+							else
+								local targ = pathMod.GetCurrentTarget(model)
+								if targ ~= combatTargetModel then
+									if not model:GetAttribute("IsIdle") then
+										utilMod.SetFlagsForIdle(model)
+									end
+								else
+									movingDirection = "MovingToCombatTarget"
+								end
+							end
+						end
 					else
-						local targ = pathMod.GetCurrentTarget(model)
-						if targ ~= combatTargetModel then
+						-- No enemies left → clear aggro and move to the defend position
+						hateList = {} -- reset aggro so it doesn't pull old targets
+
+						if lithDefendPosition then
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+								movingDirection = "MovingToNearestLith" -- reuse same string for defend lith
+							else
+								local targ = pathMod.GetCurrentTarget(model)
+								if targ and targ ~= "Lith" then -- assuming Lith parts/models are named "Lith" or detectable this way
+									if not model:GetAttribute("IsIdle") then
+										utilMod.SetFlagsForIdle(model)
+									end
+								else
+									movingDirection = "MovingToNearestLith"
+								end
+							end
+						else
+							-- No valid lith position set → fall back to idle (or follow owner if desired)
 							if not model:GetAttribute("IsIdle") then
 								utilMod.SetFlagsForIdle(model)
 							end
-						else
-							movingDirection = "MovingToCombatTarget"
 						end
 					end
-				end
-			end
+				elseif petAttack and petTakeLith then
+					-- This should be similar logic as case before, only it is an opponents lith (lith is a building point on map to fight over.)
+					-- finish combat then move to nearest lith. Finish combat if within range of enemy.
+					-- Move to opponents lith using commented variable above takelithposition, nil state of position is taken care of in petattack petfollow logic.
+					-- always check if moving if should be moving and check target if target is not correct set to idle. (idle action below cancels any moving tasks, allowing this to create new task next time.)
 
-			if not hasEnemies then
-				if isPet then
-					local check = ownerInstance
-						and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
-					if check then
-						if not model:GetAttribute("IsMoving") then
-							utilMod.SetFlagsForMoving(model)
+					-- Pet is in "Attack + Take Lith" mode (aggressively capture an opponent lith)
+					if hasEnemies then
+						if acceptableDistance then
+							-- In combat range with an enemy → stay and fight to finish combat first
+							if not model:GetAttribute("InCombat") then
+								utilMod.SetFlagsForCombat(model)
+							end
+						-- Do NOT move toward lith while still fighting
+						else
+							-- Enemy exists but too far → prioritize finishing combat, do NOT move to lith yet
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+								movingDirection = "MovingToCombatTarget"
+							else
+								local targ = pathMod.GetCurrentTarget(model)
+								if targ ~= combatTargetModel then
+									if not model:GetAttribute("IsIdle") then
+										utilMod.SetFlagsForIdle(model)
+									end
+								else
+									movingDirection = "MovingToCombatTarget"
+								end
+							end
 						end
-						movingDirection = "MovingToOwner"
 					else
+						-- No enemies left → clear aggro and move to the take lith position
+						hateList = {} -- reset aggro to prevent re-engaging old targets
+
+						if lithTakePosition then
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+								movingDirection = "MovingToNearestLith" -- reuse same string for consistency
+							else
+								local targ = pathMod.GetCurrentTarget(model)
+								if targ and targ ~= "Lith" then -- adjust check if liths are identified differently
+									if not model:GetAttribute("IsIdle") then
+										utilMod.SetFlagsForIdle(model)
+									end
+								else
+									movingDirection = "MovingToNearestLith"
+								end
+							end
+						else
+							-- No valid take position set → fall back to idle (or follow owner)
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						end
+					end
+				elseif petAttack and not petFollow then
+					-- Guard this position, since already at position just check aggro and move to and fight close mobs
+					-- if not in combat check "spawnPosition" if 10 studs away set moving flag and movingDirection = MovingToSpawnPosition
+					-- if not in combat and less than 10 from spawnposition just set idle.
+
+					-- Pet is in "Guard Position" mode: Attack enabled, but no Follow/Lith commands
+					-- Stay near the designated spawnPosition (where the player left it), aggressively fight any enemies that come close
+					-- Do NOT wander or follow owner
+
+					if hasEnemies then
+						-- Prioritize combat over returning to position
+						if acceptableDistance then
+							-- In range → fight
+							if not model:GetAttribute("InCombat") then
+								utilMod.SetFlagsForCombat(model)
+							end
+						else
+							-- Enemy too far → move to engage
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+								movingDirection = "MovingToCombatTarget"
+							else
+								local targ = pathMod.GetCurrentTarget(model)
+								if targ ~= combatTargetModel then
+									if not model:GetAttribute("IsIdle") then
+										utilMod.SetFlagsForIdle(model)
+									end
+								else
+									movingDirection = "MovingToCombatTarget"
+								end
+							end
+						end
+					else
+						-- No enemies → stay near spawnPosition (guard spot)
+						local distanceFromGuardSpot = utilMod.GetDistance(spawnPosition, hrp.Position)
+
+						if distanceFromGuardSpot > 10 then
+							-- Drifted too far → return to guard position
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+							end
+							movingDirection = "MovingToSpawnPosition"
+						else
+							-- Close enough → remain idle and alert
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+							-- Optional: clear any lingering pathing
+							if pathMod.IsPathActive(model) then
+								pathMod.ShortCircuitTravel(model)
+							end
+						end
+					end
+				elseif not petAttack and petFollow then
+					-- Pet is in "Follow Owner" mode only (no attacking allowed)
+					-- Force clear any aggro to prevent combat
+					hateList = {} -- ensure no enemies are tracked
+
+					if ownerInstance then
+						local check =
+							pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+
+						if check then
+							-- Owner is far enough that movement is required → follow
+							if not model:GetAttribute("IsMoving") then
+								utilMod.SetFlagsForMoving(model)
+							end
+							movingDirection = "MovingToOwner"
+						else
+							-- Owner is close enough → no movement needed, stay idle
+							if not model:GetAttribute("IsIdle") then
+								utilMod.SetFlagsForIdle(model)
+							end
+						end
+					else
+						-- No valid owner instance (shouldn't normally happen for a pet)
 						if not model:GetAttribute("IsIdle") then
 							utilMod.SetFlagsForIdle(model)
 						end
 					end
+				elseif not petAttack and not petFollow then
+					-- stay idle and planted in one spot
+					-- check if spawnPosition is current location, if not set spawnLocation to current hrp.Position and set to idle.
+					-- Pet is in "Stay/Guard" mode: no attacking, no following — stay planted and idle
+					-- Force clear any aggro to ensure it doesn't chase or fight
+					hateList = {} -- prevent any combat engagement
+
+					-- If the NPC has drifted from its current "planted" spot, update spawnPosition to current location
+					-- This allows the pet to "stay here" wherever the player left it, even if it got pushed/moved slightly
+					if utilMod.GetDistance(spawnPosition, hrp.Position) > 3 then
+						spawnPosition = hrp.Position
+					end
+
+					-- Always ensure it's idle (cancels any lingering movement)
+					if not model:GetAttribute("IsIdle") then
+						utilMod.SetFlagsForIdle(model)
+					end
+
+					-- Optional: clear any active pathing just in case
+					if pathMod.IsPathActive(model) then
+						pathMod.ShortCircuitTravel(model)
+					end
+
+					-- No movingDirection needed here since it should remain stationary
+					movingDirection = "" -- or nil / "" if you prefer
 				else
+					warn("should not reach me.")
+				end
+			else
+				-- feral state logic
+				if hasEnemies then
+					if acceptableDistance then
+						-- hasEnemies and acceptableDistance
+						if not model:GetAttribute("InCombat") then
+							utilMod.SetFlagsForCombat(model)
+						end
+					else
+						-- hasEnemies and not acceptableDistance
+						if not model:GetAttribute("IsMoving") then
+							utilMod.SetFlagsForMoving(model)
+							movingDirection = "MovingToCombatTarget"
+						else
+							local targ = pathMod.GetCurrentTarget(model)
+							if targ ~= combatTargetModel then
+								if not model:GetAttribute("IsIdle") then
+									utilMod.SetFlagsForIdle(model)
+								end
+							else
+								movingDirection = "MovingToCombatTarget"
+							end
+						end
+					end
+				else
+					-- not hasEnemies
 					if IsStationary then
+						-- not hasEnemies and IsStationary
 						if
 							utilMod.GetDistance(spawnPosition, hrp.Position) > 3
 							and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset
@@ -483,6 +750,7 @@ task.spawn(function()
 							end
 						end
 					else
+						-- not hasEnemies and not IsStationary
 						local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition) > rangeLimit
 
 						if tooFar and not homewardBound then
@@ -511,6 +779,7 @@ task.spawn(function()
 							if not model:GetAttribute("IsIdle") then
 								utilMod.SetFlagsForIdle(model)
 							end
+							-- add logic here if needed for this specific else case
 						end
 					end
 				end
@@ -569,6 +838,39 @@ task.spawn(function()
 					elseif pathMod.GetCurrentTarget(model) ~= combatTargetModel then
 						pathMod.ShortCircuitTravel(model)
 						pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
+					end
+				elseif movingDirection == "MovingToNearestLith" then
+					if petDefendlith then
+						if lithDefendPosition then
+							if not lithDefendRandomLoc then
+								lithDefendRandomLoc = pathMod.GetTargetLith(lithDefendPosition)
+							end
+
+							if lithDefendRandomLoc and not pathMod.IsPathActive(model) then
+								pathMod.PathfindToPosition(model, lithDefendRandomLoc, "Lith")
+							elseif pathMod.GetCurrentTarget(model) ~= "Lith" then
+								pathMod.ShortCircuitTravel(model)
+								pathMod.PathfindToPosition(model, lithDefendRandomLoc, "Lith")
+							end
+						else
+							warn("should not reach me.")
+						end
+					elseif petTakeLith then
+						if lithTakePosition then
+							if not lithTakeRandomLoc then
+								lithTakeRandomLoc = pathMod.GetTargetLith(lithTakePosition)
+							end
+							if lithTakeRandomLoc and not pathMod.IsPathActive(model) then
+								pathMod.PathfindToPosition(model, lithTakeRandomLoc, "Lith")
+							elseif pathMod.GetCurrentTarget(model) ~= "Lith" then
+								pathMod.ShortCircuitTravel(model)
+								pathMod.PathfindToPosition(model, lithTakeRandomLoc, "Lith")
+							end
+						else
+							warn("should not reach me.")
+						end
+					else
+						warn("should not reach me.")
 					end
 				elseif movingDirection == "MovingToOwner" then
 					local owner = model:GetAttribute("OwnedBy")

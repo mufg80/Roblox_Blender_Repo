@@ -8,6 +8,7 @@ local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(game.ReplicatedStorage.Shared.recycleMod)
 local effectMod = require(game.ReplicatedStorage.Shared.effectMod)
+local lithMod = require(ReplicatedStorage.Shared.lithMod)
 
 local function setStaffandPets(player: Player)
 	local character = player.Character
@@ -29,11 +30,11 @@ local function setStaffandPets(player: Player)
 		local items = backpack:GetChildren()
 		for _, item in pairs(items) do
 			if item:IsA("Tool") then
-			local stype = item:GetAttribute("StaffType")
-			if stype then
-				item:Destroy()
+				local stype = item:GetAttribute("StaffType")
+				if stype then
+					item:Destroy()
+				end
 			end
-		end
 		end
 	end
 
@@ -58,7 +59,6 @@ local function setStaffandPets(player: Player)
 	else
 		return
 	end
-
 end
 
 local function GetMagicType(player: Player): string
@@ -358,23 +358,34 @@ game.Players.PlayerAdded:Connect(function(player)
 		warn("Datastores disabled")
 	end
 
-	-- task.spawn(function()
-	-- 	while task.wait(5) do
-	-- 		local feral = workspace:FindFirstChild("Ferals"):FindFirstChildWhichIsA("Model")
-	-- 		if feral then
-	-- 			local table = utilMod.GetStatsFromFolder(feral)
-	-- 		if table then
-	-- 			print(table)
-	-- 		end
-	-- 		end
+	task.spawn(function()
+		while task.wait(3) do
+			local liths = workspace:FindFirstChild("ManaPoints"):GetChildren()
+			for _, lith in pairs(liths) do
+				local unique = lith:GetAttribute("Unique")
+				if unique then
+					print("Lith " .. tostring(unique) .. " at " .. lithMod.GetLithControl(unique))
+				end
+			end
+		end
+	end)
 
-	-- 	end
-	-- end)
+	local level = math.random(2, 7)
+	local mtype = math.random(1, 3)
+	if mtype == 1 then
+		player:SetAttribute("Magic", statsMod.MagicType.Artificer)
+		player:SetAttribute("ArtificerLevel", level)
+	elseif mtype == 2 then
+		player:SetAttribute("Magic", statsMod.MagicType.Primordial)
+		player:SetAttribute("PrimordialLevel", level)
+	elseif mtype == 3 then
+		player:SetAttribute("Magic", statsMod.MagicType.Nature)
+		player:SetAttribute("NatureLevel", level)
+	end
 end)
 
 local summonevent = repstore.Events:waitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player, creatureName)
-
 	local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
 	if not spawnpoint then
 		warn("No clear spawn point")
@@ -393,12 +404,15 @@ summonevent.OnServerEvent:Connect(function(player, creatureName)
 		else
 			return
 		end
-		ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"))
+		ReplicatedStorage.Events.GainedSoulEvent:FireClient(
+			player,
+			player:GetAttribute("Souls"),
+			player:GetAttribute("MaxSouls")
+		)
 		summonevent:FireClient(player, summonedCreature, player:GetAttribute("Souls"))
 	end)
 
 	effectMod.SummonCreatureEffect(spawnpoint, creatureName, secs)
-
 end)
 
 local spellevent = repstore.Events:WaitForChild("SpellCastEvent")
@@ -411,23 +425,20 @@ spellevent.OnServerEvent:Connect(function(player, spellname)
 		combatMod.ApplySpell(player, spellname)
 		spellevent:FireClient(player, spellname)
 	end)
-
-
 end)
 
 local petEvents = repstore.Events:WaitForChild("PetEvent")
 petEvents.OnServerEvent:Connect(function(plr, commands)
 	--local commands = {isPetFollowing, isPetAttacking, isPetTakingLith, isPetDefendingLith}
-	local following     = commands.Following     -- always correct
-	local attacking     = commands.Attacking
-	local takingLith    = commands.TakingLith
+	local following = commands.Following -- always correct
+	local attacking = commands.Attacking
+	local takingLith = commands.TakingLith
 	local defendingLith = commands.DefendingLith
 	plr:SetAttribute("PetAttack", attacking)
 	plr:SetAttribute("PetFollow", following)
 	plr:SetAttribute("PetTakeLith", takingLith)
 	plr:SetAttribute("PetDefendLith", defendingLith)
 end)
-
 
 local spawnpoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
 
@@ -463,10 +474,10 @@ end
 local manaspawnpoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
 
 for _, point in pairs(manaspawnpoints) do
-	if point:GetAttribute("HasBuilding") ~= "Empty" then
-		point:SetAttribute("HasBuilding", "Spout")
+	if point:GetAttribute("HasBuilding") ~= true then
+		point:SetAttribute("HasBuilding", true)
 		local spoutModel = serverstorage.Buildings.ManaSpout:Clone() -- now a Model
-		spoutModel:PivotTo(point.CFrame) -- or point.CFrame * CFrame.new(0, offset, 0) if needed
+		spoutModel:PivotTo(point.CFrame) 
 		spoutModel.Parent = workspace.ManaPoints
 	end
 end
@@ -492,16 +503,16 @@ task.spawn(function()
 	end
 end)
 
-task.spawn(function()
-	while true do
-		task.wait(1)
-		if #workspace:FindFirstChild("Ferals"):GetChildren() == 0 then
-			spawnferal()
-		end
+-- task.spawn(function()
+-- 	while true do
+-- 		task.wait(1)
+-- 		if #workspace:FindFirstChild("Ferals"):GetChildren() == 0 then
+-- 			spawnferal()
+-- 		end
 
-		task.wait(20)
-	end
-end)
+-- 		task.wait(20)
+-- 	end
+-- end)
 
 -- admin area
 

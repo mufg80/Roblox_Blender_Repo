@@ -23,7 +23,7 @@ local spellCastColor = nil
 local db = true
 local Frame = magicgui:FindFirstChild("CastFrame")
 local globalCooldown = time()
-
+local petNames = {}
 -- health and mana
 function ChangeMana()
 	local newmana = player:GetAttribute("Mana")
@@ -349,15 +349,21 @@ for _, button in pairs(spellbuttons) do
 	end
 end
 
-replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulsleft)
+replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulsleft, maxsouls)
 	print("Gained soul event received on client. Souls left:", soulsleft)
-	player:SetAttribute("Souls", soulsleft or 0)
+	if soulsleft <= maxsouls then
+		player:SetAttribute("Souls", soulsleft or 0)
+	end
+	
 end)
 
-replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature)
+replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature, souls)
 	if not summonedCreature then
 		warn("No summoned creature received on client")
 		return
+	else
+		table.insert(petNames, summonedCreature.Name)
+		player:SetAttribute("Souls", souls)
 	end
 
 	print("Summoned creature received on client:", summonedCreature)
@@ -421,15 +427,15 @@ replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname
 end)
 --Pet commands Area
 -- Variables (put these at the top, in a LocalScript)
-local isPetAttacking = false
+local isPetAttacking = true
 local isPetFollowing = true -- default: pet follows when passive
 local isPetDefendingLith = false
 local isPetTakingLith = false
 
-local followButton = petsGui:WaitForChild("FollowButton")
-local defendLithButton = petsGui:WaitForChild("DefendLithButton")
-local attackButton = petsGui:WaitForChild("AttackButton")
-local takeLithButton = petsGui:WaitForChild("TakeLithButton")
+local followButton = petsGui.PetFrame.FollowButton
+local defendLithButton = petsGui.PetFrame.DefendLithButton
+local attackButton = petsGui.PetFrame.AttackButton
+local takeLithButton = petsGui.PetFrame.TakeLithButton
 
 -- Helper: Update button visuals (example)
 local function UpdateButtonVisuals()
@@ -447,23 +453,23 @@ end
 
 local function PetEventActivation()
 	local commands = {
-		Following     = isPetFollowing,
-		Attacking     = isPetAttacking,
-		TakingLith    = isPetTakingLith,
+		Following = isPetFollowing,
+		Attacking = isPetAttacking,
+		TakingLith = isPetTakingLith,
 		DefendingLith = isPetDefendingLith,
 	}
 	replicatedstorage.Events.PetEvent:FireServer(commands)
 end
 -- FOLLOW BUTTON
 followButton.MouseButton1Click:Connect(function()
-	if not isPetAttacking then
-		isPetFollowing = not isPetFollowing
-	else
-		-- When attacking, Follow is one of the 3 mutually exclusive modes
-		isPetFollowing = true
+	isPetFollowing = not isPetFollowing
+
+	-- When attacking, Follow is one of the 3 mutually exclusive modes
+	if isPetFollowing then
 		isPetDefendingLith = false
 		isPetTakingLith = false
 	end
+
 	PetEventActivation()
 	UpdateButtonVisuals()
 end)
@@ -505,12 +511,6 @@ attackButton.MouseButton1Click:Connect(function()
 		-- Turn off aggressive modes, but keep Follow state intact
 		isPetDefendingLith = false
 		isPetTakingLith = false
-	else
-		-- Optional: Auto-enter Follow when attack turned on (or keep last mode)
-		-- Here we default to Follow for smoothness
-		if not (isPetDefendingLith or isPetTakingLith) then
-			isPetFollowing = true
-		end
 	end
 
 	PetEventActivation()

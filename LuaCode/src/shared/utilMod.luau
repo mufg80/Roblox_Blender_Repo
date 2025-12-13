@@ -1,13 +1,27 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --!strict
 -- ReplicatedStorage.Shared.utilMod
 -- Core utility functions used across combat, AI, spawning, and visuals
-
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Debris = game:GetService("Debris")
 
 local utilMod = {}
+
+function utilMod.GetPlayerLevel(plr:Player)
+	local magictype = plr:GetAttribute("Magic")
+	if magictype == statsMod.MagicType.Artificer then
+		return plr:GetAttribute("ArtificerLevel")
+	elseif magictype == statsMod.MagicType.Primordial then
+		return plr:GetAttribute("PrimordialLevel")
+	elseif magictype == statsMod.MagicType.Nature then
+		return plr:GetAttribute("NatureLevel")
+	else
+		return 1
+	end
+end
 
 -- Robust ally check: takes two models (character or NPC/pet)
 -- Returns true if they belong to the same owner OR are allied via AllyId
@@ -351,6 +365,50 @@ function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, 
 			end
 		end)
 	end)
+end
+
+
+function utilMod.DistancetoGroundIncludeList(position: Vector3): number?
+	local rayOrigin = position + Vector3.new(0, 100, 0)
+	local rayDirection = Vector3.new(0, -10000, 0)
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include  -- Changed to Include
+	params.IgnoreWater = true
+
+	-- Only allow hits on these (add whatever represents "ground")
+	local includeList = {
+		workspace.Terrain,                    -- Always include Terrain
+		workspace:FindFirstChild("Baseplate"), -- Or your base part name
+		-- Add other ground parts if needed, e.g. workspace.Map.Floor
+		workspace:FindFirstChild("Porch").Floor,
+		workspace:FindFirstChild("TempleAndSteps").Temple.WallsCeilingFloor.Floor
+	}
+
+	-- Remove nil entries just in case
+	local filteredInclude = {}
+	for _, obj in ipairs(includeList) do
+		if obj then
+			table.insert(filteredInclude, obj)
+		end
+	end
+
+	params.FilterDescendantsInstances = filteredInclude
+
+	local result = workspace:Raycast(rayOrigin, rayDirection, params)
+
+	if result then
+		-- Print the full path of the hit part (great for debugging)
+		print("[DistancetoGround] Hit ground at Y:", result.Position.Y, 
+		      "| Part:", result.Instance:GetFullName())
+
+		-- Optional: also print material for extra context
+		print("Material:", result.Material.Name)
+
+		return result.Position.Y
+	end
+
+	return nil
 end
 
 --==============================================================================
@@ -770,6 +828,41 @@ function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userI
 	end
 	return result
 end
+function utilMod.GetCharactersModelsWithinRange(pos: Vector3, range: number): {Model}
+	if not pos or not range then return {} end
+	
+	local modelsWithHRP = {}
+	
+	-- 1. Check all player characters
+	local plrs = game.Players:GetPlayers()
+	for _, player in ipairs(plrs) do
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = player.Character.HumanoidRootPart
+			if utilMod.GetDistance(pos, hrp.Position) <= range then
+				table.insert(modelsWithHRP, player.Character)
+			end
+		end
+	end
+	
+	-- 2. Check all pets (assuming all children of workspace.Pets are Models with HumanoidRootPart)
+	local petsFolder = workspace:FindFirstChild("Pets")
+	if petsFolder then
+		for _, petModel in ipairs(petsFolder:GetChildren()) do
+			if petModel:IsA("Model") and petModel:FindFirstChild("HumanoidRootPart") then
+				local hrp = petModel.HumanoidRootPart
+				if utilMod.GetDistance(pos, hrp.Position) <= range then
+					table.insert(modelsWithHRP, petModel)
+				end
+			end
+		end
+	end
+	
+	-- Optional: If you have other NPC folders (e.g. Ferals), add them here similarly
+	-- local feralsFolder = workspace:FindFirstChild("Ferals")
+	-- if feralsFolder then ... end
+	
+	return modelsWithHRP
+end
 
 --==============================================================================
 -- Trims trailing underscore + alphanumerics (used to normalise creature names)
@@ -802,6 +895,7 @@ export type UtilMod = {
 	SpinToOwner: (model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?, spinCooldown: boolean?) -> (),
 
 	DistancetoGround: (position: Vector3) -> number?,
+	DistancetoGroundIncludeList:(position:Vector3) -> number?,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
 	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
 	createColorExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
@@ -818,6 +912,7 @@ export type UtilMod = {
 	GetStatsFromFolder: (instance: Instance, folderName: string?) -> { [string]: any },
 	ApplyThreat: (attacker: Model | Player, target: Model | Player, threatAmount: number) -> boolean,
 	GetOpposingPetsWithinRange: (player: Player, range: number, userId: number) -> { Model },
+	GetPlayerLevel: (plr:Player) -> number,
 }
 
 return utilMod :: UtilMod
