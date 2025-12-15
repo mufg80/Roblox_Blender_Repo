@@ -257,7 +257,7 @@ function pathMod.GetTargetLith(pos: Vector3): Vector3?
 		local testPos = Vector3.new(candidate.X, pos.Y + 10, candidate.Z)
 
 		-- Get ground Y value below this point
-		local groundY = utilMod.DistancetoGroundIncludeList(testPos)
+		local groundY = utilMod.DistancetoGround(testPos)
 
 		-- If no ground found or the ground is too far up/down (steep drop or cliff)
 		if groundY then -- and groundY > pos.Y - 5 and groundY < pos.Y + 5 then
@@ -274,7 +274,7 @@ function pathMod.GetTargetLith(pos: Vector3): Vector3?
 		local offset = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
 		local candidate = pos + offset
 		local testPos = Vector3.new(candidate.X, pos.Y + 10, candidate.Z)
-		local groundY = utilMod.DistancetoGroundIncludeList(testPos)
+		local groundY = utilMod.DistancetoGround(testPos)
 
 		if groundY and groundY > -5 and groundY < 5 then
 			return Vector3.new(candidate.X, groundY, candidate.Z)

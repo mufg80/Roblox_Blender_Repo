@@ -568,7 +568,7 @@ function combatMod.ApplyMeleeDamage(attackerModel: Model, targetModel: Model): b
 	end)
 
 	targetHum.Health = math.max(targetHum.Health - damage, 1)
-	print(targetModel.Name .. " has " .. targetHum.Health .. " health remaining.")
+	--print(targetModel.Name .. " has " .. targetHum.Health .. " health remaining.")
 	return true
 end
 

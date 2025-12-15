@@ -113,7 +113,6 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: { Model }
 		return false
 	end
 
-	--print("destroy pet")
 	mypet:SetAttribute("RecycleMe", true)
 	local currentmana: number = player:GetAttribute("Mana") or 0
 	local maxmana: number = player:GetAttribute("MaxMana") or 100
@@ -156,6 +155,29 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 
 	return true
 end
+
+local function FireBuffNotificationEvent(
+	isHeal: boolean,
+	targetIsPlayer: boolean,
+	modelInstance: Model | Player,
+	spellname: string,
+	command: string
+)
+	if targetIsPlayer then
+		local player = game.Players:GetPlayerFromCharacter(modelInstance)
+		if player then
+			local buffevent = repstore.Events.BuffDebuffHealEvent
+			buffevent:FireClient(player, player.UserId, spellname, command)
+		end
+	else
+		local owner = modelInstance:GetAttribute("OwnedBy")
+		if owner then
+			local plr = game.Players:GetPlayerByUserId(owner)
+			local buffevent = repstore.Events.BuffDebuffHealEvent
+			buffevent:FireClient(plr, modelInstance.Name, spellname, command)
+		end
+	end
+end
 --[[
     Applies a buff, debuff, or heal-over-time effect to a target.
     Supports both Player objects and raw Model characters (NPCs).
@@ -171,13 +193,14 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		warn("BuffDebuffHeal: Caster is not a Player instance")
 		return false
 	end
-
+	local targetisplayer = true
 	-- Normalize to Model instance
 	local modelInstance: Model
 	if typeof(target) == "Instance" and target:IsA("Player") then
 		modelInstance = target.Character
 	else
 		modelInstance = target :: Model
+		targetisplayer = false
 	end
 	if not modelInstance or not modelInstance.Parent then
 		return false
@@ -228,6 +251,7 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		if ev and ev:IsA("BindableEvent") then
 			ev:Fire(caster, spellname)
 		end
+		FireBuffNotificationEvent(isHeal, targetisplayer, modelInstance, spellname, "Add")
 
 		while elapsed < duration do
 			task.wait(tickRate)
@@ -261,6 +285,7 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		if ev and ev:IsA("BindableEvent") then
 			ev:Fire(caster, spellname)
 		end
+		FireBuffNotificationEvent(isHeal, targetisplayer, modelInstance, spellname, "Remove")
 
 		-- Cleanup
 		modelInstance:SetAttribute("Buff_" .. spellname, nil)

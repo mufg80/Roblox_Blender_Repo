@@ -152,7 +152,6 @@ game.Players.PlayerAdded:Connect(function(player)
 	AddBuffDebuffEvent.Parent = player
 
 	AddBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
-		print("Called buff debuff event ", player1.UserId, " spell: ", spellname)
 		setStats(player)
 	end)
 
@@ -161,7 +160,6 @@ game.Players.PlayerAdded:Connect(function(player)
 	RemoveBuffDebuffEvent.Parent = player
 
 	RemoveBuffDebuffEvent.Event:Connect(function(player1: Player, spellname: string)
-		print("Called Remove buff debuff event ", player1.UserId, " spell: ", spellname)
 		local atts = player.Character:GetAttributes()
 		if not atts then
 			return
@@ -174,7 +172,6 @@ game.Players.PlayerAdded:Connect(function(player)
 			end
 		end
 		if isbuffstartingwithBuffTrue then
-			print("Reset stats to base stats")
 			local currentType = player:GetAttribute("Magic")
 			if currentType == statsMod.MagicType.None then
 				local sourceStats = combatMod.ShallowTableCopy("PlayerNone")
@@ -304,7 +301,6 @@ game.Players.PlayerAdded:Connect(function(player)
 					end
 				end
 			end
-			--print("PlayerData Loaded.")
 		else
 			data = {
 				["Magic"] = statsMod.MagicType.None,
@@ -317,7 +313,6 @@ game.Players.PlayerAdded:Connect(function(player)
 				plrData:SetAsync(player.UserId, data)
 			end)
 			if success then
-				--print("New player saved")
 			else
 				warn("new player failed to save.")
 			end
@@ -349,7 +344,6 @@ game.Players.PlayerAdded:Connect(function(player)
 			end)
 
 			if success then
-				--print("Player data saved successfully for " .. player.Name)
 			else
 				warn("Failed to save player data for " .. player.Name .. ": " .. tostring(err))
 			end
@@ -358,17 +352,17 @@ game.Players.PlayerAdded:Connect(function(player)
 		warn("Datastores disabled")
 	end
 
-	task.spawn(function()
-		while task.wait(3) do
-			local liths = workspace:FindFirstChild("ManaPoints"):GetChildren()
-			for _, lith in pairs(liths) do
-				local unique = lith:GetAttribute("Unique")
-				if unique then
-					print("Lith " .. tostring(unique) .. " at " .. lithMod.GetLithControl(unique))
-				end
-			end
-		end
-	end)
+	-- task.spawn(function()
+	-- 	while task.wait(3) do
+	-- 		local liths = workspace:FindFirstChild("ManaPoints"):GetChildren()
+	-- 		for _, lith in pairs(liths) do
+	-- 			local unique = lith:GetAttribute("Unique")
+	-- 			if unique then
+	-- 				print("Lith " .. tostring(unique) .. " at " .. lithMod.GetLithControl(unique))
+	-- 			end
+	-- 		end
+	-- 	end
+	-- end)
 
 	local level = math.random(2, 7)
 	local mtype = math.random(1, 3)
@@ -477,7 +471,7 @@ for _, point in pairs(manaspawnpoints) do
 	if point:GetAttribute("HasBuilding") ~= true then
 		point:SetAttribute("HasBuilding", true)
 		local spoutModel = serverstorage.Buildings.ManaSpout:Clone() -- now a Model
-		spoutModel:PivotTo(point.CFrame) 
+		spoutModel:PivotTo(point.CFrame)
 		spoutModel.Parent = workspace.ManaPoints
 	end
 end
@@ -503,16 +497,16 @@ task.spawn(function()
 	end
 end)
 
--- task.spawn(function()
--- 	while true do
--- 		task.wait(1)
--- 		if #workspace:FindFirstChild("Ferals"):GetChildren() == 0 then
--- 			spawnferal()
--- 		end
+task.spawn(function()
+	while true do
+		task.wait(1)
+		if #workspace:FindFirstChild("Ferals"):GetChildren() == 0 then
+			spawnferal()
+		end
 
--- 		task.wait(20)
--- 	end
--- end)
+		task.wait(20)
+	end
+end)
 
 -- admin area
 

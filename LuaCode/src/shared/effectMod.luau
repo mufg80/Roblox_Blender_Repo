@@ -52,7 +52,6 @@ function effectMod.DirectDamageEffect(spawnpoint: Vector3, spellName: string)
 		num = 0
 	end
 	local yoffset = spawnpoint.Y - num
-	print(yoffset)
 	local effectorigin = spawnpoint + Vector3.new(spellinfo.effectOffsetXZ, -yoffset, spellinfo.effectOffsetXZ)
 	spelleffect:PivotTo(CFrame.new(effectorigin))
 	spelleffect.Parent = workspace

@@ -1,3 +1,4 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local model = script.Parent
 local random = Random.new()
 
@@ -142,7 +143,6 @@ function setStats()
 	humanoid.WalkSpeed = 16 * baseStats.speed
 	IsStationary = model:GetAttribute("IsStationary") ~= false
 	IdleReset = model:GetAttribute("IdleReset") or 15
-	--print(thisMob, baseStats)
 end
 
 setStats()
@@ -152,8 +152,9 @@ AddBuffDebuffEvent.Name = "BuffDebuffEvent"
 AddBuffDebuffEvent.Parent = model
 
 AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
-	print("Called buff debuff event ", player.UserId, " spell: ", spellname)
+	--print("Called buff debuff event ", player.UserId, " spell: ", spellname)
 	setStats()
+	
 end)
 
 local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
@@ -161,7 +162,7 @@ RemoveBuffDebuffEvent.Name = "RemoveBuffDebuffEvent"
 RemoveBuffDebuffEvent.Parent = model
 
 RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
-	print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
+	--print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
 	local atts = model:GetAttributes()
 	local isbuffstartingwithBuffTrue = true
 	for attName, attValue in pairs(atts) do
@@ -176,6 +177,7 @@ RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
 	else
 		setStats()
 	end
+	
 end)
 
 -- === Threat API ===
@@ -271,6 +273,16 @@ local function setupOwnerConnection(ownerId)
 				SetLithDefendPosition()
 			end
 		end)
+		petAttack = plrowner:GetAttribute("PetAttack")
+		petFollow = plrowner:GetAttribute("PetFollow")
+		petTakeLith = plrowner:GetAttribute("PetTakeLith")
+		petDefendlith = plrowner:GetAttribute("PetDefendLith")
+		if petTakeLith then
+			SetTakeLithPosition()
+		end
+		if petDefendlith then
+			SetLithDefendPosition()
+		end
 	end
 
 	playerConnection = game.Players.PlayerRemoving:Connect(function(leavingPlayer)

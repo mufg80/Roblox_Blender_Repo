@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Require combatMod (for customTrim and other utilities)
-local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
+local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 
 local recycleMod = {}
 recycleMod.thedead = {}
@@ -75,7 +75,7 @@ function recycleMod.CheckIfExistsPet(baseName)
     if not storagePets then return false end
 
     for _, npc in ipairs(storagePets:GetChildren()) do
-        if combatMod.customTrim(npc.Name) == baseName then
+        if utilMod.customTrim(npc.Name) == baseName then
             return true
         end
     end
@@ -87,7 +87,7 @@ function recycleMod.CheckIfExistsFeral(baseName)
     if not storageFerals then return false end
 
     for _, npc in ipairs(storageFerals:GetChildren()) do
-        if combatMod.customTrim(npc.Name) == baseName then
+        if utilMod.customTrim(npc.Name) == baseName then
             return true
         end
     end
@@ -102,7 +102,7 @@ function recycleMod.ReturnPet(baseName)
     if not storagePets then return nil end
 
     for _, npc in ipairs(storagePets:GetChildren()) do
-        if combatMod.customTrim(npc.Name) == baseName then
+        if utilMod.customTrim(npc.Name) == baseName then
             recycleMod.resetNPC(npc)
             return npc
         end
@@ -115,7 +115,7 @@ function recycleMod.ReturnFeral(baseName)
     if not storageFerals then return nil end
 
     for _, npc in ipairs(storageFerals:GetChildren()) do
-        if combatMod.customTrim(npc.Name) == baseName then
+        if utilMod.customTrim(npc.Name) == baseName then
             recycleMod.resetNPC(npc)
             return npc
         end

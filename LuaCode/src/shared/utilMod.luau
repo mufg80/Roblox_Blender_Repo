@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local collectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 local Debris = game:GetService("Debris")
 
@@ -368,21 +369,17 @@ function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, 
 end
 
 
-function utilMod.DistancetoGroundIncludeList(position: Vector3): number?
+function utilMod.DistancetoGround(position: Vector3): number?
 	local rayOrigin = position + Vector3.new(0, 100, 0)
 	local rayDirection = Vector3.new(0, -10000, 0)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include  -- Changed to Include
 	params.IgnoreWater = true
-
+	local grounditems = collectionService:GetTagged("Ground")
 	-- Only allow hits on these (add whatever represents "ground")
 	local includeList = {
-		workspace.Terrain,                    -- Always include Terrain
-		workspace:FindFirstChild("Baseplate"), -- Or your base part name
-		-- Add other ground parts if needed, e.g. workspace.Map.Floor
-		workspace:FindFirstChild("Porch").Floor,
-		workspace:FindFirstChild("TempleAndSteps").Temple.WallsCeilingFloor.Floor
+		grounditems
 	}
 
 	-- Remove nil entries just in case
@@ -398,40 +395,9 @@ function utilMod.DistancetoGroundIncludeList(position: Vector3): number?
 	local result = workspace:Raycast(rayOrigin, rayDirection, params)
 
 	if result then
-		-- Print the full path of the hit part (great for debugging)
-		print("[DistancetoGround] Hit ground at Y:", result.Position.Y, 
-		      "| Part:", result.Instance:GetFullName())
-
-		-- Optional: also print material for extra context
-		print("Material:", result.Material.Name)
-
 		return result.Position.Y
 	end
-
 	return nil
-end
-
---==============================================================================
--- Raycast down to find ground Y position (ignores characters)
---==============================================================================
-function utilMod.DistancetoGround(position: Vector3): number?
-	local rayOrigin = position + Vector3.new(0, 5, 0)
-	local rayDirection = Vector3.new(0, -10000, 0)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.IgnoreWater = true
-
-	-- Build ignore list dynamically
-	local ignoreList = { workspace.Pets, workspace.Ferals, workspace:FindFirstChild("SpawnLocation") } -- Your folders
-	for _, player in Players:GetPlayers() do
-		if player.Character then
-			table.insert(ignoreList, player.Character)
-		end
-	end
-	params.FilterDescendantsInstances = ignoreList
-
-	local result = Workspace:Raycast(rayOrigin, rayDirection, params)
-	return result and result.Position.Y
 end
 
 --==============================================================================
@@ -895,7 +861,6 @@ export type UtilMod = {
 	SpinToOwner: (model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?, spinCooldown: boolean?) -> (),
 
 	DistancetoGround: (position: Vector3) -> number?,
-	DistancetoGroundIncludeList:(position:Vector3) -> number?,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
 	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
 	createColorExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),

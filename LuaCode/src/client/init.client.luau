@@ -301,8 +301,6 @@ for _, button in pairs(creaturebuttons) do
 			Frame.Visible = true
 			globalCooldown = time() + secs + 1
 			player:SetAttribute("button_" .. button.Text, time() + secs + 3)
-			print("Setting button_" .. button.Text .. " to " .. tostring(time() + secs + 3))
-			print("Current time is " .. tostring(time()))
 			local innerFill = Frame.InnerFill
 			innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
 			connection = runservice.RenderStepped:Connect(function(delta)
@@ -350,7 +348,6 @@ for _, button in pairs(spellbuttons) do
 end
 
 replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulsleft, maxsouls)
-	print("Gained soul event received on client. Souls left:", soulsleft)
 	if soulsleft <= maxsouls then
 		player:SetAttribute("Souls", soulsleft or 0)
 	end
@@ -366,7 +363,6 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 		player:SetAttribute("Souls", souls)
 	end
 
-	print("Summoned creature received on client:", summonedCreature)
 	-- You can add additional client-side logic here if needed
 
 	local existingFrame = statsGui.HudFrame:FindFirstChild(summonedCreature.Name .. "_PetFrame")
@@ -422,7 +418,6 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 end)
 
 replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname)
-	print("Spell cast confirmed on client:", spellname)
 	-- You can add additional client-side logic here if needed
 end)
 --Pet commands Area
@@ -520,16 +515,21 @@ end)
 -- Initial visual update
 UpdateButtonVisuals()
 
+
+-- Buffs
+local buffEvent = replicatedstorage.Events.BuffDebuffHealEvent
+buffEvent.OnClientEvent:Connect(function(id, spellname, command)
+	print(tostring(id).." "..spellname.. " "..command)
+end)
+
 -- admin area
 if players.LocalPlayer.UserId == 2484051658 then
-	print("Admin detected, enabling admin GUI")
 	local adminGui = playerGui:WaitForChild("AdminGui")
 	adminGui.Frame.Visible = true
 	adminGui.closeButton.Visible = true
 	local levelbutton = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
 	local typebutton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
 	levelbutton.MouseButton1Click:Connect(function()
-		print("Firing LevelUp")
 		local level = ReturnLevel()
 		if not level then
 			return
@@ -539,7 +539,6 @@ if players.LocalPlayer.UserId == 2484051658 then
 		levelbutton.Text = "Magic Level: " .. tostring(level + 1)
 	end)
 	typebutton.MouseButton1Click:Connect(function()
-		print("Firing IncrementMagic")
 		replicatedstorage.Events.AdminEvent:FireServer("IncrementMagic")
 		task.wait(0.1)
 		typebutton.Text = "Magic Type: " .. tostring(player:GetAttribute("Magic"))

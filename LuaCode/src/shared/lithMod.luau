@@ -157,6 +157,7 @@ task.spawn(function()
 			local netAdvantage = defenderStrength - attackerStrength
 			local maxDelta = LITHHEALTHCAP * MAXPLAYERCHANGEPERTICK
 			local change = math.clamp(netAdvantage, -maxDelta, maxDelta)
+			--print("Change is: "..tostring(change))
 			currentControl = math.clamp(currentControl + change, 0, LITHHEALTHCAP)
 			liths[uniqueId] = currentControl
 
