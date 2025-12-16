@@ -4,67 +4,62 @@ local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local serverStorage = game:GetService("ServerStorage")
 local repstore = game:GetService("ReplicatedStorage")
 local buffMod = {}
+-- Table to track active buff tasks per model+spell
+local activeBuffs = {}
 
-function buffMod.ApplyBuffLabel(spelltype, duration, billboard, model, currentConnection)
-    -- Validate spelltype
-    if spelltype ~= "buff" and spelltype ~= "debuff" and spelltype ~= "heal" then
-        warn("ApplyBuffLabel: Invalid spelltype:", spelltype)
-        return nil
-    end
-
-    -- Map spelltype to label name
-    local labelName = ({
-        buff = "BuffLabel",
-        debuff = "DebuffLabel",
-        heal = "HealLabel"
-    })[spelltype]
-
-    local imageLabel = billboard.Frame.ZZBuffFrame[labelName]
-    if not imageLabel then
-        return nil
-    end
-
-    -- Safely clean up any existing buff thread
-    if currentConnection then
-        pcall(task.cancel, currentConnection)
-    end
-
-    local blinkStartDelay = duration > 5 and duration - 5 or 0
-
-    -- Spawn the blinking task
-    local newConnection = task.spawn(function()
-        imageLabel.Visible = true
-        local startTime = os.clock()
-
-        while true do
-            task.wait(1)
-
-            -- Safely check if NPC is still alive and UI exists
-            if not model or not model.Parent or not imageLabel or not imageLabel.Parent then
-                if imageLabel then
-                    imageLabel.Visible = false
-                end
-                return
-            end
-
-            local currentTime = os.clock()
-            local elapsed = currentTime - startTime
-
-            -- Blink logic: alternate every second in the last 5s (or whole duration)
-            if elapsed >= blinkStartDelay then
-                local elapsedSeconds = math.floor(elapsed)
-                imageLabel.Visible = (elapsedSeconds % 2 == 1)
-            end
-
-            -- End buff
-            if elapsed >= duration then
-                imageLabel.Visible = false
-                return
-            end
-        end
-    end)
-
-    return newConnection
+function buffMod.ApplyBuffLabel(spelltype, spellname, duration, billboard, model)
+	-- Validate spelltype
+	if spelltype ~= "buff" and spelltype ~= "debuff" and spelltype ~= "heal" then
+		warn("ApplyBuffLabel: Invalid spelltype:", spelltype)
+		return nil
+	end
+	-- Map spelltype to label name
+	local labelName = ({ buff = "BuffLabel", debuff = "DebuffLabel", heal = "HealLabel" })[spelltype]
+	local imageLabel = billboard.Frame.ZZBuffFrame[labelName]
+	if not imageLabel then
+		return nil
+	end
+	-- Unique key per model+spell
+	local key = model.Name .. "_" .. spellname
+	-- Cancel any existing buff task for this key
+	if activeBuffs[key] then
+		pcall(task.cancel, activeBuffs[key])
+		-- Force cleanup in case cancellation skips UI reset
+		imageLabel.Visible = false
+		activeBuffs[key] = nil
+	end
+	local blinkStartDelay = duration > 5 and duration - 5 or 0
+	-- Spawn the blinking task
+	local newConnection = task.spawn(function()
+		imageLabel.Visible = true
+		local startTime = os.clock()
+		while true do
+			task.wait(1)
+			-- Safely check if NPC is still alive and UI exists
+			if not model or not model.Parent or not imageLabel or not imageLabel.Parent then
+				if imageLabel then
+					imageLabel.Visible = false
+				end
+				activeBuffs[key] = nil
+				return
+			end
+			local currentTime = os.clock()
+			local elapsed = currentTime - startTime
+			-- Blink logic: alternate every second in the last 5s (or whole duration)
+			if elapsed >= blinkStartDelay then
+				local elapsedSeconds = math.floor(elapsed)
+				imageLabel.Visible = (elapsedSeconds % 2 == 1)
+			end
+			-- End buff
+			if elapsed >= duration then
+				imageLabel.Visible = false
+				activeBuffs[key] = nil
+				return
+			end
+		end
+	end)
+	-- Store connection
+	activeBuffs[key] = newConnection
 end
 
 -- At the top of the module (next to RUNNING_EFFECTS)

@@ -55,7 +55,7 @@ AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
 	if spelltype == "buff" or spelltype == "debuff" or spelltype == "heal" then
 		local buffInfo = statsMod.BuffInfo[spellname]
 		local duration = buffInfo.seconds
-		buffconnection = buffMod.ApplyBuffLabel(spelltype, duration, billboard, model, buffconnection)
+		buffMod.ApplyBuffLabel(spelltype, spellname, duration, billboard, model)
 	end
 end)
 
