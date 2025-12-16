@@ -1,7 +1,5 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --!strict
--- ReplicatedStorage.Shared.utilMod
--- Core utility functions used across combat, AI, spawning, and visuals
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,7 +15,7 @@ function utilMod.GetPlayerLevel(plr:Player)
 		return plr:GetAttribute("ArtificerLevel")
 	elseif magictype == statsMod.MagicType.Primordial then
 		return plr:GetAttribute("PrimordialLevel")
-	elseif magictype == statsMod.MagicType.Nature then
+	elseif magictype == statsMod.MagicType.Nature then 
 		return plr:GetAttribute("NatureLevel")
 	else
 		return 1

@@ -1,3 +1,4 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local utilMod = require(ReplicatedStorage.Shared.utilMod)

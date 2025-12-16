@@ -1,3 +1,4 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ds = game:GetService("DataStoreService")
 local dataStoreEnabled = false
@@ -366,6 +367,7 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	local level = math.random(2, 7)
 	local mtype = math.random(1, 3)
+	mtype = 1
 	if mtype == 1 then
 		player:SetAttribute("Magic", statsMod.MagicType.Artificer)
 		player:SetAttribute("ArtificerLevel", level)

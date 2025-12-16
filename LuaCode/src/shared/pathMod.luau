@@ -1,3 +1,4 @@
+--!strict
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
@@ -5,6 +6,149 @@ local pathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
 
 local pathMod = {}
+
+function pathMod.GetTakeLithLoc(model, hrp)
+	-- Validate inputs
+	if not model or not hrp then
+		return nil
+	end
+
+	local ownedById = model:GetAttribute("OwnedBy")
+	if not ownedById or ownedById == "" or ownedById == "None" or ownedById == "none" then
+		return nil
+	end
+
+	local plr = game.Players:GetPlayerByUserId(ownedById)
+	if not plr then
+		return nil
+	end
+
+	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
+	if not manaPointsFolder then
+		return nil
+	end
+
+	local points = manaPointsFolder:GetChildren()
+	if #points == 0 then
+		return nil
+	end
+
+	local closestPoint = nil
+	local closestDist = math.huge
+	local playerUserId = plr.UserId
+
+	for _, point in ipairs(points) do
+		-- Skip if it's a ManaSpout or owned by the same player
+		if point.Name == "ManaSpout" then continue end
+		if point:GetAttribute("OwnedBy") == playerUserId then continue end
+
+		local meshPart = point:FindFirstChildOfClass("MeshPart")
+		if not meshPart then continue end
+
+		local dist = utilMod.GetDistance(meshPart.Position, hrp.Position)
+		if dist < closestDist then
+			closestDist = dist
+			closestPoint = meshPart
+		end
+	end
+
+	if closestPoint then
+		return closestPoint.Position
+	else
+		return nil
+	end
+end
+
+
+
+-- Existing functions like GetTakeLithLoc can stay here too
+
+function pathMod.GetDefendLithLoc(model, hrp)
+	-- Validate core inputs
+	if not model or not hrp or not utilMod or not utilMod.GetDistance then
+		return nil
+	end
+
+	local ownedById = model:GetAttribute("OwnedBy")
+	if not ownedById or ownedById == "" or ownedById == "None" or ownedById == "none" then
+		return nil
+	end
+
+	local plr = game.Players:GetPlayerByUserId(ownedById)
+	if not plr then
+		return nil
+	end
+
+	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
+	if not manaPointsFolder then
+		return nil
+	end
+
+	local points = manaPointsFolder:GetChildren()
+	if #points == 0 then
+		return nil
+	end
+
+	local playerUserId = plr.UserId
+	local underAttackLiths = {}
+	local ownedLiths = {}
+
+	-- Collect owned liths and those under attack
+	for _, point in ipairs(points) do
+		if point.Name == "ManaSpout" then continue end -- optional: skip spouts if needed
+
+		local meshPart = point:FindFirstChildOfClass("MeshPart")
+		if not meshPart then continue end
+
+		local ownedBy = point:GetAttribute("OwnedBy")
+		if ownedBy ~= playerUserId then continue end
+
+		table.insert(ownedLiths, meshPart)
+
+		local isUnderAttack = point:GetAttribute("IsUnderAttack")
+		if isUnderAttack then
+			table.insert(underAttackLiths, meshPart)
+		end
+	end
+
+	-- Priority 1: Defend liths under attack
+	if #underAttackLiths > 0 then
+		if #underAttackLiths == 1 then
+			return underAttackLiths[1].Position
+		else
+			-- Find closest under-attack lith
+			local closest = nil
+			local closestDist = math.huge
+			for _, mesh in ipairs(underAttackLiths) do
+				local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
+				if dist < closestDist then
+					closestDist = dist
+					closest = mesh
+				end
+			end
+			return closest and closest.Position or nil
+		end
+	end
+
+	-- Priority 2: No attacks → go to closest owned lith
+	if #ownedLiths == 0 then
+		return nil
+	elseif #ownedLiths == 1 then
+		return ownedLiths[1].Position
+	else
+		local closest = nil
+		local closestDist = math.huge
+		for _, mesh in ipairs(ownedLiths) do
+			local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
+			if dist < closestDist then
+				closestDist = dist
+				closest = mesh
+			end
+		end
+		return closest and closest.Position or nil
+	end
+end
+
 
 local activePaths = {} -- [model] = true / connection
 

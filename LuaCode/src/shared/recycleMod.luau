@@ -1,5 +1,4 @@
--- recycleMod.lua
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+--!strict
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Require combatMod (for customTrim and other utilities)

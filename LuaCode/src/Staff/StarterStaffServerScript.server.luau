@@ -1,7 +1,5 @@
--- UNIFIED SERVER SCRIPT (Script inside each staff tool)
--- Place this exact script as a Script child of the Tool.
--- Handles bullet spawning, damage, & arc based on StaffType stats.
--- FIXES ORIGINAL BUG: Trail color now set on CLONED bullet (not shared template).
+--!strict
+
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")

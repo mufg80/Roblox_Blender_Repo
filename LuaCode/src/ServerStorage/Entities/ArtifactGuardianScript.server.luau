@@ -1,13 +1,15 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local model = script.Parent
 local random = Random.new()
-
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
 local aggroMod = require(game.ReplicatedStorage.Shared.aggroMod)
+local buffMod = require(ReplicatedStorage.Shared.buffMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
-local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
+local serverstorage = game:GetService("ServerStorage")
+local billboard = nil
 local thisMob = utilMod.customTrim(model.Name)
 random = Random.new(utilMod.GetSeedFromName(thisMob))
 local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -27,112 +29,6 @@ local spawnPosition = hrp.Position
 local lithTakePosition = nil
 local lithDefendPosition = nil
 
-local function SetTakeLithPosition()
-	local id = model:GetAttribute("OwnedBy")
-	if id == "None" or id == "none" or id == "" then
-		return
-	end
-	local plr = game.Players:GetPlayerByUserId(id)
-	if not plr then
-		return
-	end
-	local points = workspace:WaitForChild("ManaPoints"):GetChildren()
-	if not points then
-		return
-	end
-
-	local closestPointDist = math.huge
-	local closestPoint = nil
-	for _, point in pairs(points) do
-		local dist = utilMod.GetDistance(point:FindFirstChildOfClass("MeshPart").Position, hrp.Position)
-		if dist < closestPointDist and point:GetAttribute("OwnedBy") ~= plr.UserId and point.Name ~= "ManaSpout" then
-			closestPointDist = dist
-			closestPoint = point
-		end
-	end
-	if closestPoint then
-		lithTakePosition = closestPoint:FindFirstChildOfClass("MeshPart").Position
-	else
-		lithTakePosition = nil
-	end
-end
-
-local function SetLithDefendPosition()
-	local id = model:GetAttribute("OwnedBy")
-	if id == "None" or id == "none" or id == "" then
-		return
-	end
-	local plr = game.Players:GetPlayerByUserId(id)
-	if not plr then
-		return
-	end
-
-	local points = workspace:WaitForChild("ManaPoints"):GetChildren()
-	if not points then
-		return
-	end
-
-	local thoseUnderAttack = {}
-	local allliths = {}
-	for _, point in pairs(points) do
-		local ownedby = point:GetAttribute("OwnedBy")
-		local underAttack = point:GetAttribute("IsUnderAttack")
-		if ownedby == plr.UserId and underAttack then
-			table.insert(thoseUnderAttack, point)
-			table.insert(allliths, point)
-		elseif ownedby == plr.UserId then
-			table.insert(allliths, point)
-		end
-	end
-
-	if #thoseUnderAttack == 0 then
-		-- go to nearest lith
-		if #allliths < 1 then
-			lithDefendPosition = nil
-			return
-		elseif #allliths == 1 then
-			lithDefendPosition = allliths[1]:FindFirstChildOfClass("MeshPart").Position
-			return
-		else
-			local closestLithdist = math.huge
-			local closestLith = nil
-			for _, lith in pairs(allliths) do
-				local lithpos = lith:FindFirstChildOfClass("MeshPart").Position
-				if lithpos and utilMod.GetDistance(hrp.Position, lithpos) < closestLithdist then
-					closestLith = lith
-				end
-			end
-			if closestLith then
-				lithDefendPosition = closestLith:FindFirstChildOfClass("MeshPart").Position
-			else
-				lithDefendPosition = nil
-			end
-			return
-		end
-	elseif #thoseUnderAttack == 1 then
-		-- go to lith that is being attacked
-		lithDefendPosition = thoseUnderAttack[1]:FindFirstChildOfClass("MeshPart").Position
-		return
-	elseif #thoseUnderAttack > 1 then
-		-- go to closest
-		local closestLithdist = math.huge
-		local closestLith = nil
-		for _, lith in pairs(thoseUnderAttack) do
-			local lithpos = lith:FindFirstChildOfClass("MeshPart").Position
-			if lithpos and utilMod.GetDistance(hrp.Position, lithpos) < closestLithdist then
-				closestLith = lith
-			end
-		end
-		if closestLith then
-			lithDefendPosition = closestLith:FindFirstChildOfClass("MeshPart").Position
-		else
-			lithDefendPosition = nil
-		end
-	else
-		-- none go to is nil
-		lithDefendPosition = nil
-	end
-end
 
 function setStats()
 	local baseStats = utilMod.GetStatsFromFolder(model)
@@ -151,10 +47,16 @@ local AddBuffDebuffEvent = Instance.new("BindableEvent")
 AddBuffDebuffEvent.Name = "BuffDebuffEvent"
 AddBuffDebuffEvent.Parent = model
 
+local buffconnection = nil
 AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
 	--print("Called buff debuff event ", player.UserId, " spell: ", spellname)
 	setStats()
-	
+	local spelltype = statsMod.SpellInfo[spellname].spellType
+	if spelltype == "buff" or spelltype == "debuff" or spelltype == "heal" then
+		local buffInfo = statsMod.BuffInfo[spellname]
+		local duration = buffInfo.seconds
+		buffconnection = buffMod.ApplyBuffLabel(spelltype, duration, billboard, model, buffconnection)
+	end
 end)
 
 local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
@@ -177,7 +79,6 @@ RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
 	else
 		setStats()
 	end
-	
 end)
 
 -- === Threat API ===
@@ -210,8 +111,44 @@ humanoid.HealthChanged:Connect(function(health)
 			creator:Destroy()
 		end
 	end
+
+	-- billboard work
+	if not billboard then
+		return
+	end
+	if not billboard:FindFirstChild("PetFrameContainer") then
+		return
+	end
+	local inner = billboard.PetFrameContainer.PetMeterBar.InnerFill
+	local den = humanoid.MaxHealth
+	local num = humanoid.Health
+	local fraction = nil
+	if den == 0 then
+		fraction = 0
+	else
+		fraction = math.clamp(num / den, 0, 1)
+	end
+	inner.Size = UDim2.new(fraction, 0, 1, 0)
 end)
 humanoid.Health = humanoid.MaxHealth - 1
+
+function BillBoardWork()
+	if not billboard then
+		billboard = serverstorage.BillBoards.BillBoardGUI:Clone()
+		billboard.Parent = model
+		local owner = utilMod.GetModelByIDorName(model:GetAttribute("OwnedBy"))
+		if owner then
+			local plrName = game.Players:GetPlayerFromCharacter(owner)
+			local nameText = billboard.Frame.AANameLabel
+			nameText.Text = plrName.Name .. "'s " .. statsMod.creatureStats[utilMod.customTrim(thisMob)].printedName
+		else
+			local nameText = billboard.Frame.AANameLabel
+			nameText.Text = statsMod.creatureStats[utilMod.customTrim(thisMob)].printedName
+		end
+	end
+end
+BillBoardWork()
+
 
 local playerConnection
 local petattackConnection
@@ -225,6 +162,7 @@ local petTakeLith = false
 local petDefendlith = false
 
 local function setupOwnerConnection(ownerId)
+	BillBoardWork()
 	-- Disconnect old
 	if playerConnection then
 		playerConnection:Disconnect()
@@ -264,13 +202,13 @@ local function setupOwnerConnection(ownerId)
 		petattackConnection = plrowner:GetAttributeChangedSignal("PetTakeLith"):Connect(function()
 			petTakeLith = plrowner:GetAttribute("PetTakeLith")
 			if petTakeLith then
-				SetTakeLithPosition()
+				lithTakePosition = pathMod.GetTakeLithLoc(model, hrp)
 			end
 		end)
 		petattackConnection = plrowner:GetAttributeChangedSignal("PetDefendLith"):Connect(function()
 			petDefendlith = plrowner:GetAttribute("PetDefendLith")
 			if petDefendlith then
-				SetLithDefendPosition()
+				lithDefendPosition = pathMod.GetDefendLithLoc(model, hrp)
 			end
 		end)
 		petAttack = plrowner:GetAttribute("PetAttack")
@@ -278,10 +216,10 @@ local function setupOwnerConnection(ownerId)
 		petTakeLith = plrowner:GetAttribute("PetTakeLith")
 		petDefendlith = plrowner:GetAttribute("PetDefendLith")
 		if petTakeLith then
-			SetTakeLithPosition()
+			lithTakePosition = pathMod.GetTakeLithLoc(model, hrp)
 		end
 		if petDefendlith then
-			SetLithDefendPosition()
+			lithDefendPosition = pathMod.GetDefendLithLoc(model, hrp)
 		end
 	end
 

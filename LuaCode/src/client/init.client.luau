@@ -1,3 +1,5 @@
+--!strict
+
 local replicatedstorage = game:GetService("ReplicatedStorage")
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
@@ -159,12 +161,6 @@ task.spawn(function()
 end)
 
 local function ChangeHealth()
-	-- Compare old vs new health
-	--local damageTaken = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - (health or 0)) or 0
-
-	-- Store the new health for next time
-	--hum:SetAttribute("LastHealth", health)
-
 	local inner = statsGui.HudFrame.HealthMeterBar.InnerFill
 	local den = hum.MaxHealth
 	local num = hum.Health
@@ -351,7 +347,6 @@ replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulslef
 	if soulsleft <= maxsouls then
 		player:SetAttribute("Souls", soulsleft or 0)
 	end
-	
 end)
 
 replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature, souls)
@@ -515,11 +510,47 @@ end)
 -- Initial visual update
 UpdateButtonVisuals()
 
-
 -- Buffs
 local buffEvent = replicatedstorage.Events.BuffDebuffHealEvent
 buffEvent.OnClientEvent:Connect(function(id, spellname, command)
-	print(tostring(id).." "..spellname.. " "..command)
+	print(tostring(id) .. " " .. spellname .. " " .. command)
+	local spelltype = statsMod.SpellInfo[spellname].spellType
+	if not spelltype then
+		return
+	end
+	local spelllabel = nil
+	if typeof(id) == "number" then
+		-- is a player
+		local playerBuffFrame = statsGui.HudFrame.PlayerEffectsFrame
+		if spelltype == "buff" then
+			spelllabel = playerBuffFrame.BuffLabel
+		elseif spelltype == "debuff" then
+			spelllabel = playerBuffFrame.DebuffLabel
+		elseif spelltype == "heal" then
+			spelllabel = playerBuffFrame.HealLabel
+		else
+			warn("Should not reach me.")
+		end
+	else
+		-- pets buff
+		local petinfoframe = tostring(id) .. "_PetFrame"
+		local frame = statsGui.HudFrame:FindFirstChild(petinfoframe)
+
+		if spelltype == "buff" then
+			spelllabel = frame.ZZBuffFrame.BuffLabel
+		elseif spelltype == "debuff" then
+			spelllabel = frame.ZZBuffFrame.DebuffLabel
+		elseif spelltype == "heal" then
+			spelllabel = frame.ZZBuffFrame.HealLabel
+		else
+			warn("Should not reach me.")
+		end
+	end
+	if command == "Add" then
+		spelllabel.Visible = true
+	else
+		spelllabel.Visible = false
+	end
 end)
 
 -- admin area

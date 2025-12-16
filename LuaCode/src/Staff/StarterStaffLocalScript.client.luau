@@ -1,4 +1,4 @@
-
+--!strict
 
 -- UNIFIED CLIENT SCRIPT (LocalScript inside each staff tool)
 -- Place this exact script as a LocalScript child of the Tool.

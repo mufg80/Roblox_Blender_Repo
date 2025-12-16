@@ -465,7 +465,7 @@ statsMod.BuffInfo = {
 		armour = -0.24,
 		artificermagicdefense = -0.2,
 		speed = -0.15,
-		seconds = 10,
+		seconds = 20,
 		maxDamage = -0.1,
 	},
 	AnimatedAttacks = {
@@ -573,6 +573,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
+		printedName = "Player None"
 	},
 
 	-- ARTIFICER LINE
@@ -593,6 +594,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
+		printedName = "Player Artificer"
 	},
 	["StoneManaPriest"] = {
 		magicType = "Artificer",
@@ -611,6 +613,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
+		printedName = "Stone Mana Priest"
 	},
 	["ArtifactGuardian"] = {
 		magicType = "Artificer",
@@ -629,6 +632,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
+		printedName = "Artifact Guardian"
 	},
 	["GrandPo"] = {
 		magicType = "Artificer",
@@ -647,6 +651,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 3,
 		width = 10,
+		printedName = "Grand Po"
 	},
 	["CoatArms"] = {
 		magicType = "Artificer",
@@ -665,6 +670,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 5,
+		printedName = "Coat Arms"
 	},
 	["ArtifactProtector"] = {
 		magicType = "Artificer",
@@ -683,6 +689,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
+		printedName = "Artifact Protector"
 	},
 	["SuitArms"] = {
 		magicType = "Artificer",
@@ -701,6 +708,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
+		printedName = "Suit Arms"
 	},
 	["FlyingGolem"] = {
 		magicType = "Artificer",
@@ -719,6 +727,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
+		printedName = "Flying Golem"
 	},
 
 	-- PRIMORDIAL LINE
@@ -739,6 +748,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
+		printedName = "Player Primordial"
 	},
 	["MudPriest"] = {
 		magicType = "Primordial",
@@ -757,6 +767,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
+		printedName = "Mud Priest"
 	},
 	["Dybb"] = {
 		magicType = "Primordial",
@@ -775,6 +786,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
+		printedName = "Dybb"
 	},
 	["Blob"] = {
 		magicType = "Primordial",
@@ -793,6 +805,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 3,
 		width = 5,
+		printedName = "Blob"
 	},
 	["LithEater"] = {
 		magicType = "Primordial",
@@ -811,6 +824,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 5,
+		printedName = "Lith Eater"
 	},
 	["GemEncrustedDybb"] = {
 		magicType = "Primordial",
@@ -829,6 +843,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
+		printedName = "Gem Encrusted Dybb"
 	},
 	["GiantAmoeba"] = {
 		magicType = "Primordial",
@@ -847,6 +862,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
+		printedName = "Giant Amoeba"
 	},
 	["FlyingEnergyField"] = {
 		magicType = "Primordial",
@@ -865,6 +881,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
+		printedName = "Flying Energy Field"
 	},
 
 	-- NATURE LINE
@@ -885,6 +902,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
+		printedName = "Player Nature"
 	},
 	["Druid"] = {
 		magicType = "Nature",
@@ -903,6 +921,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
+		printedName = "Druid"
 	},
 	["Pog"] = {
 		magicType = "Nature",
@@ -921,6 +940,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
+		printedName = "Pog"
 	},
 	["WindSpirit"] = {
 		magicType = "Nature",
@@ -939,6 +959,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 3,
 		width = 5,
+		printedName = "Wind Spirit"
 	},
 	["Silverback"] = {
 		magicType = "Nature",
@@ -957,6 +978,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 5,
+		printedName = "Silverback"
 	},
 	["GreatTuskedPog"] = {
 		magicType = "Nature",
@@ -975,6 +997,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
+		printedName = "Great Tusked Pog"
 	},
 	["Carnosaur"] = {
 		magicType = "Nature",
@@ -993,6 +1016,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
+		printedName = "Carnosaur"
 	},
 	["Griffin"] = {
 		magicType = "Nature",
@@ -1011,6 +1035,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
+		printedName = "Griffin"
 	},
 
 	-- SPECIAL / FERAL
@@ -1031,6 +1056,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
+		printedName = "Feral Artifact Guardian"
 	},
 }
 

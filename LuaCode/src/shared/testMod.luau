@@ -1,3 +1,4 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)

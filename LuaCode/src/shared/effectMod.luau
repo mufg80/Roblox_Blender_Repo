@@ -1,7 +1,7 @@
+--!strict
 local replicatedstorage = game:GetService("ReplicatedStorage")
 local utilMod = require(replicatedstorage.Shared.utilMod)
 local statsMod = require(replicatedstorage.Shared.statsMod)
-local serverstorage = game:GetService("ServerStorage")
 local effectMod = {}
 
 function effectMod.SummonCreatureEffect(spawnpoint: Vector3, creatureName: string, secs: number)
@@ -108,7 +108,7 @@ function effectMod.AOEDamageEffect(spawnpoint: Vector3, spellName: string)
 	end)
 end
 
-function effectMod.BuffEffects(locs: table, spellName: string)
+function effectMod.BuffEffects(locs: {Model}, spellName: string)
 	local spellinfo = statsMod.SpellInfo[spellName]
 	if not spellinfo then
 		warn("should not reach me")
@@ -160,7 +160,7 @@ function effectMod.BuffEffects(locs: table, spellName: string)
 	end
 end
 
-function effectMod.DeBuffEffects(locs: table, spellName: string)
+function effectMod.DeBuffEffects(locs: {Model}, spellName: string)
 	local spellinfo = statsMod.SpellInfo[spellName]
 	if not spellinfo then
 		warn("should not reach me")
@@ -215,9 +215,9 @@ end
 export type effectMod = {
 	SummonCreatureEffect: (spawnpoint: Vector3, creatureName: string, secs: number) -> (),
 	DirectDamageEffect: (spawnpoint: Vector3, spellName: string) -> (),
-	AOEDamageEffect: (locs: table, spellName: string) -> (),
-	BuffEffects: (locs: table, spellName: string) -> (),
-	DeBuffEffects: (locs: table, spellName: string) -> (),
+	AOEDamageEffect: (locs: Vector3, spellName: string) -> (),
+	BuffEffects: (locs: {Model}, spellName: string) -> (),
+	DeBuffEffects: (locs: {Model}, spellName: string) -> (),
 }
 
 return effectMod

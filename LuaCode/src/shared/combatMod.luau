@@ -1,6 +1,4 @@
 --!strict
--- ReplicatedStorage.Shared.combatMod
--- Combat calculation & damage application utilities
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

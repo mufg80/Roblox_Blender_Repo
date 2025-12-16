@@ -5,6 +5,68 @@ local serverStorage = game:GetService("ServerStorage")
 local repstore = game:GetService("ReplicatedStorage")
 local buffMod = {}
 
+function buffMod.ApplyBuffLabel(spelltype, duration, billboard, model, currentConnection)
+    -- Validate spelltype
+    if spelltype ~= "buff" and spelltype ~= "debuff" and spelltype ~= "heal" then
+        warn("ApplyBuffLabel: Invalid spelltype:", spelltype)
+        return nil
+    end
+
+    -- Map spelltype to label name
+    local labelName = ({
+        buff = "BuffLabel",
+        debuff = "DebuffLabel",
+        heal = "HealLabel"
+    })[spelltype]
+
+    local imageLabel = billboard.Frame.ZZBuffFrame[labelName]
+    if not imageLabel then
+        return nil
+    end
+
+    -- Safely clean up any existing buff thread
+    if currentConnection then
+        pcall(task.cancel, currentConnection)
+    end
+
+    local blinkStartDelay = duration > 5 and duration - 5 or 0
+
+    -- Spawn the blinking task
+    local newConnection = task.spawn(function()
+        imageLabel.Visible = true
+        local startTime = os.clock()
+
+        while true do
+            task.wait(1)
+
+            -- Safely check if NPC is still alive and UI exists
+            if not model or not model.Parent or not imageLabel or not imageLabel.Parent then
+                if imageLabel then
+                    imageLabel.Visible = false
+                end
+                return
+            end
+
+            local currentTime = os.clock()
+            local elapsed = currentTime - startTime
+
+            -- Blink logic: alternate every second in the last 5s (or whole duration)
+            if elapsed >= blinkStartDelay then
+                local elapsedSeconds = math.floor(elapsed)
+                imageLabel.Visible = (elapsedSeconds % 2 == 1)
+            end
+
+            -- End buff
+            if elapsed >= duration then
+                imageLabel.Visible = false
+                return
+            end
+        end
+    end)
+
+    return newConnection
+end
+
 -- At the top of the module (next to RUNNING_EFFECTS)
 local RUNNING_EFFECTS: { [string]: thread } = {} -- now stores the coroutine thread itself
 -- (change from boolean to thread)
@@ -171,7 +233,7 @@ local function FireBuffNotificationEvent(
 		end
 	else
 		local owner = modelInstance:GetAttribute("OwnedBy")
-		if owner then
+		if owner and owner ~= "None" and owner ~= "none" and owner ~= "" then
 			local plr = game.Players:GetPlayerByUserId(owner)
 			local buffevent = repstore.Events.BuffDebuffHealEvent
 			buffevent:FireClient(plr, modelInstance.Name, spellname, command)
