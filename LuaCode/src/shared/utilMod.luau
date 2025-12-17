@@ -190,28 +190,28 @@ end
 --==============================================================================
 -- State flag helpers (used by AI state machines)
 --==============================================================================
-function utilMod.SetFlagsForMoving(model: Model)
+function utilMod.SetFlagsForMoving(model: Model): ()
 	model:SetAttribute("IsMoving", true)
 	model:SetAttribute("IsIdle", false)
 	model:SetAttribute("HasFallen", false)
 	model:SetAttribute("InCombat", false)
 end
 
-function utilMod.SetFlagsForCombat(model: Model)
+function utilMod.SetFlagsForCombat(model: Model): ()
 	model:SetAttribute("IsMoving", false)
 	model:SetAttribute("IsIdle", false)
 	model:SetAttribute("HasFallen", false)
 	model:SetAttribute("InCombat", true)
 end
 
-function utilMod.SetFlagsForDeath(model: Model)
+function utilMod.SetFlagsForDeath(model: Model) : ()
 	model:SetAttribute("IsMoving", false)
 	model:SetAttribute("IsIdle", false)
 	model:SetAttribute("HasFallen", true)
 	model:SetAttribute("InCombat", false)
 end
 
-function utilMod.SetFlagsForIdle(model: Model)
+function utilMod.SetFlagsForIdle(model: Model): ()
 	model:SetAttribute("IsMoving", false)
 	model:SetAttribute("IsIdle", true)
 	model:SetAttribute("HasFallen", false)
@@ -682,7 +682,7 @@ end
 --==============================================================================
 -- Stats → Instance folder serialization
 --==============================================================================
-function utilMod.CopyStatsToFolder(target: Instance, stats: { [string]: any }, folderName: string?)
+function utilMod.CopyStatsToFolder(target: Instance, stats: { [string]: any }, folderName: string?): Folder
 	folderName = folderName or "Data"
 	local folder = target:FindFirstChild(folderName) or Instance.new("Folder")
 	folder.Name = folderName
@@ -861,7 +861,6 @@ export type UtilMod = {
 	DistancetoGround: (position: Vector3) -> number?,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
 	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
-	createColorExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
 	uniqueName: (baseName: string) -> string,
 	GetSeedFromName: (name: string, useTime: boolean?) -> number,
 

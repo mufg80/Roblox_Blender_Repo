@@ -53,7 +53,7 @@ local function fireBullet(player, targetPos)
 		return -- Not equipped / wrong player
 	end
 
-	local bulletTemplate = ServerStorage:FindFirstChild(bulletTemplateName)
+	local bulletTemplate = ServerStorage.Parts:FindFirstChild(bulletTemplateName)
 	if not bulletTemplate then
 		warn(bulletTemplateName, "not found in ServerStorage")
 		return

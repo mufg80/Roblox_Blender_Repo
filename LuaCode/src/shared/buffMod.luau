@@ -7,15 +7,27 @@ local buffMod = {}
 -- Table to track active buff tasks per model+spell
 local activeBuffs = {}
 
-function buffMod.ApplyBuffLabel(spelltype, spellname, duration, billboard, model)
+function buffMod.ApplyBuffLabel(spelltype, spellname, duration, model)
 	-- Validate spelltype
-	if spelltype ~= "buff" and spelltype ~= "debuff" and spelltype ~= "heal" then
+	if
+		spelltype ~= "buff"
+		and spelltype ~= "debuff"
+		and spelltype ~= "heal"
+		and spelltype ~= "areaDamage"
+		and spelltype ~= "damage"
+	then
 		warn("ApplyBuffLabel: Invalid spelltype:", spelltype)
 		return nil
 	end
 	-- Map spelltype to label name
-	local labelName = ({ buff = "BuffLabel", debuff = "DebuffLabel", heal = "HealLabel" })[spelltype]
-	local imageLabel = billboard.Frame.ZZBuffFrame[labelName]
+	local labelName = ({
+		buff = "BuffLabel",
+		debuff = "DebuffLabel",
+		heal = "HealLabel",
+		damage = "DamageLabel",
+		areaDamage = "DamageLabel",
+	})[spelltype]
+	local imageLabel = model:FindFirstChild("BillBoardGUI").Frame.ZZBuffFrame[labelName]
 	if not imageLabel then
 		return nil
 	end
@@ -176,7 +188,7 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: { Model }
 	player:SetAttribute("Mana", math.min(currentmana + 50, maxmana))
 	local maxSouls = player:GetAttribute("MaxSouls")
 	player:SetAttribute("Souls", math.min((player:GetAttribute("Souls") or 0) + 1, maxSouls))
-	repstore.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"))
+	repstore.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"), maxSouls)
 	return true
 end
 
@@ -230,8 +242,11 @@ local function FireBuffNotificationEvent(
 		local owner = modelInstance:GetAttribute("OwnedBy")
 		if owner and owner ~= "None" and owner ~= "none" and owner ~= "" then
 			local plr = game.Players:GetPlayerByUserId(owner)
-			local buffevent = repstore.Events.BuffDebuffHealEvent
-			buffevent:FireClient(plr, modelInstance.Name, spellname, command)
+
+			if plr:IsA("Player") then
+				local buffevent = repstore.Events.BuffDebuffHealEvent
+				buffevent:FireClient(plr, modelInstance.Name, spellname, command)
+			end
 		end
 	end
 end

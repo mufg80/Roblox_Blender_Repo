@@ -199,7 +199,7 @@ end
 --==============================================================================
 -- Creates a shallow copy of a creature's stats table (used for safe stat access)
 --==============================================================================
-function combatMod.ShallowTableCopy(name: any): table?
+function combatMod.ShallowTableCopy(name: any): table
 	local trimmed = utilMod.customTrim(tostring(name))
 	local t = statsMod.creatureStats[trimmed]
 	if not t then
@@ -211,7 +211,6 @@ function combatMod.ShallowTableCopy(name: any): table?
 	end
 	return copy
 end
-
 
 --==============================================================================
 -- Applies staff spell damage (called from tool hit detection)
@@ -299,7 +298,7 @@ function combatMod.ExecuteSpellDamageToBody(playerId: number, target: Model, dam
 			creator:Destroy()
 		end
 	end)
-
+	print("DamageDonebySpell: ".. damage)
 	humanoid.Health = math.max(humanoid.Health - damage, 1)
 	return true
 end
@@ -307,7 +306,7 @@ end
 --==============================================================================
 -- Summons or recycles a creature/pet for a player
 --==============================================================================
-function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3): ()
+function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3): Model?
 	local cost = combatMod.LeveltoManaCost(creatureName)
 	local mana = player:GetAttribute("Mana") or 0
 	if mana < cost then
@@ -385,6 +384,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		return summonedCreature
 	else
 		warn("Summoned creature has no HumanoidRootPart:", creatureName)
+		return nil
 	end
 end
 
@@ -412,13 +412,20 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 		local dis = utilMod.GetDistance(player.Character, target)
 		if target and dis and dis < info.range then
+			local isPlayer = false
 			if target:IsA("Player") then
 				target = target.Character
+				isPlayer = true
 			end
 			local damage = combatMod.SpellAttackResult(player, target, spellname)
-			combatMod.ExecuteSpellDamageToBody(player.UserId, target, damage)
+			task.delay(0.5, function()
+				combatMod.ExecuteSpellDamageToBody(player.UserId, target, damage)
+			end)
 			player:SetAttribute("Mana", mana - cost)
 			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart").Position, spellname)
+			if not isPlayer then
+				buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
+			end
 		end
 	elseif info.spellType == "areaDamage" then
 		local affected = 0
@@ -428,14 +435,21 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		for _, plr in playersInRange do
 			if affected < info.numberTargets then
 				local dmg = combatMod.SpellAttackResult(player, plr, spellname)
-				combatMod.ExecuteSpellDamageToBody(player.UserId, plr.Character, dmg)
+				
+				task.delay(0.5, function()
+					combatMod.ExecuteSpellDamageToBody(player.UserId, plr.Character, dmg)
+				end)
 				affected += 1
 			end
 		end
 		for _, mob in modelsInRange do
 			if affected < info.numberTargets then
 				local dmg = combatMod.SpellAttackResult(player, mob, spellname)
-				combatMod.ExecuteSpellDamageToBody(player.UserId, mob, dmg)
+				
+				task.delay(0.5, function()
+					combatMod.ExecuteSpellDamageToBody(player.UserId, mob, dmg)
+				end)
+				buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, mob)
 				affected += 1
 			end
 		end
@@ -452,10 +466,15 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		if info.spellType == "heal" or info.spellType == "buff" then
 			local charcontainer = {}
 			applied = buffMod.BuffDebuffHeal(player, player, spellname) or applied
-			if applied then table.insert(charcontainer, player.Character) end
+			if applied then
+				table.insert(charcontainer, player.Character)
+			end
 			for _, pet in utilMod.MyPets(player) do
 				applied = buffMod.BuffDebuffHeal(player, pet, spellname) or applied
-				if applied then table.insert(charcontainer, pet) end
+				if applied then
+					table.insert(charcontainer, pet)
+					buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, pet)
+				end
 			end
 			if applied then
 				effectMod.BuffEffects(charcontainer, spellname)
@@ -464,14 +483,19 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 		if info.spellType == "debuff" then
 			local charcontainer = {}
-		
+
 			for _, plr in utilMod.GetEnemyPlayersWithinRange(player, info.range) do
 				applied = buffMod.BuffDebuffHeal(player, plr, spellname) or applied
-				if applied then table.insert(charcontainer, plr.Character) end
+				if applied then
+					table.insert(charcontainer, plr.Character)
+				end
 			end
 			for _, mob in utilMod.GetEnemyModelsWithinRange(player, info.range) do
 				applied = buffMod.BuffDebuffHeal(player, mob, spellname) or applied
-				if applied then table.insert(charcontainer, mob) end
+				if applied then
+					table.insert(charcontainer, mob)
+					buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, mob)
+				end
 			end
 			if applied then
 				effectMod.DeBuffEffects(charcontainer, spellname)
@@ -583,10 +607,10 @@ export type CombatMod = {
 	AcceptableDistanceToOpponent: (model: Model, enemy: Model) -> boolean,
 	GetStatsSafelyForPlrorNpc: (npc: Instance) -> table?,
 	MeleeAttackResult: (attacker: Instance, defender: Instance) -> number,
-	ShallowTableCopy: (name: any) -> table?,
+	ShallowTableCopy: (name: any) -> table,
 	ApplyStaffDamage: (hitPart: BasePart, ownerPlayer: Player, staffType: string) -> boolean,
 	ExecuteSpellDamageToBody: (playerId: number, target: Model, damage: number?) -> boolean,
-	ApplyAbility: (player: Player, creatureName: string, recyleMod: any) -> (),
+	ApplyAbility: (player: Player, creatureName: string, recyleMod: any) -> Model?,
 	ApplySpell: (player: Player, spellname: string) -> (),
 	GetPlayerType: (player: Player?) -> string?,
 	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,

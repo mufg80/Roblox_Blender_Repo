@@ -12,7 +12,7 @@ local MAXPLAYERCHANGEPERTICK = 0.05
 local CONTROL_RANGE = 50 -- Player/pet combat range
 local FERALDISTANCE = 60 -- Distance within which ferals annoy and double decay
 local BASE_DECAY = LITHHEALTHCAP * MAXCHANGEPERTICK -- Normal decay amount
-
+local FERALMULTIPLIER = 3
 local lithMod = {}
 local liths = {} -- [uniqueId] = currentControl (0 to 5000)
 
@@ -72,6 +72,42 @@ local function HasNearbyFerals(lithPosition: Vector3): boolean
 	return false
 end
 
+function lithMod.AdjustAdorner(uniqueId, currentControl, building, isPositive)
+	local percentage = lithMod.GetLithControl(uniqueId)
+	local billboard = building:FindFirstChild("BillBoardGUI")
+	if not billboard then
+		billboard = ServerStorage.BillBoards.BillBoardGUI:Clone()
+		local plrID = building:GetAttribute("OwnedBy")
+		if typeof(plrID) == "number" then
+			local plrName = game.Players:GetPlayerByUserId(plrID).Name
+			local label = billboard.Frame.AANameLabel
+			if label then
+				label.Text = plrName .. "'s Lith"
+			end
+		else
+			local label = billboard.Frame.AANameLabel
+			if label then
+				label.Text = "Errant Lith"
+			end
+		end
+		billboard.Parent = building
+		billboard.ExtentsOffset = Vector3.new(0, 1, 0)
+	end
+	local innerFrame = billboard.Frame.PetFrameContainer.PetMeterBar.InnerFill
+	if innerFrame then
+		innerFrame.Size = UDim2.new(percentage, 0, 1, 0)
+	end
+	local plus = billboard.Frame.ZZBuffFrame.PlusLabel
+	local minus = billboard.Frame.ZZBuffFrame.MinusLabel
+	if isPositive then
+		plus.Visible = true
+		minus.Visible = false
+	else
+		plus.Visible = false
+		minus.Visible = true
+	end
+end
+
 -- Main control tick loop
 task.spawn(function()
 	while task.wait(1) do
@@ -110,12 +146,16 @@ task.spawn(function()
 
 					-- Ferals double the decay if nearby
 					if HasNearbyFerals(lithPos) then
-						decayAmount = decayAmount * 2
+						decayAmount = decayAmount * FERALMULTIPLIER
 					end
 
 					currentControl = math.max(currentControl - decayAmount, LITHHEALTHCAP / 3)
 					liths[uniqueId] = currentControl
+					print("CurrentControl: ".. currentControl)
+					print("Change is: "..tostring(decayAmount))
+					lithMod.AdjustAdorner(uniqueId, currentControl, building, decayAmount <= 0)
 				end
+				
 				continue
 			end
 
@@ -158,22 +198,23 @@ task.spawn(function()
 			local netAdvantage = defenderStrength - attackerStrength
 			local maxDelta = LITHHEALTHCAP * MAXPLAYERCHANGEPERTICK
 			local change = math.clamp(netAdvantage, -maxDelta, maxDelta)
-			--print("Change is: "..tostring(change))
+			print("Change is: "..tostring(change))
 			currentControl = math.clamp(currentControl + change, 0, LITHHEALTHCAP)
+			print("CurrentControl: ".. currentControl)
 			liths[uniqueId] = currentControl
-
+			lithMod.AdjustAdorner(uniqueId, currentControl, building, change >= 0)
 			-- === Building destroyed when control hits 0 ===
 			if currentControl <= 0 then
 				local manaspawnpoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
 
-                for _, point in pairs(manaspawnpoints) do
+				for _, point in pairs(manaspawnpoints) do
 					local pointPos = point.CFrame.Position
-                    if utilMod.GetDistance(pointPos, mesh.Position) < 10 then
-                        point:SetAttribute("HasBuilding", "Spout")
-                        local spoutModel = ServerStorage.Buildings.ManaSpout:Clone() -- now a Model
+					if utilMod.GetDistance(pointPos, mesh.Position) < 10 then
+						point:SetAttribute("HasBuilding", "Spout")
+						local spoutModel = ServerStorage.Buildings.ManaSpout:Clone() -- now a Model
 						spoutModel:PivotTo(point.CFrame) -- or point.CFrame * CFrame.new(0, offset, 0) if needed
 						spoutModel.Parent = workspace.ManaPoints
-                    end
+					end
 				end
 
 				liths[uniqueId] = nil
@@ -199,7 +240,7 @@ end
 
 -- Public: Get current lith control/health
 function lithMod.GetLithControl(uniqueId: number): number?
-	return liths[uniqueId]
+	return liths[uniqueId] / LITHHEALTHCAP
 end
 
 return lithMod

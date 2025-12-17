@@ -343,13 +343,25 @@ for _, button in pairs(spellbuttons) do
 	end
 end
 
+local function Adjustsouls(soulsleft: number, maxsouls: number)
+	local label = statsGui.SoulFrame.SoulsLabel
+	if label then
+		label.Text = soulsleft .. "/" .. maxsouls
+	end
+end
 replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulsleft, maxsouls)
+	if not soulsleft or not maxsouls then
+		warn("Should not reach me")
+		return
+	end
 	if soulsleft <= maxsouls then
 		player:SetAttribute("Souls", soulsleft or 0)
 	end
+	Adjustsouls(soulsleft, maxsouls)
 end)
 
 replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature, souls)
+	print("soulsevent")
 	if not summonedCreature then
 		warn("No summoned creature received on client")
 		return

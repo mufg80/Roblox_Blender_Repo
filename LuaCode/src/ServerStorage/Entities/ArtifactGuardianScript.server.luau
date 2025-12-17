@@ -51,12 +51,6 @@ local buffconnection = nil
 AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
 	--print("Called buff debuff event ", player.UserId, " spell: ", spellname)
 	setStats()
-	local spelltype = statsMod.SpellInfo[spellname].spellType
-	if spelltype == "buff" or spelltype == "debuff" or spelltype == "heal" then
-		local buffInfo = statsMod.BuffInfo[spellname]
-		local duration = buffInfo.seconds
-		buffMod.ApplyBuffLabel(spelltype, spellname, duration, billboard, model)
-	end
 end)
 
 local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
@@ -116,10 +110,10 @@ humanoid.HealthChanged:Connect(function(health)
 	if not billboard then
 		return
 	end
-	if not billboard:FindFirstChild("PetFrameContainer") then
+	if not billboard:FindFirstChild("Frame") then
 		return
 	end
-	local inner = billboard.PetFrameContainer.PetMeterBar.InnerFill
+	local inner = billboard.Frame.PetFrameContainer.PetMeterBar.InnerFill
 	local den = humanoid.MaxHealth
 	local num = humanoid.Health
 	local fraction = nil
@@ -339,12 +333,6 @@ task.spawn(function()
 			-- local spawnPosition = hrp.Position
 			-- local lithTakePosition = nil
 			-- local lithDefendPosition = nil
-
-			-- I am uploading all for reference but only work in if blocks that I call out with comments, so that I can test between iterations.
-			-- a new movingDirection value will need added for going to liths, "MovingToNearestLith"
-			-- when entering a branch such as going to lith, check the pathMod.GetCurrentTarget(model) It will provide "Lith"
-			-- if it doesnt, set to idle, (Idle logic checks if pathing target and cancels farther down. This function scans every
-			-- 0.03 seconds and this way it will be clear to change back to moving on the next iteration.
 
 			----------------------------------------------------------------
 			-- Aggro

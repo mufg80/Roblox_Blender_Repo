@@ -457,7 +457,9 @@ statsMod.BuffInfo = {
 		seconds = 30,
 		maxDamage = 0.19,
 	},
-	ReviveSpirit = { hitPoints = 40, seconds = 1 },
+	ReviveSpirit = { hitPoints = 10, seconds = 4 },
+	StoneFall = { hitPoints = 0, seconds = 2 },
+	Avalanche = { hitPoints = 0, seconds = 2 },
 	StoneonFoot = {
 		attack = -0.08,
 		attackDelay = 0.13,
@@ -479,7 +481,9 @@ statsMod.BuffInfo = {
 		seconds = 30,
 		maxDamage = 0.15,
 	},
-	HalfLife = { hitPoints = 30, seconds = 15 },
+	HalfLife = { hitPoints = 30, seconds = 1 },
+	DormantVirus = { hitPoints = 0, seconds = 2 },
+	InhostpitableAtmosphere = { hitPoints = 0, seconds = 2 },
 	GooSwamp = {
 		attack = -0.05,
 		attackDelay = 0.1,
@@ -504,6 +508,8 @@ statsMod.BuffInfo = {
 		maxDamage = 0.18,
 	},
 	Regenerate = { hitPoints = 50, seconds = 36 },
+	StingingSwarm = { hitPoints = 0, seconds = 2 },
+	NaturesDefenders = { hitPoints = 0, seconds = 2 },
 	Root = {
 		attack = -0.05,
 		attackDelay = 0.05,

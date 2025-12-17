@@ -110,6 +110,10 @@ end
 
 local function CharacterAdded(character)
 	local plr = game.Players:GetPlayerFromCharacter(character)
+	local max = plr:GetAttribute("MaxSouls")
+	local soul = plr:GetAttribute("Souls")
+	ReplicatedStorage.Events.GainedSoulEvent:FireClient(plr,soul , max)
+
 	local hum = character:FindFirstChild("Humanoid")
 	setStats(plr)
 	local connection = nil
@@ -146,6 +150,28 @@ local function CharacterAdded(character)
 end
 
 game.Players.PlayerAdded:Connect(function(player)
+	-- set magic to enum of none
+	-- Persistence Attributes
+	player:SetAttribute("Magic", statsMod.MagicType.None)
+	player:SetAttribute("ArtificerLevel", 1)
+	player:SetAttribute("PrimordialLevel", 1)
+	player:SetAttribute("NatureLevel", 1)
+	player:SetAttribute("ArtificerExperience", 1)
+	player:SetAttribute("PrimordialExperience", 1)
+	player:SetAttribute("NatureExperience", 1)
+
+	-- No persistence for these attributes
+	player:SetAttribute("MaxMana", 20)
+	player:SetAttribute("Mana", 20)
+	player:SetAttribute("HasFallen", false)
+	player:SetAttribute("AllyId", 0)
+	player:SetAttribute("Souls", 4)
+	player:SetAttribute("MaxSouls", 4)
+	player:SetAttribute("PetAttack", true)
+	player:SetAttribute("PetFollow", true)
+	player:SetAttribute("PetTakeLith", false)
+	player:SetAttribute("PetDefendLith", false)
+
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
 
 	local AddBuffDebuffEvent = Instance.new("BindableEvent")
@@ -196,28 +222,7 @@ game.Players.PlayerAdded:Connect(function(player)
 		end
 	end)
 
-	-- set magic to enum of none
-	-- Persistence Attributes
-	player:SetAttribute("Magic", statsMod.MagicType.None)
-	player:SetAttribute("ArtificerLevel", 1)
-	player:SetAttribute("PrimordialLevel", 1)
-	player:SetAttribute("NatureLevel", 1)
-	player:SetAttribute("ArtificerExperience", 1)
-	player:SetAttribute("PrimordialExperience", 1)
-	player:SetAttribute("NatureExperience", 1)
-
-	-- No persistence for these attributes
-	player:SetAttribute("MaxMana", 20)
-	player:SetAttribute("Mana", 20)
-	player:SetAttribute("HasFallen", false)
-	player:SetAttribute("AllyId", 0)
-	player:SetAttribute("Souls", 4)
-	player:SetAttribute("MaxSouls", 4)
-	player:SetAttribute("PetAttack", true)
-	player:SetAttribute("PetFollow", true)
-	player:SetAttribute("PetTakeLith", false)
-	player:SetAttribute("PetDefendLith", false)
-
+	
 	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
 		ReduceMana(player)
 	end)
