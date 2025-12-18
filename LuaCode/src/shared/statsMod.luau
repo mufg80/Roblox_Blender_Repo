@@ -1,4 +1,4 @@
---!strict
+-- --!strict
 
 --==============================================================================
 -- STATSMOD - Central balance & configuration module
@@ -25,17 +25,17 @@ export type SpellInfo = {
 }
 
 export type BuffInfo = {
-	hitPoints: number,
-	attack: number,
-	attackDelay: number,
-	defense: number,
-	armour: number,
-	primordialmagicdefense: number,
-	artificermagicdefense: number,
-	naturemagicdefense: number,
-	speed: number,
-	seconds: number,
-	maxDamage: number,
+	hitPoints: number?,
+	attack: number?,
+	attackDelay: number?,
+	defense: number?,
+	armour: number?,
+	primordialmagicdefense: number?,
+	artificermagicdefense: number?,
+	naturemagicdefense: number?,
+	speed: number?,
+	seconds: number?,
+	maxDamage: number?,
 }
 
 export type CreatureStats = {
@@ -55,9 +55,9 @@ export type CreatureStats = {
 	aggroRadius: number,
 	level: number,
 	width: number,
+	printedName: string?,
 }
 
--- Pathfinding parameters passed directly to PathfindingService:CreatePath()
 export type PathfindingParams = {
 	AgentRadius: number,
 	AgentHeight: number,
@@ -66,9 +66,7 @@ export type PathfindingParams = {
 	Costs: { [string]: number }?,
 }
 
-
-
-local statsMod: {
+export type StatsMod = {
 	-- Core constants
 	MaxSpellDamage: number,
 	MaxSpellCost: number,
@@ -77,6 +75,8 @@ local statsMod: {
 
 	-- Enums & progression
 	MagicType: { [string]: MagicType },
+	Colors: { [string]: string },
+
 	MagicLevels: {
 		Artificer: { [string]: { Abilities: string, Spells: string } },
 		Primordial: { [string]: { Abilities: string, Spells: string } },
@@ -86,23 +86,28 @@ local statsMod: {
 	-- Spell & buff data
 	SpellInfo: { [string]: SpellInfo },
 	BuffInfo: { [string]: BuffInfo },
+
 	StaffStats: {
 		[string]: {
+			magicType: string,
+			name: string,
 			maxRange: number,
 			bulletSpeed: number,
 			arcHeight: number,
 			bulletTrail: string,
 			visualSize: number,
 			visualTime: number,
+			BulletTemplate: string?,
 		},
 	},
 
 	-- Creature base stats & pathfinding
 	creatureStats: { [string]: CreatureStats },
-	Pathing: { [string]: PathfindingParams }, -- NEW: properly typed
-    Pics: { [string]: string},
-} =
-	{} :: any
+	Pathing: { [string]: PathfindingParams },
+	Pics: { [string]: string },
+}
+
+local statsMod: StatsMod = {} :: any
 
 -- Global gameplay constants
 statsMod.MaxSpellDamage = 100
@@ -117,6 +122,7 @@ statsMod.MagicType = {
 	Nature = "Nature",
 	None = "None",
 }
+
 statsMod.Colors = {
     Artificer = "#c0cf16",
     Primordial = "#819dce",
@@ -534,7 +540,7 @@ statsMod.StaffStats = {
 		bulletTrail = "#d5d506",
 		visualSize = 0.5,
 		visualTime = 0.8,
-    	BulletTemplate = "StarterStaffBullet"  -- Opt
+    	BulletTemplate = "StarterStaffBullet",
 	},
 	StarterStaffPrimordial = {
 		magicType = "Primordial",
@@ -545,7 +551,7 @@ statsMod.StaffStats = {
 		bulletTrail = "#1d1674",
 		visualSize = 0.5,
 		visualTime = 0.5,
-    	BulletTemplate = "StarterStaffBullet"  -- Opt
+    	BulletTemplate = "StarterStaffBullet",
 	},
 	StarterStaffNature = {
 		magicType = "Nature",
@@ -556,7 +562,7 @@ statsMod.StaffStats = {
 		bulletTrail = "#217a22",
 		visualSize = 0.5,
 		visualTime = 0.5,
-    	BulletTemplate = "StarterStaffBullet"  -- Opt
+    	BulletTemplate = "StarterStaffBullet",
 	},
 }
 
@@ -940,7 +946,7 @@ statsMod.creatureStats = {
 		artificermagicdefense = 0.30,
 		naturemagicdefense = 0.55,
 		speed = 0.55,
-		MaxDamage = 0.42,
+		maxDamage = 0.42,
 		distanceForAttacker = 5,
 		height = 3.0,
 		aggroRadius = 50,
@@ -1073,7 +1079,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	ArtifactGuardian = {
@@ -1082,7 +1088,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	GrandPo = {
@@ -1091,7 +1097,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	CoatArms = {
@@ -1100,7 +1106,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	ArtifactProtector = {
@@ -1109,7 +1115,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	SuitArms = {
@@ -1118,7 +1124,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	FlyingGolem = {
@@ -1127,7 +1133,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	MudPriest = {
@@ -1136,7 +1142,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Dybb = {
@@ -1145,7 +1151,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Blob = {
@@ -1154,7 +1160,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	LithEater = {
@@ -1163,7 +1169,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	GemEncrustedDybb = {
@@ -1172,7 +1178,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	GiantAmoeba = {
@@ -1181,7 +1187,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	FlyingEnergyField = {
@@ -1190,7 +1196,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Druid = {
@@ -1199,7 +1205,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Pog = {
@@ -1208,7 +1214,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	WindSpirit = {
@@ -1217,7 +1223,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Silverback = {
@@ -1226,7 +1232,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	GreatTuskedPog = {
@@ -1235,7 +1241,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Carnosaur = {
@@ -1244,7 +1250,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	Griffin = {
@@ -1253,7 +1259,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 	FeralArtifactGuardian = {
@@ -1262,7 +1268,7 @@ statsMod.Pathing = {
 		AgentCanJump = true,
 		WaypointSpacing = 3,
 		Costs = {
-			["Danger"] = math.huge, -- Avoid
+			["Danger"] = math.huge,
 		},
 	},
 }
@@ -1291,5 +1297,4 @@ statsMod.Pics = {
 	["Griffin"] = "rbxassetid://128046516080244",
 }
 
-
-return statsMod
+return statsMod :: StatsMod

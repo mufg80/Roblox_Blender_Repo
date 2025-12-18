@@ -1,274 +1,70 @@
 --!strict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local model = script.Parent
-local random = Random.new()
-local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
-local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
-local pathMod = require(game.ReplicatedStorage.Shared.pathMod)
-local aggroMod = require(game.ReplicatedStorage.Shared.aggroMod)
+local model: Model = script.Parent
+local random: Random = Random.new()
+
+local utilMod = require(ReplicatedStorage.Shared.utilMod)
+local combatMod = require(ReplicatedStorage.Shared.combatMod)
+local pathMod = require(ReplicatedStorage.Shared.pathMod)
+local aggroMod = require(ReplicatedStorage.Shared.aggroMod)
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
+local petControlMod = require(ReplicatedStorage.Shared.petControlMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
-local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
-local serverstorage = game:GetService("ServerStorage")
-local billboard = nil
-local thisMob = utilMod.customTrim(model.Name)
+local stateMod = require(ReplicatedStorage.Shared.stateMod)
+local thisMob: string = utilMod.customTrim(model.Name)
 random = Random.new(utilMod.GetSeedFromName(thisMob))
-local humanoid = model:FindFirstChildOfClass("Humanoid")
-local hrp = model:FindFirstChild("HumanoidRootPart")
+
+local humanoid: Humanoid = model:FindFirstChildOfClass("Humanoid")
+local hrp: BasePart = model:FindFirstChild("HumanoidRootPart")
+
 if not humanoid or not hrp then
 	return
 end
 
-local sourceStats = combatMod.ShallowTableCopy(thisMob)
+local aggro = aggroMod.Setup(model)
+local pet = petControlMod.Setup(model)
 
+local sourceStats: { [string]: any } = combatMod.ShallowTableCopy(thisMob)
 utilMod.CopyStatsToFolder(script.Parent, sourceStats)
-
-local IsStationary = model:GetAttribute("IsStationary") ~= false
-local IdleReset = model:GetAttribute("IdleReset") or 5
-local rangeLimit = model:GetAttribute("RangeLimit") or 50
-local spawnPosition = hrp.Position
-local lithTakePosition = nil
-local lithDefendPosition = nil
-
-
-function setStats()
-	local baseStats = utilMod.GetStatsFromFolder(model)
-	humanoid.MaxHealth = baseStats.hitPoints
-	if humanoid.Health > humanoid.MaxHealth then
-		humanoid.Health = humanoid.MaxHealth
-	end
-	humanoid.WalkSpeed = 16 * baseStats.speed
-	IsStationary = model:GetAttribute("IsStationary") ~= false
-	IdleReset = model:GetAttribute("IdleReset") or 15
-end
-
-setStats()
-
-local AddBuffDebuffEvent = Instance.new("BindableEvent")
-AddBuffDebuffEvent.Name = "BuffDebuffEvent"
-AddBuffDebuffEvent.Parent = model
-
-local buffconnection = nil
-AddBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
-	--print("Called buff debuff event ", player.UserId, " spell: ", spellname)
-	setStats()
-end)
-
-local RemoveBuffDebuffEvent = Instance.new("BindableEvent")
-RemoveBuffDebuffEvent.Name = "RemoveBuffDebuffEvent"
-RemoveBuffDebuffEvent.Parent = model
-
-RemoveBuffDebuffEvent.Event:Connect(function(player: Player, spellname: string)
-	--print("Called Remove buff debuff event ", player.UserId, " spell: ", spellname)
-	local atts = model:GetAttributes()
-	local isbuffstartingwithBuffTrue = true
-	for attName, attValue in pairs(atts) do
-		if string.sub(attName, 1, 5) == "Buff_" then
-			isbuffstartingwithBuffTrue = false
-			break
-		end
-	end
-	if isbuffstartingwithBuffTrue then
-		utilMod.CopyStatsToFolder(script.Parent, sourceStats)
-		setStats()
-	else
-		setStats()
-	end
-end)
-
--- === Threat API ===
-local AddThreatEvent = Instance.new("BindableEvent")
-AddThreatEvent.Name = "AddThreat"
-AddThreatEvent.Parent = model
-
-local hateList = {}
-
-AddThreatEvent.Event:Connect(function(attackerId, amount)
-	if typeof(attackerId) == "number" or typeof(attackerId) == "string" then
-		hateList[attackerId] = (hateList[attackerId] or 0) + (amount or 0)
-	end
-end)
-
--- === THREAT FROM TAKING DAMAGE (NOW WORKING) ===
-humanoid.HealthChanged:Connect(function(health)
-	-- Compare old vs new health
-	local damageTaken = humanoid:GetAttribute("LastHealth") and (humanoid:GetAttribute("LastHealth") - health) or 0
-
-	-- Store the new health for next time
-	humanoid:SetAttribute("LastHealth", health)
-	local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
-
-	if creator and creator.Value then
-		local attacker = creator.Value
-		local attackerId = attacker:IsA("Player") and attacker.UserId or attacker.Name
-		--AddThreatEvent:Fire(attackerId, combatMod.CalculateAggro(damageTaken))
-		if creator.Parent then
-			creator:Destroy()
-		end
-	end
-
-	-- billboard work
-	if not billboard then
-		return
-	end
-	if not billboard:FindFirstChild("Frame") then
-		return
-	end
-	local inner = billboard.Frame.PetFrameContainer.PetMeterBar.InnerFill
-	local den = humanoid.MaxHealth
-	local num = humanoid.Health
-	local fraction = nil
-	if den == 0 then
-		fraction = 0
-	else
-		fraction = math.clamp(num / den, 0, 1)
-	end
-	inner.Size = UDim2.new(fraction, 0, 1, 0)
-end)
-humanoid.Health = humanoid.MaxHealth - 1
-
-function BillBoardWork()
-	if not billboard then
-		billboard = serverstorage.BillBoards.BillBoardGUI:Clone()
-		billboard.Parent = model
-		local owner = utilMod.GetModelByIDorName(model:GetAttribute("OwnedBy"))
-		if owner then
-			local plrName = game.Players:GetPlayerFromCharacter(owner)
-			local nameText = billboard.Frame.AANameLabel
-			nameText.Text = plrName.Name .. "'s " .. statsMod.creatureStats[utilMod.customTrim(thisMob)].printedName
-		else
-			local nameText = billboard.Frame.AANameLabel
-			nameText.Text = statsMod.creatureStats[utilMod.customTrim(thisMob)].printedName
-		end
-	end
-end
-BillBoardWork()
-
-
-local playerConnection
-local petattackConnection
-local petfollowConnection
-local pettakeLithConnection
-local petdefendLithConnection
-
-local petAttack = true
-local petFollow = true
-local petTakeLith = false
-local petDefendlith = false
-
-local function setupOwnerConnection(ownerId)
-	BillBoardWork()
-	-- Disconnect old
-	if playerConnection then
-		playerConnection:Disconnect()
-		playerConnection = nil
-	end
-	if petattackConnection then
-		petattackConnection:Disconnect()
-		petattackConnection = nil
-	end
-	if petfollowConnection then
-		petfollowConnection:Disconnect()
-		petfollowConnection = nil
-	end
-	if pettakeLithConnection then
-		pettakeLithConnection:Disconnect()
-		pettakeLithConnection = nil
-	end
-	if petdefendLithConnection then
-		petdefendLithConnection:Disconnect()
-		petdefendLithConnection = nil
-	end
-
-	-- Validate & setup new
-	local ownerUserId = tonumber(ownerId)
-	if not ownerUserId then
-		return
-	end -- Invalid ID → no connection
-
-	local plrowner = game.Players:GetPlayerByUserId(ownerUserId)
-	if plrowner then
-		petattackConnection = plrowner:GetAttributeChangedSignal("PetAttack"):Connect(function()
-			petAttack = plrowner:GetAttribute("PetAttack")
-		end)
-		petfollowConnection = plrowner:GetAttributeChangedSignal("PetFollow"):Connect(function()
-			petFollow = plrowner:GetAttribute("PetFollow")
-		end)
-		petattackConnection = plrowner:GetAttributeChangedSignal("PetTakeLith"):Connect(function()
-			petTakeLith = plrowner:GetAttribute("PetTakeLith")
-			if petTakeLith then
-				lithTakePosition = pathMod.GetTakeLithLoc(model, hrp)
-			end
-		end)
-		petattackConnection = plrowner:GetAttributeChangedSignal("PetDefendLith"):Connect(function()
-			petDefendlith = plrowner:GetAttribute("PetDefendLith")
-			if petDefendlith then
-				lithDefendPosition = pathMod.GetDefendLithLoc(model, hrp)
-			end
-		end)
-		petAttack = plrowner:GetAttribute("PetAttack")
-		petFollow = plrowner:GetAttribute("PetFollow")
-		petTakeLith = plrowner:GetAttribute("PetTakeLith")
-		petDefendlith = plrowner:GetAttribute("PetDefendLith")
-		if petTakeLith then
-			lithTakePosition = pathMod.GetTakeLithLoc(model, hrp)
-		end
-		if petDefendlith then
-			lithDefendPosition = pathMod.GetDefendLithLoc(model, hrp)
-		end
-	end
-
-	playerConnection = game.Players.PlayerRemoving:Connect(function(leavingPlayer)
-		if leavingPlayer.UserId == ownerUserId then
-			if petattackConnection then
-				petattackConnection:Disconnect()
-				petattackConnection = nil
-			end
-			if petfollowConnection then
-				petfollowConnection:Disconnect()
-				petfollowConnection = nil
-			end
-			if pettakeLithConnection then
-				pettakeLithConnection:Disconnect()
-				pettakeLithConnection = nil
-			end
-			if petdefendLithConnection then
-				petdefendLithConnection:Disconnect()
-				petdefendLithConnection = nil
-			end
-
-			model:SetAttribute("RecycleMe", true)
-		end
-	end)
-end
-
-local function onOwnerChanged()
-	local ownerId = model:GetAttribute("OwnedBy")
-	setStats()
-	if ownerId and ownerId ~= "" and ownerId ~= "None" and ownerId ~= "none" then
-		setupOwnerConnection(ownerId)
-	else
-		setupOwnerConnection(nil) -- Clear connection
-	end
-end
-
--- Initial setup & listen for changes
-onOwnerChanged()
-model:GetAttributeChangedSignal("OwnedBy"):Connect(onOwnerChanged)
+-- NEW: Let buffMod take over event creation + stat refreshing + base stat restoration
+buffMod.Setup(model, sourceStats)
+local spawnPosition: Vector3 = hrp.Position
 
 -- === Animations ===
-local animator = humanoid:FindFirstChildOfClass("Animator")
-local animTracks = {}
+local animator: Animator? = humanoid:FindFirstChildOfClass("Animator")
+
+type AnimTrackDict = {
+	idle: AnimationTrack?,
+	blink: AnimationTrack?,
+	death: AnimationTrack?,
+	attack1: AnimationTrack?,
+	attack2: AnimationTrack?,
+	attack3: AnimationTrack?,
+}
+
+local animTracks: AnimTrackDict = {
+	idle = nil,
+	blink = nil,
+	death = nil,
+	attack1 = nil,
+	attack2 = nil,
+	attack3 = nil,
+}
+
 if animator then
-	local function load(name, looped)
-		local anim = model:FindFirstChild(name)
+	local function load(name: string, looped: boolean?): AnimationTrack?
+		local anim: Animation? = model:FindFirstChild(name)
 		if anim then
-			local track = animator:LoadAnimation(anim)
+			local track: AnimationTrack = animator:LoadAnimation(anim)
 			if looped ~= nil then
 				track.Looped = looped
 			end
 			return track
 		end
+		return nil
 	end
+
 	animTracks.idle = load("ArtGuardIdle", true)
 	animTracks.blink = load("ArtGuardBlink", false)
 	animTracks.death = load("ArtGuardFall", false)
@@ -277,27 +73,16 @@ if animator then
 	animTracks.attack3 = load("ArtGuardAtt3", false)
 end
 
--- task.spawn(function()
---     while true do
---         if thisMob =="FeralArtifactGuardian" then
---             print(hateList)
---         end
-
---         task.wait(2)
---     end
-
--- end)
-
 -- === MAIN LOOP ===
 task.spawn(function()
-	local lithDefendRandomLoc = nil
-	local lithTakeRandomLoc = nil
+	local lithDefendRandomLoc: Vector3? = nil
+	local lithTakeRandomLoc: Vector3? = nil
+
 	-- Blink loop
 	task.spawn(function()
 		while task.wait(random:NextInteger(4, 15)) do
 			if animTracks.blink and not model:GetAttribute("HasFallen") then
 				animTracks.blink:Play()
-				-- Set locs to nil so npc can move randomly around lith.
 				if random:NextInteger(1, 20) > 10 then
 					lithTakeRandomLoc = nil
 					lithDefendRandomLoc = nil
@@ -305,67 +90,43 @@ task.spawn(function()
 			end
 		end
 	end)
-	model:SetAttribute("IdleStartTime", tick())
-	local lastAttackTime = 0
 
-	local homewardBound = false
-	local ownedby = model:GetAttribute("OwnedBy")
-	local spincooldown = true
+	local lastAttackTime: number = 0
+	local homewardBound: boolean = false
+	local spincooldown: boolean = true
 
 	-- Main loop for npc state
 	while task.wait(0.03) do
-		local ATTACK_COOLDOWN = statsMod.DELAY * model.Data.attackDelay.Value
-		if humanoid.Health <= 1 then
-			if not model:GetAttribute("HasFallen") then
-				utilMod.SetFlagsForDeath(model)
-			end
-		end
-		local isPet = true
-		local ownerInstance = nil
-		local combatTargetModel = nil
-		local acceptableDistance = nil
-		local movingDirection = "NotMoving"
+		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
+
+		local ownerInstance: Model? = pet.GetOwnerModel()
+		local combatTargetModel: Model? = nil
+		local acceptableDistance: boolean? = nil
+		local movingDirection: string = "NotMoving"
+
+		local petAttack = pet.IsAttackEnabled()
+		local petFollow = pet.IsFollowEnabled()
+		local petTakeLith = pet.IsTakeLithEnabled()
+		local petDefendlith = pet.IsDefendLithEnabled()
+		local lithTakePosition = pet.GetLithTakePosition()
+		local lithDefendPosition = pet.GetLithDefendPosition()
+
 		if not model:GetAttribute("HasFallen") then
 			-- starting over using pet commands integrated into state logic.
-
-			-- these variables are set in events which are triggered by player, a function will put a vector3 or nil in these variables
-
-			-- local spawnPosition = hrp.Position
-			-- local lithTakePosition = nil
-			-- local lithDefendPosition = nil
 
 			----------------------------------------------------------------
 			-- Aggro
 			----------------------------------------------------------------
 
-			if ownedby == "" or ownedby == "None" or ownedby == "none" then
-				isPet = false
-			end
+			aggro.Update()
 
-			if isPet then
-				ownerInstance = utilMod.GetModelByIDorName(model:GetAttribute("OwnedBy"))
-			end
-
-			if isPet then
-				aggroMod.hateListPet(model.Data.aggroRadius.Value, hateList, model, hrp)
-			else
-				aggroMod.hateListFeral(model.Data.aggroRadius.Value, hateList, model, hrp)
-			end
-
-			local hasEnemies = next(hateList) ~= nil -- true if table has at least one entry
-
-			if hasEnemies then
-				if model:GetAttribute("TargetIDorName") == "None" then
-					warn("Should not reach me.")
-				end
-			end
+			local hasEnemies: boolean = next(aggro.GetHateList()) ~= nil
 
 			----------------------------------------------------------------
 			-- SetStates
 			----------------------------------------------------------------
-
-			local targetid = model:GetAttribute("TargetIDorName")
-
+			-- Inside your main loop, after updating aggro and pet values:
+			local targetid: any = model:GetAttribute("TargetIDorName")
 			if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
 				combatTargetModel = utilMod.GetModelByIDorName(targetid)
 			end
@@ -374,355 +135,41 @@ task.spawn(function()
 				acceptableDistance = combatMod.AcceptableDistanceToOpponent(model, combatTargetModel)
 			end
 
-			if isPet then
-				-- pet logic
-				if petFollow then
-					lithDefendRandomLoc = nil
-					lithTakeRandomLoc = nil
-				end
+			local mutable = {
+				lithTakeRandomLoc = lithTakeRandomLoc,
+				lithDefendRandomLoc = lithDefendRandomLoc,
+				homewardBound = homewardBound,
+			}
 
-				if
-					petAttack and petFollow
-					or petAttack and petDefendlith and lithDefendPosition == nil
-					or petAttack and petTakeLith and lithTakePosition == nil
-				then
-					-- if has enemies move to and atack else follow owner
-					-- pet/follower style state logic
-					if hasEnemies then
-						if acceptableDistance then
-							-- hasEnemies and acceptableDistance
-							if not model:GetAttribute("InCombat") then
-								utilMod.SetFlagsForCombat(model)
-							end
-						else
-							-- hasEnemies and not acceptableDistance
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-								movingDirection = "MovingToCombatTarget"
-							else
-								local targ = pathMod.GetCurrentTarget(model)
-								if targ ~= combatTargetModel then
-									if not model:GetAttribute("IsIdle") then
-										utilMod.SetFlagsForIdle(model)
-									end
-								else
-									movingDirection = "MovingToCombatTarget"
-								end
-							end
-						end
-					else
-						-- not hasEnemies
+			local context = {
+				hasEnemies = next(aggro.GetHateList()) ~= nil,
+				ownerInstance = pet.GetOwnerModel(),
+				combatTargetModel = combatTargetModel,
+				acceptableDistance = acceptableDistance,
+				spawnPosition = spawnPosition,
+				hrp = hrp,
 
-						-- not hasEnemies and isPet
-						local check = ownerInstance
-							and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
-						if check then
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-							end
-							movingDirection = "MovingToOwner"
-						else
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-						end
-					end
-				elseif petAttack and petDefendlith then
-					-- Do logic work here.
-					-- finish combat by checking targetcombatmodel and if within acceptable distance. If so set to combat to keep fighting
-					-- if has enemy but not within acceptable distance, dont move to target, go ahead and move to lith lithDefendPosition, nil state of position is taken care of in petattack petfollow logic., if nil continue battle disregard command.
-					-- Once at lith make hateList = nil (reset aggro) Hatelist will begin
-					-- repopulating earlier in logic, this is so that pet does not return to earlier combat.
+				petAttack = pet.IsAttackEnabled(),
+				petFollow = pet.IsFollowEnabled(),
+				petTakeLith = pet.IsTakeLithEnabled(),
+				petDefendLith = pet.IsDefendLithEnabled(),
+				lithTakePosition = pet.GetLithTakePosition(),
+				lithDefendPosition = pet.GetLithDefendPosition(),
 
-					-- Pet is in "Attack + Defend Lith" mode
-					if hasEnemies then
-						if acceptableDistance then
-							-- In combat range with an enemy → stay and fight
-							if not model:GetAttribute("InCombat") then
-								utilMod.SetFlagsForCombat(model)
-							end
-						-- Do NOT move toward lith while still fighting
-						else
-							-- Enemy exists but too far → prioritize finishing combat, do NOT move to lith yet
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-								movingDirection = "MovingToCombatTarget"
-							else
-								local targ = pathMod.GetCurrentTarget(model)
-								if targ ~= combatTargetModel then
-									if not model:GetAttribute("IsIdle") then
-										utilMod.SetFlagsForIdle(model)
-									end
-								else
-									movingDirection = "MovingToCombatTarget"
-								end
-							end
-						end
-					else
-						-- No enemies left → clear aggro and move to the defend position
-						hateList = {} -- reset aggro so it doesn't pull old targets
+				aggro = aggro,
+				pet = pet,
 
-						if lithDefendPosition then
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-								movingDirection = "MovingToNearestLith" -- reuse same string for defend lith
-							else
-								local targ = pathMod.GetCurrentTarget(model)
-								if targ and targ ~= "Lith" then -- assuming Lith parts/models are named "Lith" or detectable this way
-									if not model:GetAttribute("IsIdle") then
-										utilMod.SetFlagsForIdle(model)
-									end
-								else
-									movingDirection = "MovingToNearestLith"
-								end
-							end
-						else
-							-- No valid lith position set → fall back to idle (or follow owner if desired)
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-						end
-					end
-				elseif petAttack and petTakeLith then
-					-- This should be similar logic as case before, only it is an opponents lith (lith is a building point on map to fight over.)
-					-- finish combat then move to nearest lith. Finish combat if within range of enemy.
-					-- Move to opponents lith using commented variable above takelithposition, nil state of position is taken care of in petattack petfollow logic.
-					-- always check if moving if should be moving and check target if target is not correct set to idle. (idle action below cancels any moving tasks, allowing this to create new task next time.)
+				mutable = mutable,
+			}
 
-					-- Pet is in "Attack + Take Lith" mode (aggressively capture an opponent lith)
-					if hasEnemies then
-						if acceptableDistance then
-							-- In combat range with an enemy → stay and fight to finish combat first
-							if not model:GetAttribute("InCombat") then
-								utilMod.SetFlagsForCombat(model)
-							end
-						-- Do NOT move toward lith while still fighting
-						else
-							-- Enemy exists but too far → prioritize finishing combat, do NOT move to lith yet
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-								movingDirection = "MovingToCombatTarget"
-							else
-								local targ = pathMod.GetCurrentTarget(model)
-								if targ ~= combatTargetModel then
-									if not model:GetAttribute("IsIdle") then
-										utilMod.SetFlagsForIdle(model)
-									end
-								else
-									movingDirection = "MovingToCombatTarget"
-								end
-							end
-						end
-					else
-						-- No enemies left → clear aggro and move to the take lith position
-						hateList = {} -- reset aggro to prevent re-engaging old targets
+			local stateResult = stateMod.UpdateState(model, context)
 
-						if lithTakePosition then
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-								movingDirection = "MovingToNearestLith" -- reuse same string for consistency
-							else
-								local targ = pathMod.GetCurrentTarget(model)
-								if targ and targ ~= "Lith" then -- adjust check if liths are identified differently
-									if not model:GetAttribute("IsIdle") then
-										utilMod.SetFlagsForIdle(model)
-									end
-								else
-									movingDirection = "MovingToNearestLith"
-								end
-							end
-						else
-							-- No valid take position set → fall back to idle (or follow owner)
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-						end
-					end
-				elseif petAttack and not petFollow then
-					-- Guard this position, since already at position just check aggro and move to and fight close mobs
-					-- if not in combat check "spawnPosition" if 10 studs away set moving flag and movingDirection = MovingToSpawnPosition
-					-- if not in combat and less than 10 from spawnposition just set idle.
+			movingDirection = stateResult.movingDirection
 
-					-- Pet is in "Guard Position" mode: Attack enabled, but no Follow/Lith commands
-					-- Stay near the designated spawnPosition (where the player left it), aggressively fight any enemies that come close
-					-- Do NOT wander or follow owner
-
-					if hasEnemies then
-						-- Prioritize combat over returning to position
-						if acceptableDistance then
-							-- In range → fight
-							if not model:GetAttribute("InCombat") then
-								utilMod.SetFlagsForCombat(model)
-							end
-						else
-							-- Enemy too far → move to engage
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-								movingDirection = "MovingToCombatTarget"
-							else
-								local targ = pathMod.GetCurrentTarget(model)
-								if targ ~= combatTargetModel then
-									if not model:GetAttribute("IsIdle") then
-										utilMod.SetFlagsForIdle(model)
-									end
-								else
-									movingDirection = "MovingToCombatTarget"
-								end
-							end
-						end
-					else
-						-- No enemies → stay near spawnPosition (guard spot)
-						local distanceFromGuardSpot = utilMod.GetDistance(spawnPosition, hrp.Position)
-
-						if distanceFromGuardSpot > 10 then
-							-- Drifted too far → return to guard position
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-							end
-							movingDirection = "MovingToSpawnPosition"
-						else
-							-- Close enough → remain idle and alert
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-							-- Optional: clear any lingering pathing
-							if pathMod.IsPathActive(model) then
-								pathMod.ShortCircuitTravel(model)
-							end
-						end
-					end
-				elseif not petAttack and petFollow then
-					-- Pet is in "Follow Owner" mode only (no attacking allowed)
-					-- Force clear any aggro to prevent combat
-					hateList = {} -- ensure no enemies are tracked
-
-					if ownerInstance then
-						local check =
-							pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
-
-						if check then
-							-- Owner is far enough that movement is required → follow
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-							end
-							movingDirection = "MovingToOwner"
-						else
-							-- Owner is close enough → no movement needed, stay idle
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-						end
-					else
-						-- No valid owner instance (shouldn't normally happen for a pet)
-						if not model:GetAttribute("IsIdle") then
-							utilMod.SetFlagsForIdle(model)
-						end
-					end
-				elseif not petAttack and not petFollow then
-					-- stay idle and planted in one spot
-					-- check if spawnPosition is current location, if not set spawnLocation to current hrp.Position and set to idle.
-					-- Pet is in "Stay/Guard" mode: no attacking, no following — stay planted and idle
-					-- Force clear any aggro to ensure it doesn't chase or fight
-					hateList = {} -- prevent any combat engagement
-
-					-- If the NPC has drifted from its current "planted" spot, update spawnPosition to current location
-					-- This allows the pet to "stay here" wherever the player left it, even if it got pushed/moved slightly
-					if utilMod.GetDistance(spawnPosition, hrp.Position) > 3 then
-						spawnPosition = hrp.Position
-					end
-
-					-- Always ensure it's idle (cancels any lingering movement)
-					if not model:GetAttribute("IsIdle") then
-						utilMod.SetFlagsForIdle(model)
-					end
-
-					-- Optional: clear any active pathing just in case
-					if pathMod.IsPathActive(model) then
-						pathMod.ShortCircuitTravel(model)
-					end
-
-					-- No movingDirection needed here since it should remain stationary
-					movingDirection = "" -- or nil / "" if you prefer
-				else
-					warn("should not reach me.")
-				end
-			else
-				-- feral state logic
-				if hasEnemies then
-					if acceptableDistance then
-						-- hasEnemies and acceptableDistance
-						if not model:GetAttribute("InCombat") then
-							utilMod.SetFlagsForCombat(model)
-						end
-					else
-						-- hasEnemies and not acceptableDistance
-						if not model:GetAttribute("IsMoving") then
-							utilMod.SetFlagsForMoving(model)
-							movingDirection = "MovingToCombatTarget"
-						else
-							local targ = pathMod.GetCurrentTarget(model)
-							if targ ~= combatTargetModel then
-								if not model:GetAttribute("IsIdle") then
-									utilMod.SetFlagsForIdle(model)
-								end
-							else
-								movingDirection = "MovingToCombatTarget"
-							end
-						end
-					end
-				else
-					-- not hasEnemies
-					if IsStationary then
-						-- not hasEnemies and IsStationary
-						if
-							utilMod.GetDistance(spawnPosition, hrp.Position) > 3
-							and tick() - (model:GetAttribute("IdleStartTime")) > IdleReset
-						then
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-							end
-							movingDirection = "MovingToSpawnPosition"
-						else
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-						end
-					else
-						-- not hasEnemies and not IsStationary
-						local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition) > rangeLimit
-
-						if tooFar and not homewardBound then
-							homewardBound = true
-							if pathMod.IsPathActive(model) then
-								pathMod.ShortCircuitTravel(model)
-							end
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-						elseif homewardBound then
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-							end
-							movingDirection = "HomewardBound"
-						elseif (tick() - model:GetAttribute("IdleStartTime")) > IdleReset then
-							if not model:GetAttribute("IsMoving") then
-								utilMod.SetFlagsForMoving(model)
-							elseif model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then
-								if not model:GetAttribute("IsIdle") then
-									utilMod.SetFlagsForIdle(model)
-								end
-							end
-							movingDirection = "MovingToRandom"
-						else
-							if not model:GetAttribute("IsIdle") then
-								utilMod.SetFlagsForIdle(model)
-							end
-							-- add logic here if needed for this specific else case
-						end
-					end
-				end
-			end
-
+			-- Sync mutable state back to locals (important!)
+			lithTakeRandomLoc = mutable.lithTakeRandomLoc
+			lithDefendRandomLoc = mutable.lithDefendRandomLoc
+			homewardBound = mutable.homewardBound
 			----------------------------------------------------------------
 			-- Actions
 			----------------------------------------------------------------
@@ -746,7 +193,7 @@ task.spawn(function()
 					end
 
 					if tick() - lastAttackTime >= ATTACK_COOLDOWN then
-						local track = animTracks["attack" .. random:NextInteger(1, 3)]
+						local track: AnimationTrack? = animTracks["attack" .. random:NextInteger(1, 3)]
 						if track and not track.IsPlaying then
 							track:Play()
 							lastAttackTime = tick()
@@ -770,7 +217,7 @@ task.spawn(function()
 				end
 
 				if movingDirection == "MovingToCombatTarget" then
-					local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
+					local target: Vector3? = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
 					if target and not pathMod.IsPathActive(model) then
 						pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
 					elseif pathMod.GetCurrentTarget(model) ~= combatTargetModel then
@@ -811,8 +258,8 @@ task.spawn(function()
 						warn("should not reach me.")
 					end
 				elseif movingDirection == "MovingToOwner" then
-					local owner = model:GetAttribute("OwnedBy")
-					local target = pathMod.GetTargetPet(model, owner)
+					local owner: any = model:GetAttribute("OwnedBy")
+					local target: Vector3? = pathMod.GetTargetPet(model, owner)
 					if target and not pathMod.IsPathActive(model) then
 						pathMod.PathfindToPosition(model, target, owner)
 					elseif pathMod.GetCurrentTarget(model) ~= utilMod.GetModelByIDorName(owner) then
@@ -827,10 +274,10 @@ task.spawn(function()
 						pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
 					end
 				elseif movingDirection == "MovingToRandom" then
-					local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
+					local vec: Vector3 = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
 					if random:NextInteger(1, 10) < 5 then
-						local xpos = random:NextInteger(-10, 10)
-						local zpos = random:NextInteger(-10, 10)
+						local xpos: number = random:NextInteger(-10, 10)
+						local zpos: number = random:NextInteger(-10, 10)
 						vec = vec + Vector3.new(xpos, 0, zpos)
 					end
 

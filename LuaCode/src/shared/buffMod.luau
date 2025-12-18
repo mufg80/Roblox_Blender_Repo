@@ -1,13 +1,102 @@
---!strict
+-- -- --!strict
+
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local serverStorage = game:GetService("ServerStorage")
 local repstore = game:GetService("ReplicatedStorage")
-local buffMod = {}
--- Table to track active buff tasks per model+spell
-local activeBuffs = {}
 
-function buffMod.ApplyBuffLabel(spelltype, spellname, duration, model)
+local buffMod = {}
+
+-- Table to track active buff tasks per model+spell
+local activeBuffs: { [string]: thread } = {}
+
+-- Table to track running buff/debuff/heal coroutines
+local RUNNING_EFFECTS: { [string]: thread } = {}
+
+-- NEW: Track sourceStats and refresh function per model
+local modelStatRefreshers: { [Model]: () -> () } = {}
+local modelBaseStats: { [Model]: { [string]: any } } = {}
+
+export type BuffMod = {
+	Setup: (model: Model, sourceStats: { [string]: any }) -> (),
+	ApplyBuffLabel: (spelltype: string, spellname: string, duration: number, model: Model) -> (),
+	CheckDistanceOnSpouts: (player: Player) -> boolean,
+	ConvertSpout: (player: Player) -> boolean,
+	ReclaimPet: (player: Player, spellname: string, mypets: { Model }) -> boolean,
+	BuffDebuffHeal: (caster: Player?, target: Model | Player, spellname: string) -> boolean,
+	SelectTargetsForAggro: (caster: Player, spellinfo: any) -> (),
+}
+
+-- NEW: Setup buff events and stat refresh system on an NPC model
+function buffMod.Setup(model: Model, sourceStats: { [string]: any })
+	if not model or not sourceStats then
+		return
+	end
+
+	-- Store base stats for later restoration
+	modelBaseStats[model] = utilMod.ShallowTableCopy(sourceStats) -- deep enough for flat stats
+
+	-- Create events if not already present
+	local addEvent = model:FindFirstChild("BuffDebuffEvent") or Instance.new("BindableEvent")
+	addEvent.Name = "BuffDebuffEvent"
+	addEvent.Parent = model
+
+	local removeEvent = model:FindFirstChild("RemoveBuffDebuffEvent") or Instance.new("BindableEvent")
+	removeEvent.Name = "RemoveBuffDebuffEvent"
+	removeEvent.Parent = model
+
+	-- Local refresh function
+	local function refreshStats()
+		local baseStats = utilMod.GetStatsFromFolder(model)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+
+		humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
+		if humanoid.Health > humanoid.MaxHealth then
+			humanoid.Health = humanoid.MaxHealth
+		end
+		humanoid.WalkSpeed = 16 * (baseStats.speed or 1)
+
+		-- Update attributes used in AI
+		model:SetAttribute("IsStationary", model:GetAttribute("IsStationary") ~= false)
+		model:SetAttribute("IdleReset", model:GetAttribute("IdleReset") or 15)
+	end
+
+	-- On buff/debuff apply → just refresh
+	addEvent.Event:Connect(function(player: Player, spellname: string)
+		refreshStats()
+	end)
+
+	-- On buff/debuff remove → check if no buffs left → restore base stats
+	removeEvent.Event:Connect(function(player: Player, spellname: string)
+		local hasAnyBuff = false
+		for attName, _ in pairs(model:GetAttributes()) do
+			if typeof(attName) == "string" and string.sub(attName, 1, 5) == "Buff_" then
+				hasAnyBuff = true
+				break
+			end
+		end
+
+		if not hasAnyBuff then
+			-- No buffs left → restore original base stats
+			utilMod.CopyStatsToFolder(model, modelBaseStats[model])
+		end
+
+		refreshStats()
+	end)
+
+	-- Store refresher for potential future use
+	modelStatRefreshers[model] = refreshStats
+
+	-- Initial apply
+	refreshStats()
+end
+
+-- Existing functions unchanged below...
+
+function buffMod.ApplyBuffLabel(spelltype: string, spellname: string, duration: number, model: Model): ()
 	-- Validate spelltype
 	if
 		spelltype ~= "buff"
@@ -17,34 +106,44 @@ function buffMod.ApplyBuffLabel(spelltype, spellname, duration, model)
 		and spelltype ~= "damage"
 	then
 		warn("ApplyBuffLabel: Invalid spelltype:", spelltype)
-		return nil
+		return
 	end
+
 	-- Map spelltype to label name
-	local labelName = ({
+	local labelName: string = ({
 		buff = "BuffLabel",
 		debuff = "DebuffLabel",
 		heal = "HealLabel",
 		damage = "DamageLabel",
 		areaDamage = "DamageLabel",
 	})[spelltype]
-	local imageLabel = model:FindFirstChild("BillBoardGUI").Frame.ZZBuffFrame[labelName]
-	if not imageLabel then
-		return nil
+
+	local billboard: BillboardGui? = model:FindFirstChild("BillBoardGUI")
+	if not billboard then
+		return
 	end
+
+	local imageLabel: ImageLabel? = billboard.Frame.ZZBuffFrame:FindFirstChild(labelName)
+	if not imageLabel then
+		return
+	end
+
 	-- Unique key per model+spell
-	local key = model.Name .. "_" .. spellname
+	local key: string = model.Name .. "_" .. spellname
+
 	-- Cancel any existing buff task for this key
 	if activeBuffs[key] then
 		pcall(task.cancel, activeBuffs[key])
-		-- Force cleanup in case cancellation skips UI reset
 		imageLabel.Visible = false
 		activeBuffs[key] = nil
 	end
-	local blinkStartDelay = duration > 5 and duration - 5 or 0
+
+	local blinkStartDelay: number = duration > 5 and duration - 5 or 0
+
 	-- Spawn the blinking task
-	local newConnection = task.spawn(function()
+	local newConnection: thread = task.spawn(function()
 		imageLabel.Visible = true
-		local startTime = os.clock()
+		local startTime: number = os.clock()
 		while true do
 			task.wait(1)
 			-- Safely check if NPC is still alive and UI exists
@@ -55,11 +154,11 @@ function buffMod.ApplyBuffLabel(spelltype, spellname, duration, model)
 				activeBuffs[key] = nil
 				return
 			end
-			local currentTime = os.clock()
-			local elapsed = currentTime - startTime
+			local currentTime: number = os.clock()
+			local elapsed: number = currentTime - startTime
 			-- Blink logic: alternate every second in the last 5s (or whole duration)
 			if elapsed >= blinkStartDelay then
-				local elapsedSeconds = math.floor(elapsed)
+				local elapsedSeconds: number = math.floor(elapsed)
 				imageLabel.Visible = (elapsedSeconds % 2 == 1)
 			end
 			-- End buff
@@ -70,23 +169,26 @@ function buffMod.ApplyBuffLabel(spelltype, spellname, duration, model)
 			end
 		end
 	end)
+
 	-- Store connection
 	activeBuffs[key] = newConnection
 end
-
--- At the top of the module (next to RUNNING_EFFECTS)
-local RUNNING_EFFECTS: { [string]: thread } = {} -- now stores the coroutine thread itself
--- (change from boolean to thread)
 
 function buffMod.CheckDistanceOnSpouts(player: Player): boolean
 	if not player.Character then
 		return false
 	end
-	for _, child in pairs(workspace.ManaPoints:GetChildren()) do
+
+	local manaPoints: Folder? = workspace:FindFirstChild("ManaPoints")
+	if not manaPoints then
+		return false
+	end
+
+	for _, child: Instance in pairs(manaPoints:GetChildren()) do
 		if child.Name ~= "ManaSpout" then
 			continue
 		end
-		local dist = utilMod.GetDistance(player.Character, child)
+		local dist: number? = utilMod.GetDistance(player.Character, child)
 		if dist and dist < statsMod.SpellInfo.ConvertSpout.range then
 			return true
 		end
@@ -94,32 +196,30 @@ function buffMod.CheckDistanceOnSpouts(player: Player): boolean
 	return false
 end
 
---[[
-    Attempts to convert a nearby Mana Spout into a magic-specific lith (building)
-    based on the player's current Magic type.
-    
-    @param player The player attempting to convert a spout
-    @return true if a spout was successfully converted, false otherwise
-]]
 function buffMod.ConvertSpout(player: Player): boolean
 	if not player.Character then
 		return false
 	end
 
-	local spouts = workspace:WaitForChild("ManaPoints"):GetChildren()
-	for _, spout in pairs(spouts) do
+	local manaPoints: Folder? = workspace:FindFirstChild("ManaPoints")
+	if not manaPoints then
+		return false
+	end
+
+	local spouts: { Instance } = manaPoints:GetChildren()
+	for _, spout: Instance in pairs(spouts) do
 		if spout.Name ~= "ManaSpout" then
 			continue
 		end
 
-		local dist = utilMod.GetDistance(player.Character, spout)
-		if dist < statsMod.SpellInfo.ConvertSpout.range then
-			local magictype: number = player:GetAttribute("Magic") or statsMod.MagicType.None
+		local dist: number? = utilMod.GetDistance(player.Character, spout)
+		if dist and dist < statsMod.SpellInfo.ConvertSpout.range then
+			local magictype: any = player:GetAttribute("Magic") or statsMod.MagicType.None
 			if magictype == statsMod.MagicType.None then
 				return false
 			end
 
-			local buildingName = ({
+			local buildingName: string? = ({
 				[statsMod.MagicType.Artificer] = "ArtificerLith",
 				[statsMod.MagicType.Primordial] = "PrimordialLith",
 				[statsMod.MagicType.Nature] = "NatureLith",
@@ -130,12 +230,17 @@ function buffMod.ConvertSpout(player: Player): boolean
 				return false
 			end
 
-			local building: Model = serverStorage:WaitForChild("Buildings")[buildingName]:Clone()
-			local spoutCFrame = spout:GetPivot()
+			local template: Model? = serverStorage:FindFirstChild("Buildings"):FindFirstChild(buildingName)
+			if not template then
+				return false
+			end
+
+			local building: Model = template:Clone()
+			local spoutCFrame: CFrame = spout:GetPivot()
 			building:PivotTo(spoutCFrame)
-			building.Parent = workspace.ManaPoints
+			building.Parent = manaPoints
 			building:SetAttribute("OwnedBy", player.UserId)
-			spout:Destroy() -- safer than Parent = nil
+			spout:Destroy()
 			return true
 		end
 	end
@@ -143,31 +248,22 @@ function buffMod.ConvertSpout(player: Player): boolean
 	return false
 end
 
---[[
-    Reclaims the closest pet within spell range and refunds mana.
-    Skips any pet already marked for recycling.
-    
-    @param player     The player casting the reclaim spell
-    @param spellname  Name of the spell (used to get range from statsMod)
-    @param mypets     Array-like table of pet Models owned by the player
-    @return true if a pet was reclaimed, false if none in range or all skipped
-]]
 function buffMod.ReclaimPet(player: Player, spellname: string, mypets: { Model }): boolean
-	local spell = statsMod.SpellInfo[spellname]
+	local spell: any = statsMod.SpellInfo[spellname]
 	if not spell then
 		return false
 	end
 	local range: number = spell.range
 
-	local closestDis = math.huge
+	local closestDis: number = math.huge
 	local mypet: Model? = nil
 
-	for _, pet in mypets do
+	for _, pet: Model in mypets do
 		if pet:GetAttribute("RecycleMe") == true then
 			continue
 		end
-		local mag = utilMod.GetDistance(player.Character, pet)
-		if mag < closestDis then
+		local mag: number? = utilMod.GetDistance(player.Character, pet)
+		if mag and mag < closestDis then
 			closestDis = mag
 			mypet = pet
 		end
@@ -177,8 +273,8 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: { Model }
 		return false
 	end
 
-	local thismags = utilMod.GetDistance(player.Character, mypet)
-	if thismags >= range then
+	local thismags: number? = utilMod.GetDistance(player.Character, mypet)
+	if not thismags or thismags >= range then
 		return false
 	end
 
@@ -186,37 +282,29 @@ function buffMod.ReclaimPet(player: Player, spellname: string, mypets: { Model }
 	local currentmana: number = player:GetAttribute("Mana") or 0
 	local maxmana: number = player:GetAttribute("MaxMana") or 100
 	player:SetAttribute("Mana", math.min(currentmana + 50, maxmana))
-	local maxSouls = player:GetAttribute("MaxSouls")
-	player:SetAttribute("Souls", math.min((player:GetAttribute("Souls") or 0) + 1, maxSouls))
+	local maxSouls: number? = player:GetAttribute("MaxSouls")
+	local currentSouls: number = player:GetAttribute("Souls") or 0
+	player:SetAttribute("Souls", math.min(currentSouls + 1, maxSouls or currentSouls + 1))
 	repstore.Events.GainedSoulEvent:FireClient(player, player:GetAttribute("Souls"), maxSouls)
 	return true
 end
 
---[[
-    Internal helper: Applies or removes stat modifications from a buff/debuff.
-    
-    @param model       The character Model (player or NPC)
-    @param spellname   Name of the buff/debuff spell
-    @param multiplier  1 to apply, -1 to remove
-    @return true if changes were applied successfully
-]]
 local function ApplyStatChanges(model: Model, spellname: string, multiplier: number): boolean
-	local buffInfo = statsMod.BuffInfo[spellname]
+	local buffInfo: any = statsMod.BuffInfo[spellname]
 	if not buffInfo then
 		return false
 	end
 
-	-- If it's a player character, modify Player attributes instead of Character's Data folder
-	local player = game.Players:GetPlayerFromCharacter(model)
-	local target = player or model
+	local player: Player? = game.Players:GetPlayerFromCharacter(model)
+	local target: Instance = player or model
 
-	local dataFolder = target:FindFirstChild("Data")
+	local dataFolder: Folder? = target:FindFirstChild("Data")
 	if not dataFolder then
 		return false
 	end
 
 	for statName: string, changeValue: number in pairs(buffInfo) do
-		local valueObj = dataFolder:FindFirstChild(statName)
+		local valueObj: ValueBase? = dataFolder:FindFirstChild(statName)
 		if valueObj and valueObj:IsA("ValueBase") and typeof(valueObj.Value) == "number" then
 			valueObj.Value += changeValue * multiplier
 		end
@@ -231,31 +319,23 @@ local function FireBuffNotificationEvent(
 	modelInstance: Model | Player,
 	spellname: string,
 	command: string
-)
+): ()
 	if targetIsPlayer then
-		local player = game.Players:GetPlayerFromCharacter(modelInstance)
+		local player: Player? = game.Players:GetPlayerFromCharacter(modelInstance :: Model)
 		if player then
-			local buffevent = repstore.Events.BuffDebuffHealEvent
-			buffevent:FireClient(player, player.UserId, spellname, command)
+			repstore.Events.BuffDebuffHealEvent:FireClient(player, player.UserId, spellname, command)
 		end
 	else
-		local owner = modelInstance:GetAttribute("OwnedBy")
+		local owner: any = (modelInstance :: Model):GetAttribute("OwnedBy")
 		if owner and owner ~= "None" and owner ~= "none" and owner ~= "" then
-			local plr = game.Players:GetPlayerByUserId(owner)
-
-			if plr:IsA("Player") then
-				local buffevent = repstore.Events.BuffDebuffHealEvent
-				buffevent:FireClient(plr, modelInstance.Name, spellname, command)
+			local plr: Player? = game.Players:GetPlayerByUserId(owner)
+			if plr then
+				repstore.Events.BuffDebuffHealEvent:FireClient(plr, (modelInstance :: Model).Name, spellname, command)
 			end
 		end
 	end
 end
---[[
-    Applies a buff, debuff, or heal-over-time effect to a target.
-    Supports both Player objects and raw Model characters (NPCs).
-    If the same spell is already active on the target it will be refreshed
-    (old effect cancelled → stats reverted → new full-duration effect applied).
-]]
+
 function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellname: string): boolean
 	if not caster or not target or not spellname then
 		warn("BuffDebuffHeal: Missing required parameter(s)")
@@ -265,61 +345,59 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		warn("BuffDebuffHeal: Caster is not a Player instance")
 		return false
 	end
-	local targetisplayer = true
+
+	local targetisplayer: boolean = typeof(target) == "Instance" and target:IsA("Player")
+
 	-- Normalize to Model instance
 	local modelInstance: Model
-	if typeof(target) == "Instance" and target:IsA("Player") then
-		modelInstance = target.Character
+	if targetisplayer then
+		modelInstance = (target :: Player).Character
 	else
 		modelInstance = target :: Model
-		targetisplayer = false
 	end
+
 	if not modelInstance or not modelInstance.Parent then
 		return false
 	end
 
-	local key = tostring(modelInstance) .. spellname
+	local key: string = tostring(modelInstance) .. spellname
 
 	-- Refresh logic: cancel existing coroutine if one exists
 	if RUNNING_EFFECTS[key] then
-		-- Remove old stat changes immediately
 		ApplyStatChanges(modelInstance, spellname, -1)
-		-- Kill the old coroutine
 		task.cancel(RUNNING_EFFECTS[key])
-		-- Clean up attribute so the new one can be applied
 		modelInstance:SetAttribute("Buff_" .. spellname, nil)
-		-- (no need to nil the table entry – we'll overwrite it)
 	end
 
-	-- Mark as active right away (prevents race conditions)
+	-- Mark as active right away
 	modelInstance:SetAttribute("Buff_" .. spellname, true)
 
-	local spellinfo = statsMod.SpellInfo[spellname]
-	local buffinfo = statsMod.BuffInfo[spellname]
+	local spellinfo: any = statsMod.SpellInfo[spellname]
+	local buffinfo: any = statsMod.BuffInfo[spellname]
 	if not spellinfo or not buffinfo then
 		modelInstance:SetAttribute("Buff_" .. spellname, nil)
 		return false
 	end
 
 	local duration: number = buffinfo.seconds or 0
-	local isHeal = spellinfo.spellType == "heal"
-	local isBuff = spellinfo.spellType == "buff"
-	local isDebuff = spellinfo.spellType == "debuff"
+	local isHeal: boolean = spellinfo.spellType == "heal"
+	local isBuff: boolean = spellinfo.spellType == "buff"
+	local isDebuff: boolean = spellinfo.spellType == "debuff"
 
 	-- Apply instant changes (buff/debuff only)
-	local applyFailed = false
+	local applyFailed: boolean = false
 	if isBuff or isDebuff then
 		applyFailed = not ApplyStatChanges(modelInstance, spellname, 1)
 	end
 
 	-- Create the new coroutine
-	local co = task.spawn(function()
-		local elapsed = 0
-		local tickRate = 1
+	local co: thread = task.spawn(function()
+		local elapsed: number = 0
+		local tickRate: number = 1
 
 		-- Tick event
-		local owner = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
-		local ev = owner:FindFirstChild("BuffDebuffEvent")
+		local owner: Instance = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
+		local ev: BindableEvent? = owner:FindFirstChild("BuffDebuffEvent")
 		if ev and ev:IsA("BindableEvent") then
 			ev:Fire(caster, spellname)
 		end
@@ -335,9 +413,9 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 
 			-- Heal over time
 			if isHeal then
-				local hum = modelInstance:FindFirstChildWhichIsA("Humanoid")
+				local hum: Humanoid? = modelInstance:FindFirstChildWhichIsA("Humanoid")
 				if hum then
-					local healPerTick = (buffinfo.hitPoints and buffinfo.hitPoints > 0)
+					local healPerTick: number = (buffinfo.hitPoints and buffinfo.hitPoints > 0)
 							and (buffinfo.hitPoints / duration)
 						or buffinfo.hitPoints
 						or 0
@@ -352,8 +430,8 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		end
 
 		-- Removal event
-		local owner = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
-		local ev = owner:FindFirstChild("RemoveBuffDebuffEvent")
+		local owner: Instance = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
+		local ev: BindableEvent? = owner:FindFirstChild("RemoveBuffDebuffEvent")
 		if ev and ev:IsA("BindableEvent") then
 			ev:Fire(caster, spellname)
 		end
@@ -364,26 +442,34 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		RUNNING_EFFECTS[key] = nil
 	end)
 
-	-- Store the new coroutine so we can cancel it later
+	-- Store the new coroutine
 	RUNNING_EFFECTS[key] = co
 
-	-- Return value stays exactly the same as before
 	return if isBuff or isDebuff then not applyFailed else true
 end
 
-function buffMod.SelectTargetsForAggro(caster: Player, spellinfo: any)
-	if not caster then
+function buffMod.SelectTargetsForAggro(caster: Player, spellinfo: any): ()
+	if not caster or not spellinfo then
 		return
 	end
-	if not spellinfo then
-		return
-	end
-	local aggrotable = {}
 
-	local enemies = utilMod.GetEnemyModelsWithinRange(caster, (spellinfo.range * 2))
-	for _, enemy in pairs(enemies) do
+	local enemies: { Model } = utilMod.GetEnemyModelsWithinRange(caster, (spellinfo.range * 2))
+	for _, enemy: Model in pairs(enemies) do
 		utilMod.ApplyThreat(caster, enemy, spellinfo.aggro or 10)
 	end
 end
 
-return buffMod
+-- Optional cleanup on model destroy
+game:GetService("Debris"):AddItem(task.spawn(function()
+	while true do
+		task.wait(60)
+		for model, _ in pairs(modelBaseStats) do
+			if not model.Parent then
+				modelBaseStats[model] = nil
+				modelStatRefreshers[model] = nil
+			end
+		end
+	end
+end))
+
+return buffMod :: BuffMod

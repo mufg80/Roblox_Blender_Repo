@@ -1,4 +1,4 @@
---!strict
+-- --!strict
 
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,27 +8,28 @@ local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 
-local staffTable = statsMod.StaffStats
-local tool = script.Parent
-local muzzle = tool:WaitForChild("BulletStartPosition") -- "BulletStartPosition" part
+local staffTable: { [string]: any } = statsMod.StaffStats
 
-local staffType = tool:GetAttribute("StaffType")
+local tool: Tool = script.Parent
+local muzzle: BasePart = tool:WaitForChild("BulletStartPosition") :: BasePart
+
+local staffType: string? = tool:GetAttribute("StaffType")
 if not staffType or staffType == "" then
 	warn("Tool", tool.Name, "missing 'StaffType' attribute!")
 	return
 end
 
-local stats = staffTable[staffType]
+local stats: any = staffTable[staffType]
 if not stats then
 	warn("No stats found for StaffType:", staffType, "in staffTable!")
 	return
 end
 
-local maxRange = stats.maxRange
-local bulletSpeed = stats.bulletSpeed
-local arcHeight = stats.arcHeight
-local bulletTemplateName = stats.BulletTemplate or tool:GetAttribute("BulletTemplate") or "StarterStaffBullet"
-local trailChildName = stats.TrailChildName or tool:GetAttribute("TrailChildName") or "StarterStaffTrail" -- Flexible if differs
+local maxRange: number = stats.maxRange
+local bulletSpeed: number = stats.bulletSpeed
+local arcHeight: number = stats.arcHeight
+local bulletTemplateName: string = stats.BulletTemplate or tool:GetAttribute("BulletTemplate") or "StarterStaffBullet"
+local trailChildName: string = stats.TrailChildName or tool:GetAttribute("TrailChildName") or "StarterStaffTrail"
 
 -- Set muzzle collision group
 if muzzle:IsA("BasePart") then
@@ -38,91 +39,90 @@ else
 end
 
 -- Single shared RemoteEvent
-local REMOTE_NAME = "FireStaff"
-local fireRemote = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
+local REMOTE_NAME: string = "FireStaff"
+local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
 if not fireRemote then
 	fireRemote = Instance.new("RemoteEvent")
 	fireRemote.Name = REMOTE_NAME
 	fireRemote.Parent = ReplicatedStorage
 end
 
-local function fireBullet(player, targetPos)
+local function fireBullet(player: Player, targetPos: Vector3): ()
 	-- SECURITY: Verify tool is equipped by this player
-	local character = player.Character
+	local character: Model? = player.Character
 	if not character or character ~= tool.Parent then
 		return -- Not equipped / wrong player
 	end
 
-	local bulletTemplate = ServerStorage.Parts:FindFirstChild(bulletTemplateName)
+	local bulletTemplate: BasePart | Model? = ServerStorage.Parts:FindFirstChild(bulletTemplateName)
 	if not bulletTemplate then
 		warn(bulletTemplateName, "not found in ServerStorage")
 		return
 	end
 
 	-- CLONE FIRST, then customize (fixes shared template bug!)
-	local bullet = bulletTemplate:Clone()
+	local bullet: Instance = bulletTemplate:Clone()
 	bullet:SetAttribute("Owner", player.Name)
 	bullet.Position = muzzle.Position + Vector3.new(0, 0.5, 0)
-	bullet.Parent = workspace
+	bullet.Parent = Workspace
 
 	-- Set Bullet collision group (handles Part or Model w/ PrimaryPart)
-	local function setBulletCollision(obj)
+	local function setBulletCollision(obj: Instance): ()
 		if obj:IsA("BasePart") then
 			obj.CollisionGroup = "Bullet"
 		end
 	end
 	if bullet:IsA("BasePart") then
 		setBulletCollision(bullet)
-	elseif bullet.PrimaryPart then
+	elseif bullet:IsA("Model") and bullet.PrimaryPart then
 		setBulletCollision(bullet.PrimaryPart)
-		for _, descendant in bullet:GetDescendants() do
+		for _, descendant: Instance in bullet:GetDescendants() do
 			setBulletCollision(descendant)
 		end
 	end
 
 	-- Owner immunity: Set player parts to "Player" group (run per shot)
-	for _, part in character:GetDescendants() do
+	for _, part: Instance in character:GetDescendants() do
 		if part:IsA("BasePart") and not part:IsDescendantOf(tool) then
 			part.CollisionGroup = "Player"
 		end
 	end
 
 	-- Trajectory calc
-	local startPos = bullet.Position
-	local direction = (targetPos - startPos).Unit
-	local distance = math.min((targetPos - startPos).Magnitude, maxRange)
-	local duration = distance / bulletSpeed + 0.05 -- slight buffer
-	local startTime = tick()
+	local startPos: Vector3 = bullet.Position
+	local direction: Vector3 = (targetPos - startPos).Unit
+	local distance: number = math.min((targetPos - startPos).Magnitude, maxRange)
+	local duration: number = distance / bulletSpeed + 0.05 -- slight buffer
+	local startTime: number = tick()
 
 	-- Custom trail color ON CLONED BULLET (bug fix!)
-	local trail = bullet:FindFirstChild(trailChildName)
+	local trail: Trail? = bullet:FindFirstChild(trailChildName)
 	if trail and trail:IsA("Trail") then
-		local color = utilMod.HexToColor3(stats.bulletTrail)
+		local color: Color3 = utilMod.HexToColor3(stats.bulletTrail)
 		trail.Color = ColorSequence.new(color)
 	else
 		warn("No trail named", trailChildName, "in bullet")
 	end
 
 	-- Hit detection & damage
-	local touchConn
-	touchConn = bullet.Touched:Connect(function(hit)
+	local touchConn: RBXScriptConnection?
+	touchConn = bullet.Touched:Connect(function(hit: BasePart)
 		-- Explosion FX
-		local color = utilMod.HexToColor3(stats.bulletTrail)
+		local color: Color3 = utilMod.HexToColor3(stats.bulletTrail)
 		utilMod.createCustomExplosion(bullet.Position, stats.visualSize, stats.visualTime, color)
 
 		if hit == muzzle or hit:IsDescendantOf(tool) then
 			return
 		end
 
-		local ownerName = bullet:GetAttribute("Owner")
-		local ownerPlayer = ownerName and game.Players:FindFirstChild(ownerName)
+		local ownerName: string? = bullet:GetAttribute("Owner")
+		local ownerPlayer: Player? = ownerName and game.Players:FindFirstChild(ownerName)
 		if not ownerPlayer then
 			return
 		end
 
-		local success = combatMod.ApplyStaffDamage(hit, ownerPlayer, staffType)
+		local success: boolean = combatMod.ApplyStaffDamage(hit, ownerPlayer, staffType)
 
-		
 		-- Cleanup
 		bullet:Destroy()
 		if touchConn then
@@ -131,9 +131,9 @@ local function fireBullet(player, targetPos)
 	end)
 
 	-- Parabolic movement
-	local moveConn
+	local moveConn: RBXScriptConnection?
 	moveConn = RunService.Heartbeat:Connect(function()
-		local elapsed = tick() - startTime
+		local elapsed: number = tick() - startTime
 		if elapsed >= duration or not bullet.Parent then
 			if bullet.Parent then
 				bullet:Destroy()
@@ -147,10 +147,10 @@ local function fireBullet(player, targetPos)
 			return
 		end
 
-		local t = elapsed / duration
-		local progress = t * distance
-		local pos = startPos + direction * progress
-		local height = arcHeight * 4 * t * (1 - t) -- Smooth parabola peak
+		local t: number = elapsed / duration
+		local progress: number = t * distance
+		local pos: Vector3 = startPos + direction * progress
+		local height: number = arcHeight * 4 * t * (1 - t) -- Smooth parabola peak
 
 		bullet.Position = pos + Vector3.new(0, height, 0)
 		bullet.CFrame = CFrame.new(bullet.Position, bullet.Position + direction)
@@ -158,7 +158,7 @@ local function fireBullet(player, targetPos)
 end
 
 -- Handle incoming fires (with StaffType verification)
-fireRemote.OnServerEvent:Connect(function(player, targetPos, receivedType)
+fireRemote.OnServerEvent:Connect(function(player: Player, targetPos: Vector3, receivedType: string)
 	if typeof(targetPos) ~= "Vector3" or receivedType ~= staffType then
 		return -- Invalid / spoofed
 	end

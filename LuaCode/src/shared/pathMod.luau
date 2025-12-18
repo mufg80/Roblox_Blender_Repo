@@ -1,13 +1,28 @@
 --!strict
+
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local pathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
 
-local pathMod = {}
+-- Exported types for better IntelliSense and type safety
+export type TargetIdentifier = number | string | Model | "SpawnPoint" | "Lith"
 
-function pathMod.GetTakeLithLoc(model, hrp)
+export type PathMod = {
+	GetTakeLithLoc: (model: Model, hrp: BasePart) -> Vector3?,
+	GetDefendLithLoc: (model: Model, hrp: BasePart) -> Vector3?,
+	GetCurrentTarget: (model: Model) -> (Model?) | "SpawnPoint" | "Lith",
+	PathfindToPosition: (model: Model, targetPosition: Vector3, targetIdOrName: TargetIdentifier) -> boolean,
+	IsPathActive: (model: Model) -> boolean,
+	ShortCircuitTravel: (model: Model) -> (),
+	GetTargetPet: (model: Model, targetIdOrName: number | string) -> Vector3?,
+	GetTargetLith: (pos: Vector3) -> Vector3?,
+}
+
+local pathMod: PathMod = {} :: any
+
+function pathMod.GetTakeLithLoc(model: Model, hrp: BasePart): Vector3?
 	-- Validate inputs
 	if not model or not hrp then
 		return nil
@@ -33,9 +48,9 @@ function pathMod.GetTakeLithLoc(model, hrp)
 		return nil
 	end
 
-	local closestPoint = nil
-	local closestDist = math.huge
-	local playerUserId = plr.UserId
+	local closestPoint: MeshPart? = nil
+	local closestDist: number = math.huge
+	local playerUserId: number = plr.UserId
 
 	for _, point in ipairs(points) do
 		-- Skip if it's a ManaSpout or owned by the same player
@@ -59,13 +74,9 @@ function pathMod.GetTakeLithLoc(model, hrp)
 	end
 end
 
-
-
--- Existing functions like GetTakeLithLoc can stay here too
-
-function pathMod.GetDefendLithLoc(model, hrp)
+function pathMod.GetDefendLithLoc(model: Model, hrp: BasePart): Vector3?
 	-- Validate core inputs
-	if not model or not hrp or not utilMod or not utilMod.GetDistance then
+	if not model or not hrp then
 		return nil
 	end
 
@@ -89,13 +100,13 @@ function pathMod.GetDefendLithLoc(model, hrp)
 		return nil
 	end
 
-	local playerUserId = plr.UserId
-	local underAttackLiths = {}
-	local ownedLiths = {}
+	local playerUserId: number = plr.UserId
+	local underAttackLiths: {MeshPart} = {}
+	local ownedLiths: {MeshPart} = {}
 
 	-- Collect owned liths and those under attack
 	for _, point in ipairs(points) do
-		if point.Name == "ManaSpout" then continue end -- optional: skip spouts if needed
+		if point.Name == "ManaSpout" then continue end
 
 		local meshPart = point:FindFirstChildOfClass("MeshPart")
 		if not meshPart then continue end
@@ -117,8 +128,8 @@ function pathMod.GetDefendLithLoc(model, hrp)
 			return underAttackLiths[1].Position
 		else
 			-- Find closest under-attack lith
-			local closest = nil
-			local closestDist = math.huge
+			local closest: MeshPart? = nil
+			local closestDist: number = math.huge
 			for _, mesh in ipairs(underAttackLiths) do
 				local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
 				if dist < closestDist then
@@ -136,8 +147,8 @@ function pathMod.GetDefendLithLoc(model, hrp)
 	elseif #ownedLiths == 1 then
 		return ownedLiths[1].Position
 	else
-		local closest = nil
-		local closestDist = math.huge
+		local closest: MeshPart? = nil
+		local closestDist: number = math.huge
 		for _, mesh in ipairs(ownedLiths) do
 			local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
 			if dist < closestDist then
@@ -149,17 +160,16 @@ function pathMod.GetDefendLithLoc(model, hrp)
 	end
 end
 
+-- Internal tracking
+local activePaths: {[Model]: {connection: RBXScriptConnection, targetIdOrName: TargetIdentifier}} = {}
 
-local activePaths = {} -- [model] = true / connection
-
-local function addModel(model, targetIdOrName, connection)
+local function addModel(model: Model, targetIdOrName: TargetIdentifier, connection: RBXScriptConnection?)
 	if not activePaths[model] then
-		activePaths[model] = { connection = connection, targetIdOrName = targetIdOrName }
+		activePaths[model] = { connection = connection :: RBXScriptConnection, targetIdOrName = targetIdOrName }
 	end
 end
 
--- NEW & FINAL VERSION – returns the real Instance when possible
-function pathMod.GetCurrentTarget(model)
+function pathMod.GetCurrentTarget(model: Model): (Model?) | "SpawnPoint" | "Lith"
 	local entry = activePaths[model]
 	if not entry then
 		return nil
@@ -167,7 +177,6 @@ function pathMod.GetCurrentTarget(model)
 
 	local targetIdOrName = entry.targetIdOrName
 
-	-- Case 1: We're pathfinding to the literal "SpawnPoint" string
 	if targetIdOrName == "SpawnPoint" then
 		return "SpawnPoint"
 	end
@@ -176,9 +185,7 @@ function pathMod.GetCurrentTarget(model)
 		return "Lith"
 	end
 
-	-- Case 2: targetIdOrName is already an Instance (Model) → return it directly
 	if typeof(targetIdOrName) == "Instance" and targetIdOrName:IsA("Model") then
-		-- Double-check it's still in the game (in case it was destroyed)
 		if targetIdOrName.Parent then
 			return targetIdOrName
 		else
@@ -186,36 +193,33 @@ function pathMod.GetCurrentTarget(model)
 		end
 	end
 
-	-- Case 3: It's a UserId (number) or name string → try to resolve the model
 	local targetModel = utilMod.GetModelByIDorName(targetIdOrName)
 	if targetModel and targetModel.Parent then
 		return targetModel
 	end
 
-	-- Nothing valid found
 	return nil
 end
 
-function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
+function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targetIdOrName: TargetIdentifier): boolean
 	if activePaths[model] then
 		return false
 	end
-	local connection = nil
+
+	local connection: RBXScriptConnection? = nil
 	addModel(model, targetIdOrName, connection)
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
-	local lastpos = rootPart.Position
-	local startTick = tick()
 	if not humanoid or not rootPart then
 		activePaths[model] = nil
 		return false
 	end
-	local pathTable = statsMod.Pathing[utilMod.customTrim(model.Name)]
-	if not pathTable then
-		warn("should not be missing pathing info.")
-	end
 
+	local lastpos: Vector3 = rootPart.Position
+	local startTick: number = tick()
+
+	local pathTable = statsMod.Pathing[utilMod.customTrim(model.Name)]
 	local path = pathfindingService:CreatePath(pathTable)
 
 	local success, err = pcall(function()
@@ -228,32 +232,31 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 	end
 
 	local waypoints = path:GetWaypoints()
-	local currentWaypointIndex = 1
+	local currentWaypointIndex: number = 1
 
 	connection = RunService.Heartbeat:Connect(function()
 		if not activePaths[model] then
-			connection:Disconnect()
+			if connection then connection:Disconnect() end
 			return
 		end
 
 		if not model.Parent then
-			connection:Disconnect()
+			if connection then connection:Disconnect() end
 			activePaths[model] = nil
 			return
 		end
 
 		if currentWaypointIndex > #waypoints then
-			connection:Disconnect()
+			if connection then connection:Disconnect() end
 			activePaths[model] = nil
 			return
 		end
 
-		-- REPLACE your entire stuck detection block (the if tick() - startTick > 1 and not lastchance ... end) with this FIXED version:
-
+		-- Stuck detection
 		if tick() - startTick > 1 then
 			startTick = tick()
 			if utilMod.GetDistance(lastpos, rootPart.Position) < 1 then
-				connection:Disconnect()
+				if connection then connection:Disconnect() end
 				activePaths[model] = nil
 				return
 			else
@@ -261,19 +264,17 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 			end
 		end
 
+		-- Re-path if target moved too far (for mobile targets)
 		if targetIdOrName ~= "SpawnPoint" and targetIdOrName ~= "Lith" then
 			local mob = utilMod.GetModelByIDorName(targetIdOrName)
 			if mob then
 				local mobhrp = mob:FindFirstChild("HumanoidRootPart") or mob:FindFirstChild("Torso")
 				if mobhrp then
 					local waysoff = utilMod.GetDistance(mobhrp.Position, targetPosition)
-
-					if waysoff > 10 then -- I recommend 10–15, not 5
-						-- RECURSIVE REPATH — seamless!
-						connection:Disconnect()
+					if waysoff > 10 then
+						if connection then connection:Disconnect() end
 						activePaths[model] = nil
 						task.spawn(function()
-							-- Tiny delay so the stack doesn't grow during the same frame
 							task.wait()
 							pathMod.PathfindToPosition(model, mobhrp.Position, targetIdOrName)
 						end)
@@ -296,7 +297,12 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 		end
 	end)
 
-	-- Auto-cleanup if model is destroyed
+	-- Update the stored connection
+	if activePaths[model] then
+		activePaths[model].connection = connection
+	end
+
+	-- Cleanup on destruction
 	model.AncestryChanged:Connect(function()
 		if not model.Parent then
 			if connection then
@@ -305,19 +311,15 @@ function pathMod.PathfindToPosition(model, targetPosition, targetIdOrName)
 			activePaths[model] = nil
 		end
 	end)
+
 	return true
 end
 
--- Safe public checker
-function pathMod.IsPathActive(model)
-	if not model then
-		warn("should not reach here.")
-	end
+function pathMod.IsPathActive(model: Model): boolean
 	return activePaths[model] ~= nil
 end
 
--- short circuit travel
-function pathMod.ShortCircuitTravel(model)
+function pathMod.ShortCircuitTravel(model: Model)
 	if activePaths[model] then
 		if activePaths[model].connection then
 			activePaths[model].connection:Disconnect()
@@ -326,9 +328,7 @@ function pathMod.ShortCircuitTravel(model)
 	end
 end
 
--- (GetTargetPet stays exactly the same as my previous fixed version)
-function pathMod.GetTargetPet(model, targetIdOrName)
-	-- ... [same as before – no changes needed here] ...
+function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string): Vector3?
 	local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
 	if not hrp then
 		return nil
@@ -356,7 +356,7 @@ function pathMod.GetTargetPet(model, targetIdOrName)
 			local targetPosition = playerhrp.Position + direction * randomDistance
 			local rightVector = playerhrp.CFrame.RightVector
 			local randomOffset = random:NextInteger(-15, 15)
-			targetPosition = targetPosition + rightVector * randomOffset
+			targetPosition += rightVector * randomOffset
 			return targetPosition
 		end
 		return nil
@@ -384,34 +384,19 @@ function pathMod.GetTargetPet(model, targetIdOrName)
 end
 
 function pathMod.GetTargetLith(pos: Vector3): Vector3?
-
-	-- Try up to 50 times to find a valid offset position
 	for i = 1, 50 do
-		-- Random distance between 10 and 15 studs
-		local distance = 10 + math.random() * 5 -- 10 to 15
-
-		-- Random direction in the XZ plane (horizontal)
+		local distance = 10 + math.random() * 5
 		local angle = math.random() * math.pi * 2
 		local offset = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
-
-		-- Candidate position (start from lith pos + horizontal offset)
 		local candidate = pos + offset
-
-		-- Raise it temporarily to Y+10 for ground check
 		local testPos = Vector3.new(candidate.X, pos.Y + 10, candidate.Z)
-
-		-- Get ground Y value below this point
 		local groundY = utilMod.DistancetoGround(testPos)
 
-		-- If no ground found or the ground is too far up/down (steep drop or cliff)
-		if groundY then -- and groundY > pos.Y - 5 and groundY < pos.Y + 5 then
-			-- Valid flat ground nearby — return final position at ground level
+		if groundY then
 			return Vector3.new(candidate.X, groundY, candidate.Z)
 		end
 	end
 
-	-- If no valid spot found after 50 attempts, fall back to a closer safe ring (8-12 studs)
-	-- This helps in crowded areas
 	for i = 1, 30 do
 		local distance = 8 + math.random() * 4
 		local angle = math.random() * math.pi * 2
@@ -425,8 +410,7 @@ function pathMod.GetTargetLith(pos: Vector3): Vector3?
 		end
 	end
 
-	-- Ultimate fallback: just return nil (pathing system can handle it or retry later)
 	return nil
 end
 
-return pathMod
+return pathMod :: PathMod

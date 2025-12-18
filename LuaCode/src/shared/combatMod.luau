@@ -406,7 +406,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 	end
 
 	if info.spellType == "damage" then
-		local target = utilMod.GetClosestPlayer(player)
+		local target = utilMod.GetClosestPlayerSkipAlly(player)
 			or utilMod.GetClosestModelSkipAllyPets(player, "Pets")
 			or utilMod.GetClosestModelSkipAllyPets(player, "Ferals")
 

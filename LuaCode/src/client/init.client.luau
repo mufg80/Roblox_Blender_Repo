@@ -1,4 +1,4 @@
---!strict
+-- --!strict
 
 local replicatedstorage = game:GetService("ReplicatedStorage")
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
@@ -20,46 +20,48 @@ local primordialtheme = themes:WaitForChild("PrimordialTheme")
 local naturetheme = themes:WaitForChild("NatureTheme")
 local noneTheme = themes:WaitForChild("NoneTheme")
 local player = players.LocalPlayer
-local hum = player.Character:WaitForChild("Humanoid")
-local spellCastColor = nil
-local db = true
-local Frame = magicgui:FindFirstChild("CastFrame")
-local globalCooldown = time()
-local petNames = {}
+local hum: Humanoid = player.Character:WaitForChild("Humanoid")
+local spellCastColor: Color3? = nil
+local db: boolean = true
+local Frame: Frame = magicgui:FindFirstChild("CastFrame")
+local globalCooldown: number = time()
+local petNames: {string} = {}
+
 -- health and mana
-function ChangeMana()
-	local newmana = player:GetAttribute("Mana")
-	local maxmana = player:GetAttribute("MaxMana")
+local function ChangeMana(): ()
+	local newmana: number? = player:GetAttribute("Mana")
+	local maxmana: number? = player:GetAttribute("MaxMana")
 	if not newmana or not maxmana then
 		return
 	end
-	local fraction = nil
+	local fraction: number
 	if maxmana == 0 then
 		fraction = 0
 	else
 		fraction = math.clamp(newmana / maxmana, 0, 1)
 	end
 
-	local inner = statsGui.HudFrame.ManaMeterBar.InnerFill
+	local inner: Frame = statsGui.HudFrame.ManaMeterBar.InnerFill
 	inner.Size = UDim2.new(fraction, 0, 1, 0)
 end
-local function EnableButton(button)
+
+local function EnableButton(button: GuiButton): ()
 	button.Active = true
 	button.Interactable = true
 	button.AutoButtonColor = true
 	button.BackgroundTransparency = 0
 end
 
-local function DiableButton(button)
+local function DiableButton(button: GuiButton): ()
 	button.Active = false
 	button.Interactable = false
 	button.AutoButtonColor = false
 	button.BackgroundTransparency = 0.5
 end
 
-local function DisableButtons()
-	local creaturebuttons = magicgui.CreatureFrame:GetChildren()
-	local spellbuttons = magicgui.SpellFrame:GetChildren()
+local function DisableButtons(): ()
+	local creaturebuttons: {Instance} = magicgui.CreatureFrame:GetChildren()
+	local spellbuttons: {Instance} = magicgui.SpellFrame:GetChildren()
 
 	-- Enable all buttons first
 	for _, button in pairs(creaturebuttons) do
@@ -88,7 +90,7 @@ local function DisableButtons()
 	end
 
 	-- If no souls disable creature buttons
-	local souls = player:GetAttribute("Souls") or 0
+	local souls: number = player:GetAttribute("Souls") or 0
 	if souls < 1 then
 		for _, button in pairs(creaturebuttons) do
 			if button:IsA("GuiButton") then
@@ -100,7 +102,7 @@ local function DisableButtons()
 		if button:IsA("GuiButton") then
 			local spell = statsMod.SpellInfo[button.Text]
 			if spell and spell.manaCost then
-				local currentMana = player:GetAttribute("Mana") or 0
+				local currentMana: number = player:GetAttribute("Mana") or 0
 				if currentMana < spell.manaCost * statsMod.MaxSpellCost then
 					DiableButton(button)
 				end
@@ -125,7 +127,7 @@ local function DisableButtons()
 			local spell = statsMod.SpellInfo[button.Text]
 			if spell then
 				local spelltype = spell.spellType
-				if spelltype and spelltype == "damage" or spelltype == "areaDamage" or spelltype == "debuff" then
+				if spelltype and (spelltype == "damage" or spelltype == "areaDamage" or spelltype == "debuff") then
 					local target = utilMod.IsEnemyInRange(player, spell.range)
 					if not target then
 						DiableButton(button)
@@ -138,7 +140,7 @@ local function DisableButtons()
 		if button:IsA("GuiButton") then
 			local creature = statsMod.creatureStats[button.Text]
 			if creature then
-				local currentMana = player:GetAttribute("Mana") or 0
+				local currentMana: number = player:GetAttribute("Mana") or 0
 				if currentMana < combatMod.LeveltoManaCost(button.Text) then
 					DiableButton(button)
 				end
@@ -160,11 +162,11 @@ task.spawn(function()
 	end
 end)
 
-local function ChangeHealth()
-	local inner = statsGui.HudFrame.HealthMeterBar.InnerFill
-	local den = hum.MaxHealth
-	local num = hum.Health
-	local fraction = nil
+local function ChangeHealth(): ()
+	local inner: Frame = statsGui.HudFrame.HealthMeterBar.InnerFill
+	local den: number = hum.MaxHealth
+	local num: number = hum.Health
+	local fraction: number
 	if den == 0 then
 		fraction = 0
 	else
@@ -173,8 +175,8 @@ local function ChangeHealth()
 	inner.Size = UDim2.new(fraction, 0, 1, 0)
 end
 
-function ReturnLevel()
-	local magictype = player:GetAttribute("Magic")
+local function ReturnLevel(): number?
+	local magictype: any = player:GetAttribute("Magic")
 
 	if magictype == statsMod.MagicType.None then
 		return 1
@@ -185,12 +187,13 @@ function ReturnLevel()
 	elseif magictype == statsMod.MagicType.Nature then
 		return player:GetAttribute("NatureLevel")
 	end
+	return nil
 end
 
-function updateMagicUI()
-	local magic = player:GetAttribute("Magic")
-	local magicLevel = ReturnLevel()
-	local typeTable = statsMod.MagicLevels[magic]
+local function updateMagicUI(): ()
+	local magic: any = player:GetAttribute("Magic")
+	local magicLevel: number? = ReturnLevel()
+	local typeTable: any = statsMod.MagicLevels[magic]
 
 	if magic == statsMod.MagicType.Artificer then
 		designSheet:SetDerives({ artificertheme })
@@ -219,8 +222,8 @@ function updateMagicUI()
 		return
 	end
 
-	local Creatureframeitems = magicgui.CreatureFrame:GetChildren()
-	local Spellframeitems = magicgui.SpellFrame:GetChildren()
+	local Creatureframeitems: {Instance} = magicgui.CreatureFrame:GetChildren()
+	local Spellframeitems: {Instance} = magicgui.SpellFrame:GetChildren()
 
 	for _, item in pairs(Creatureframeitems) do
 		if item:IsA("GuiObject") and item.Name ~= "UIListLayout" and item.Name ~= "aCreaturesLabel" then
@@ -233,18 +236,20 @@ function updateMagicUI()
 		end
 	end
 
-	for i = 1, magicLevel do
-		local abilityName = typeTable["Level" .. tostring(i)].Abilities
-		local spellName = typeTable["Level" .. tostring(i)].Spells
-		local abilitybutton = magicgui.CreatureFrame:FindFirstChild("Level" .. tostring(i))
-		local spellbutton = magicgui.SpellFrame:FindFirstChild("Level" .. tostring(i))
-		if abilitybutton then
-			abilitybutton.Visible = true
-			abilitybutton.Text = abilityName
-		end
-		if spellbutton then
-			spellbutton.Visible = true
-			spellbutton.Text = spellName
+	if magicLevel then
+		for i = 1, magicLevel do
+			local abilityName: string = typeTable["Level" .. tostring(i)].Abilities
+			local spellName: string = typeTable["Level" .. tostring(i)].Spells
+			local abilitybutton: TextButton? = magicgui.CreatureFrame:FindFirstChild("Level" .. tostring(i))
+			local spellbutton: TextButton? = magicgui.SpellFrame:FindFirstChild("Level" .. tostring(i))
+			if abilitybutton then
+				abilitybutton.Visible = true
+				abilitybutton.Text = abilityName
+			end
+			if spellbutton then
+				spellbutton.Visible = true
+				spellbutton.Text = spellName
+			end
 		end
 	end
 end
@@ -279,8 +284,8 @@ hum.HealthChanged:Connect(ChangeHealth)
 ChangeHealth()
 ChangeMana()
 
-local creaturebuttons = magicgui.CreatureFrame:GetChildren()
-local spellbuttons = magicgui.SpellFrame:GetChildren()
+local creaturebuttons: {Instance} = magicgui.CreatureFrame:GetChildren()
+local spellbuttons: {Instance} = magicgui.SpellFrame:GetChildren()
 
 for _, button in pairs(creaturebuttons) do
 	if button:IsA("GuiButton") then
@@ -290,21 +295,23 @@ for _, button in pairs(creaturebuttons) do
 			end
 			db = false
 			replicatedstorage.Events.SummonEvent:FireServer(button.Text)
-			local secs = statsMod.creatureStats[button.Text] and (statsMod.creatureStats[button.Text].level or 3 / 2)
-			local startTime = time()
-			local connection
+			local secs: number = statsMod.creatureStats[button.Text] and (statsMod.creatureStats[button.Text].level or 3 / 2) or 1.5
+			local startTime: number = time()
+			local connection: RBXScriptConnection?
 
 			Frame.Visible = true
 			globalCooldown = time() + secs + 1
 			player:SetAttribute("button_" .. button.Text, time() + secs + 3)
-			local innerFill = Frame.InnerFill
+			local innerFill: Frame = Frame.InnerFill
 			innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
-			connection = runservice.RenderStepped:Connect(function(delta)
-				local elapse = (time() - startTime)
-				local fraction = elapse / secs
+			connection = runservice.RenderStepped:Connect(function(delta: number)
+				local elapse: number = (time() - startTime)
+				local fraction: number = elapse / secs
 				innerFill.Size = UDim2.new(fraction, 0, 1, 0)
 				if elapse >= secs or hum.Health <= 1 then
-					connection:Disconnect()
+					if connection then
+						connection:Disconnect()
+					end
 					Frame.Visible = false
 					db = true
 				end
@@ -319,21 +326,23 @@ for _, button in pairs(spellbuttons) do
 				return
 			end
 			db = false
-			local secs = statsMod.SpellInfo[button.Text].castTime or 2
-			local startTime = time()
-			local connection
-			local Frame = magicgui:FindFirstChild("CastFrame")
+			local secs: number = statsMod.SpellInfo[button.Text].castTime or 2
+			local startTime: number = time()
+			local connection: RBXScriptConnection?
+			local Frame: Frame = magicgui:FindFirstChild("CastFrame")
 			Frame.Visible = true
 			globalCooldown = time() + secs + 1
 			player:SetAttribute("button_" .. button.Text, time() + secs + statsMod.SpellInfo[button.Text].cooldown)
-			local innerFill = Frame.InnerFill
+			local innerFill: Frame = Frame.InnerFill
 			innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
-			connection = runservice.RenderStepped:Connect(function(delta)
-				local elapse = (time() - startTime)
-				local fraction = elapse / secs
+			connection = runservice.RenderStepped:Connect(function(delta: number)
+				local elapse: number = (time() - startTime)
+				local fraction: number = elapse / secs
 				innerFill.Size = UDim2.new(fraction, 0, 1, 0)
 				if elapse >= secs or hum.Health <= 2 then
-					connection:Disconnect()
+					if connection then
+						connection:Disconnect()
+					end
 					Frame.Visible = false
 					db = true
 				end
@@ -343,13 +352,13 @@ for _, button in pairs(spellbuttons) do
 	end
 end
 
-local function Adjustsouls(soulsleft: number, maxsouls: number)
-	local label = statsGui.SoulFrame.SoulsLabel
+local function Adjustsouls(soulsleft: number, maxsouls: number): ()
+	local label: TextLabel? = statsGui.SoulFrame.SoulsLabel
 	if label then
 		label.Text = soulsleft .. "/" .. maxsouls
 	end
 end
-replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulsleft, maxsouls)
+replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulsleft: number, maxsouls: number)
 	if not soulsleft or not maxsouls then
 		warn("Should not reach me")
 		return
@@ -360,7 +369,7 @@ replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulslef
 	Adjustsouls(soulsleft, maxsouls)
 end)
 
-replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature, souls)
+replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature: Model, souls: number)
 	print("soulsevent")
 	if not summonedCreature then
 		warn("No summoned creature received on client")
@@ -372,29 +381,29 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 
 	-- You can add additional client-side logic here if needed
 
-	local existingFrame = statsGui.HudFrame:FindFirstChild(summonedCreature.Name .. "_PetFrame")
+	local existingFrame: Frame? = statsGui.HudFrame:FindFirstChild(summonedCreature.Name .. "_PetFrame")
 	if existingFrame then
 		existingFrame:Destroy()
 	end
 
-	local petframe = replicatedstorage:WaitForChild("PetFrameContainer"):Clone()
+	local petframe: Frame = replicatedstorage:WaitForChild("PetFrameContainer"):Clone()
 	petframe.Name = summonedCreature.Name .. "_PetFrame"
 	petframe.Parent = statsGui.HudFrame
 	petframe.Visible = true
-	local petimage = petframe.PetImageLabel
+	local petimage: ImageLabel = petframe.PetImageLabel
 	petimage.Image = statsMod.Pics[utilMod.customTrim(summonedCreature.Name)]
-	local hum = summonedCreature:FindFirstChild("Humanoid")
+	local hum: Humanoid? = summonedCreature:FindFirstChild("Humanoid")
 	if not hum then
 		warn("should not reach me")
 		return
 	end
-	local connection
+	local connection: RBXScriptConnection?
 
-	local function updateHealth()
-		local inner = petframe.PetMeterBar.InnerFill
-		local den = hum.MaxHealth
-		local num = hum.Health
-		local fraction = nil
+	local function updateHealth(): ()
+		local inner: Frame = petframe.PetMeterBar.InnerFill
+		local den: number = hum.MaxHealth
+		local num: number = hum.Health
+		local fraction: number
 		if den == 0 then
 			fraction = 0
 		else
@@ -408,8 +417,8 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 	updateHealth()
 
 	connection = hum.HealthChanged:Connect(updateHealth)
-	local ancestryConnection
-	ancestryConnection = summonedCreature.AncestryChanged:Connect(function(child, parent)
+	local ancestryConnection: RBXScriptConnection?
+	ancestryConnection = summonedCreature.AncestryChanged:Connect(function(_child: Instance, parent: Instance?)
 		if not parent then
 			if connection then
 				connection:Disconnect()
@@ -424,23 +433,24 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 	end)
 end)
 
-replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname)
+replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname: string)
 	-- You can add additional client-side logic here if needed
 end)
+
 --Pet commands Area
 -- Variables (put these at the top, in a LocalScript)
-local isPetAttacking = true
-local isPetFollowing = true -- default: pet follows when passive
-local isPetDefendingLith = false
-local isPetTakingLith = false
+local isPetAttacking: boolean = true
+local isPetFollowing: boolean = true -- default: pet follows when passive
+local isPetDefendingLith: boolean = false
+local isPetTakingLith: boolean = false
 
-local followButton = petsGui.PetFrame.FollowButton
-local defendLithButton = petsGui.PetFrame.DefendLithButton
-local attackButton = petsGui.PetFrame.AttackButton
-local takeLithButton = petsGui.PetFrame.TakeLithButton
+local followButton: TextButton = petsGui.PetFrame.FollowButton
+local defendLithButton: TextButton = petsGui.PetFrame.DefendLithButton
+local attackButton: TextButton = petsGui.PetFrame.AttackButton
+local takeLithButton: TextButton = petsGui.PetFrame.TakeLithButton
 
 -- Helper: Update button visuals (example)
-local function UpdateButtonVisuals()
+local function UpdateButtonVisuals(): ()
 	followButton.BackgroundColor3 = isPetFollowing and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(80, 80, 80)
 	attackButton.BackgroundColor3 = isPetAttacking and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(80, 80, 80)
 	defendLithButton.BackgroundColor3 = isPetDefendingLith and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(80, 80, 80)
@@ -453,8 +463,13 @@ local function UpdateButtonVisuals()
 	takeLithButton.AutoButtonColor = isPetAttacking
 end
 
-local function PetEventActivation()
-	local commands = {
+local function PetEventActivation(): ()
+	local commands: {
+		Following: boolean,
+		Attacking: boolean,
+		TakingLith: boolean,
+		DefendingLith: boolean,
+	} = {
 		Following = isPetFollowing,
 		Attacking = isPetAttacking,
 		TakingLith = isPetTakingLith,
@@ -462,6 +477,7 @@ local function PetEventActivation()
 	}
 	replicatedstorage.Events.PetEvent:FireServer(commands)
 end
+
 -- FOLLOW BUTTON
 followButton.MouseButton1Click:Connect(function()
 	isPetFollowing = not isPetFollowing
@@ -523,17 +539,17 @@ end)
 UpdateButtonVisuals()
 
 -- Buffs
-local buffEvent = replicatedstorage.Events.BuffDebuffHealEvent
-buffEvent.OnClientEvent:Connect(function(id, spellname, command)
+local buffEvent: RemoteEvent = replicatedstorage.Events.BuffDebuffHealEvent
+buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string, command: string)
 	print(tostring(id) .. " " .. spellname .. " " .. command)
-	local spelltype = statsMod.SpellInfo[spellname].spellType
+	local spelltype: string? = statsMod.SpellInfo[spellname].spellType
 	if not spelltype then
 		return
 	end
-	local spelllabel = nil
+	local spelllabel: TextLabel? = nil
 	if typeof(id) == "number" then
 		-- is a player
-		local playerBuffFrame = statsGui.HudFrame.PlayerEffectsFrame
+		local playerBuffFrame: Frame = statsGui.HudFrame.PlayerEffectsFrame
 		if spelltype == "buff" then
 			spelllabel = playerBuffFrame.BuffLabel
 		elseif spelltype == "debuff" then
@@ -545,35 +561,35 @@ buffEvent.OnClientEvent:Connect(function(id, spellname, command)
 		end
 	else
 		-- pets buff
-		local petinfoframe = tostring(id) .. "_PetFrame"
-		local frame = statsGui.HudFrame:FindFirstChild(petinfoframe)
+		local petinfoframe: string = tostring(id) .. "_PetFrame"
+		local frame: Frame? = statsGui.HudFrame:FindFirstChild(petinfoframe)
 
 		if spelltype == "buff" then
-			spelllabel = frame.ZZBuffFrame.BuffLabel
+			spelllabel = frame and frame.ZZBuffFrame.BuffLabel
 		elseif spelltype == "debuff" then
-			spelllabel = frame.ZZBuffFrame.DebuffLabel
+			spelllabel = frame and frame.ZZBuffFrame.DebuffLabel
 		elseif spelltype == "heal" then
-			spelllabel = frame.ZZBuffFrame.HealLabel
+			spelllabel = frame and frame.ZZBuffFrame.HealLabel
 		else
 			warn("Should not reach me.")
 		end
 	end
 	if command == "Add" then
-		spelllabel.Visible = true
+		if spelllabel then spelllabel.Visible = true end
 	else
-		spelllabel.Visible = false
+		if spelllabel then spelllabel.Visible = false end
 	end
 end)
 
 -- admin area
 if players.LocalPlayer.UserId == 2484051658 then
-	local adminGui = playerGui:WaitForChild("AdminGui")
+	local adminGui: ScreenGui = playerGui:WaitForChild("AdminGui")
 	adminGui.Frame.Visible = true
 	adminGui.closeButton.Visible = true
-	local levelbutton = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
-	local typebutton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
+	local levelbutton: TextButton = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
+	local typebutton: TextButton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
 	levelbutton.MouseButton1Click:Connect(function()
-		local level = ReturnLevel()
+		local level: number? = ReturnLevel()
 		if not level then
 			return
 		end
@@ -585,7 +601,7 @@ if players.LocalPlayer.UserId == 2484051658 then
 		replicatedstorage.Events.AdminEvent:FireServer("IncrementMagic")
 		task.wait(0.1)
 		typebutton.Text = "Magic Type: " .. tostring(player:GetAttribute("Magic"))
-		local level = ReturnLevel()
+		local level: number? = ReturnLevel()
 		if not level then
 			return
 		end

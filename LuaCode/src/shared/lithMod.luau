@@ -22,6 +22,7 @@ local function GetNearbyCombatants(lithPosition: Vector3): { [number]: { playerM
 
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			if player:GetAttribute("HasFallen") then continue end
 			local hrp = player.Character.HumanoidRootPart
 			if utilMod.GetDistance(lithPosition, hrp.Position) <= CONTROL_RANGE then
 				nearby[player.UserId] = {
@@ -36,6 +37,7 @@ local function GetNearbyCombatants(lithPosition: Vector3): { [number]: { playerM
 	if petsFolder then
 		for _, petModel in ipairs(petsFolder:GetChildren()) do
 			if petModel:IsA("Model") and petModel:FindFirstChild("HumanoidRootPart") then
+				if petModel:GetAttribute("HasFallen") then continue end
 				local hrp = petModel.HumanoidRootPart
 				if utilMod.GetDistance(lithPosition, hrp.Position) <= CONTROL_RANGE then
 					local ownerUserId = petModel:GetAttribute("OwnedBy")
@@ -62,6 +64,7 @@ local function HasNearbyFerals(lithPosition: Vector3): boolean
 
 	for _, feral in ipairs(feralsFolder:GetChildren()) do
 		if feral:IsA("Model") and feral:FindFirstChild("HumanoidRootPart") then
+			if feral:GetAttribute("HasFallen") then continue end
 			local hrp = feral.HumanoidRootPart
 			if utilMod.GetDistance(lithPosition, hrp.Position) <= FERALDISTANCE then
 				return true
@@ -198,9 +201,9 @@ task.spawn(function()
 			local netAdvantage = defenderStrength - attackerStrength
 			local maxDelta = LITHHEALTHCAP * MAXPLAYERCHANGEPERTICK
 			local change = math.clamp(netAdvantage, -maxDelta, maxDelta)
-			print("Change is: "..tostring(change))
+			--print("Change is: "..tostring(change))
 			currentControl = math.clamp(currentControl + change, 0, LITHHEALTHCAP)
-			print("CurrentControl: ".. currentControl)
+			--print("CurrentControl: ".. currentControl)
 			liths[uniqueId] = currentControl
 			lithMod.AdjustAdorner(uniqueId, currentControl, building, change >= 0)
 			-- === Building destroyed when control hits 0 ===

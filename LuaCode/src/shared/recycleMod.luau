@@ -280,7 +280,7 @@ export type RecycleMod = {
 
 	ReturnPet: (baseName: string) -> Model?,
 	ReturnFeral: (baseName: string) -> Model?,
-
+	SpawnSoul: (npc: Model) -> (),
 	flagAsDead: () -> (),
 }
 
