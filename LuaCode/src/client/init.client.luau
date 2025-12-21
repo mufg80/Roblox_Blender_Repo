@@ -100,31 +100,31 @@ local function DisableButtons(): ()
 	end
 	for _, button in pairs(spellbuttons) do
 		if button:IsA("GuiButton") then
-			local spell = statsMod.SpellInfo[button.Text]
+			local spell = statsMod.SpellInfo[utilMod.RemoveSpaces(button.Text)]
 			if spell and spell.manaCost then
 				local currentMana: number = player:GetAttribute("Mana") or 0
 				if currentMana < spell.manaCost * statsMod.MaxSpellCost then
 					DiableButton(button)
 				end
 			end
-			if player:GetAttribute("button_" .. button.Text) then
+			if player:GetAttribute("button_" .. utilMod.RemoveSpaces(button.Text)) then
 				DiableButton(button)
-				if player:GetAttribute(("button_" .. button.Text)) < time() then
-					player:SetAttribute("button_" .. button.Text, nil)
+				if player:GetAttribute(("button_" .. utilMod.RemoveSpaces(button.Text))) < time() then
+					player:SetAttribute("button_" .. utilMod.RemoveSpaces(button.Text), nil)
 				end
 			end
-			if button.Text == "ConvertSpout" then
+			if button.Text == "Convert Spout" then
 				if not buffMod.CheckDistanceOnSpouts(player) then
 					DiableButton(button)
 				end
 			end
-			if button.Text == "ReclaimPet" then
+			if button.Text == "Reclaim Pet" then
 				local mypets = utilMod.MyPets(player)
 				if not mypets or #mypets == 0 then
 					DiableButton(button)
 				end
 			end
-			local spell = statsMod.SpellInfo[button.Text]
+			local spell = statsMod.SpellInfo[utilMod.RemoveSpaces(button.Text)]
 			if spell then
 				local spelltype = spell.spellType
 				if spelltype and (spelltype == "damage" or spelltype == "areaDamage" or spelltype == "debuff") then
@@ -138,16 +138,16 @@ local function DisableButtons(): ()
 	end
 	for _, button in pairs(creaturebuttons) do
 		if button:IsA("GuiButton") then
-			local creature = statsMod.creatureStats[button.Text]
+			local creature = statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)]
 			if creature then
 				local currentMana: number = player:GetAttribute("Mana") or 0
-				if currentMana < combatMod.LeveltoManaCost(button.Text) then
+				if currentMana < combatMod.LeveltoManaCost(utilMod.RemoveSpaces(button.Text)) then
 					DiableButton(button)
 				end
-				if player:GetAttribute("button_" .. button.Text) then
+				if player:GetAttribute("button_" .. utilMod.RemoveSpaces(button.Text)) then
 					DiableButton(button)
-					if player:GetAttribute(("button_" .. button.Text)) < time() then
-						player:SetAttribute("button_" .. button.Text, nil)
+					if player:GetAttribute(("button_" .. utilMod.RemoveSpaces(button.Text))) < time() then
+						player:SetAttribute("button_" .. utilMod.RemoveSpaces(button.Text), nil)
 					end
 				end
 			end
@@ -244,11 +244,11 @@ local function updateMagicUI(): ()
 			local spellbutton: TextButton? = magicgui.SpellFrame:FindFirstChild("Level" .. tostring(i))
 			if abilitybutton then
 				abilitybutton.Visible = true
-				abilitybutton.Text = abilityName
+				abilitybutton.Text = statsMod.creatureStats[abilityName].printedName
 			end
 			if spellbutton then
 				spellbutton.Visible = true
-				spellbutton.Text = spellName
+				spellbutton.Text = statsMod.SpellInfo[spellName].printedName
 			end
 		end
 	end
@@ -294,14 +294,14 @@ for _, button in pairs(creaturebuttons) do
 				return
 			end
 			db = false
-			replicatedstorage.Events.SummonEvent:FireServer(button.Text)
-			local secs: number = statsMod.creatureStats[button.Text] and (statsMod.creatureStats[button.Text].level or 3 / 2) or 1.5
+			replicatedstorage.Events.SummonEvent:FireServer(utilMod.RemoveSpaces(button.Text))
+			local secs: number = statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)] and (statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)].level or 3 / 2) or 1.5
 			local startTime: number = time()
 			local connection: RBXScriptConnection?
 
 			Frame.Visible = true
 			globalCooldown = time() + secs + 1
-			player:SetAttribute("button_" .. button.Text, time() + secs + 3)
+			player:SetAttribute("button_" .. utilMod.RemoveSpaces(button.Text), time() + secs + 3)
 			local innerFill: Frame = Frame.InnerFill
 			innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
 			connection = runservice.RenderStepped:Connect(function(delta: number)
@@ -326,13 +326,13 @@ for _, button in pairs(spellbuttons) do
 				return
 			end
 			db = false
-			local secs: number = statsMod.SpellInfo[button.Text].castTime or 2
+			local secs: number = statsMod.SpellInfo[utilMod.RemoveSpaces(button.Text)].castTime or 2
 			local startTime: number = time()
 			local connection: RBXScriptConnection?
 			local Frame: Frame = magicgui:FindFirstChild("CastFrame")
 			Frame.Visible = true
 			globalCooldown = time() + secs + 1
-			player:SetAttribute("button_" .. button.Text, time() + secs + statsMod.SpellInfo[button.Text].cooldown)
+			player:SetAttribute("button_" .. utilMod.RemoveSpaces(button.Text), time() + secs + statsMod.SpellInfo[utilMod.RemoveSpaces(button.Text)].cooldown)
 			local innerFill: Frame = Frame.InnerFill
 			innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
 			connection = runservice.RenderStepped:Connect(function(delta: number)
@@ -347,7 +347,7 @@ for _, button in pairs(spellbuttons) do
 					db = true
 				end
 			end)
-			replicatedstorage.Events.SpellCastEvent:FireServer(button.Text)
+			replicatedstorage.Events.SpellCastEvent:FireServer(utilMod.RemoveSpaces(button.Text))
 		end)
 	end
 end
@@ -370,7 +370,6 @@ replicatedstorage.Events.GainedSoulEvent.OnClientEvent:Connect(function(soulslef
 end)
 
 replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCreature: Model, souls: number)
-	print("soulsevent")
 	if not summonedCreature then
 		warn("No summoned creature received on client")
 		return
@@ -541,7 +540,7 @@ UpdateButtonVisuals()
 -- Buffs
 local buffEvent: RemoteEvent = replicatedstorage.Events.BuffDebuffHealEvent
 buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string, command: string)
-	print(tostring(id) .. " " .. spellname .. " " .. command)
+	--print(tostring(id) .. " " .. spellname .. " " .. command)
 	local spelltype: string? = statsMod.SpellInfo[spellname].spellType
 	if not spelltype then
 		return

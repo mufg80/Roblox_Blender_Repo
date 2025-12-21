@@ -205,7 +205,6 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 	if activePaths[model] then
 		return false
 	end
-
 	local connection: RBXScriptConnection? = nil
 	addModel(model, targetIdOrName, connection)
 
@@ -217,7 +216,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 	end
 
 	local lastpos: Vector3 = rootPart.Position
-	local startTick: number = tick()
+	local startTick: number = time()
 
 	local pathTable = statsMod.Pathing[utilMod.customTrim(model.Name)]
 	local path = pathfindingService:CreatePath(pathTable)
@@ -233,7 +232,9 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 
 	local waypoints = path:GetWaypoints()
 	local currentWaypointIndex: number = 1
-
+	for _,waypoint in ipairs(waypoints) do
+		utilMod.TempMarker(waypoint.Position)
+	end
 	connection = RunService.Heartbeat:Connect(function()
 		if not activePaths[model] then
 			if connection then connection:Disconnect() end
@@ -253,8 +254,8 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 		end
 
 		-- Stuck detection
-		if tick() - startTick > 1 then
-			startTick = tick()
+		if time() - startTick > 1 then
+			startTick = time()
 			if utilMod.GetDistance(lastpos, rootPart.Position) < 1 then
 				if connection then connection:Disconnect() end
 				activePaths[model] = nil
@@ -286,6 +287,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 
 		local waypoint = waypoints[currentWaypointIndex]
 		local distanceToWaypoint = utilMod.GetDistance(rootPart.Position, waypoint.Position)
+
 
 		if distanceToWaypoint < 3 and currentWaypointIndex ~= #waypoints then
 			currentWaypointIndex += 1

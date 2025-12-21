@@ -222,20 +222,20 @@ function recycleMod.flagAsDead(): ()
 		-- Track new dead pets
 		for _, pet in petsFolder:GetChildren() do
 			if pet:GetAttribute("RecycleMe") and not recycleMod.thedead[pet.Name] then
-				recycleMod.thedead[pet.Name] = tick()
+				recycleMod.thedead[pet.Name] = time()
 			end
 		end
 
 		-- Track new dead ferals
 		for _, feral in feralsFolder:GetChildren() do
 			if feral:GetAttribute("RecycleMe") and not recycleMod.theferaldead[feral.Name] then
-				recycleMod.theferaldead[feral.Name] = tick()
+				recycleMod.theferaldead[feral.Name] = time()
 			end
 		end
 
 		-- Recycle pets
 		for name, t in recycleMod.thedead do
-			if tick() - t > recycleMod.waittime then
+			if time() - t > recycleMod.waittime then
 				local npc = petsFolder:FindFirstChild(name)
 				if npc then
 					local storagePets = ServerStorage:FindFirstChild("Pets")
@@ -250,7 +250,7 @@ function recycleMod.flagAsDead(): ()
 
 		-- Recycle ferals
 		for name, t in recycleMod.theferaldead do
-			if tick() - t > recycleMod.waittime then
+			if time() - t > recycleMod.waittime then
 				local npc = feralsFolder:FindFirstChild(name)
 				if npc then
 					local storageFerals = ServerStorage:FindFirstChild("Ferals")

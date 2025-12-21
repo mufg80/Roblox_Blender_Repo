@@ -64,7 +64,7 @@ local function fireBullet(player: Player, targetPos: Vector3): ()
 	local bullet: Instance = bulletTemplate:Clone()
 	bullet:SetAttribute("Owner", player.Name)
 	bullet.Position = muzzle.Position + Vector3.new(0, 0.5, 0)
-	bullet.Parent = Workspace
+	bullet.Parent = workspace
 
 	-- Set Bullet collision group (handles Part or Model w/ PrimaryPart)
 	local function setBulletCollision(obj: Instance): ()
@@ -93,7 +93,7 @@ local function fireBullet(player: Player, targetPos: Vector3): ()
 	local direction: Vector3 = (targetPos - startPos).Unit
 	local distance: number = math.min((targetPos - startPos).Magnitude, maxRange)
 	local duration: number = distance / bulletSpeed + 0.05 -- slight buffer
-	local startTime: number = tick()
+	local startTime: number = time()
 
 	-- Custom trail color ON CLONED BULLET (bug fix!)
 	local trail: Trail? = bullet:FindFirstChild(trailChildName)
@@ -133,7 +133,7 @@ local function fireBullet(player: Player, targetPos: Vector3): ()
 	-- Parabolic movement
 	local moveConn: RBXScriptConnection?
 	moveConn = RunService.Heartbeat:Connect(function()
-		local elapsed: number = tick() - startTime
+		local elapsed: number = time() - startTime
 		if elapsed >= duration or not bullet.Parent then
 			if bullet.Parent then
 				bullet:Destroy()

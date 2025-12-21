@@ -154,8 +154,8 @@ task.spawn(function()
 
 					currentControl = math.max(currentControl - decayAmount, LITHHEALTHCAP / 3)
 					liths[uniqueId] = currentControl
-					print("CurrentControl: ".. currentControl)
-					print("Change is: "..tostring(decayAmount))
+					--print("CurrentControl: ".. currentControl)
+					--print("Change is: "..tostring(decayAmount))
 					lithMod.AdjustAdorner(uniqueId, currentControl, building, decayAmount <= 0)
 				end
 				

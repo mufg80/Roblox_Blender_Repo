@@ -302,11 +302,13 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 	if not dataFolder then
 		return false
 	end
-
+	print(model.Name)
 	for statName: string, changeValue: number in pairs(buffInfo) do
 		local valueObj: ValueBase? = dataFolder:FindFirstChild(statName)
 		if valueObj and valueObj:IsA("ValueBase") and typeof(valueObj.Value) == "number" then
+			print("BeforeBuff "..valueObj.Name.. "  :  "..valueObj.Value)
 			valueObj.Value += changeValue * multiplier
+			print("AfterBuff "..valueObj.Name.. "  :  "..valueObj.Value)
 		end
 	end
 

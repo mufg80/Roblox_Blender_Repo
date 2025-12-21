@@ -24,7 +24,7 @@ function petControlMod.Setup(model: Model): table
 	local petDefendlith: boolean = false
 	local lithTakePosition: Vector3? = nil
 	local lithDefendPosition: Vector3? = nil
-
+	local spawnPoint:Vector3? = model:FindFirstChild("HumanoidRootPart").Position or nil
 	local connections: { RBXScriptConnection } = {}
 
 	-- Billboard (cached)
@@ -174,6 +174,9 @@ function petControlMod.Setup(model: Model): table
 			connections,
 			player:GetAttributeChangedSignal("PetFollow"):Connect(function()
 				petFollow = player:GetAttribute("PetFollow") == true
+				if not player:GetAttribute("PetFollow") then
+					spawnPoint = model:FindFirstChild("HumanoidRootPart").Position
+				end
 			end)
 		)
 
@@ -259,6 +262,9 @@ function petControlMod.Setup(model: Model): table
 		end,
 		GetLithDefendPosition = function()
 			return lithDefendPosition
+		end,
+		GetSpawnPoint = function()
+			return spawnPoint
 		end,
 
 		Refresh = onOwnerChanged,

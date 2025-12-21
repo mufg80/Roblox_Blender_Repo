@@ -21,16 +21,15 @@ export type UtilMod = {
 
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
-
+	RemoveSpaces:(input: string) -> string,
 	SetFlagsForMoving: (model: Model) -> (),
 	SetFlagsForCombat: (model: Model) -> (),
 	SetFlagsForDeath: (model: Model) -> (),
 	SetFlagsForIdle: (model: Model) -> (),
-
+	TempMarker: (position: Vector3) -> (),
 	HexToColor3: (hex: string) -> Color3,
 	SpinToTargetInCombat: (model: Model, targetModel: Model, lerpAlpha: number?) -> (),
-	IdleSpinToOwner: (model: Model, ownerModel: Model) -> (),
-	SpinToOwner: (model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?, spinCooldown: boolean?) -> (),
+	SpinToOwner: (model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?) -> (),
 
 	DistancetoGround: (position: Vector3) -> number?,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
@@ -66,7 +65,7 @@ function utilMod.GetPlayerLevel(plr: Player): number
 		return plr:GetAttribute("ArtificerLevel") or 1
 	elseif magictype == statsMod.MagicType.Primordial then
 		return plr:GetAttribute("PrimordialLevel") or 1
-	elseif magictype == statsMod.MagicType.Nature then 
+	elseif magictype == statsMod.MagicType.Nature then
 		return plr:GetAttribute("NatureLevel") or 1
 	else
 		return 1
@@ -127,13 +126,15 @@ function utilMod.IsAlly(sourceModel: Model, targetModel: Model): boolean
 	local targetAllyId: any = targetPlayer:GetAttribute("AllyId")
 
 	if typeof(sourceAllyId) == "string" then
-		sourceAllyId = (sourceAllyId == "None" or sourceAllyId == "none" or sourceAllyId == "") and nil or tonumber(sourceAllyId)
+		sourceAllyId = (sourceAllyId == "None" or sourceAllyId == "none" or sourceAllyId == "") and nil
+			or tonumber(sourceAllyId)
 	else
 		sourceAllyId = (sourceAllyId == nil or sourceAllyId == 0) and nil or sourceAllyId
 	end
 
 	if typeof(targetAllyId) == "string" then
-		targetAllyId = (targetAllyId == "None" or targetAllyId == "none" or targetAllyId == "") and nil or tonumber(targetAllyId)
+		targetAllyId = (targetAllyId == "None" or targetAllyId == "none" or targetAllyId == "") and nil
+			or tonumber(targetAllyId)
 	else
 		targetAllyId = (targetAllyId == nil or targetAllyId == 0) and nil or targetAllyId
 	end
@@ -151,6 +152,18 @@ function utilMod.GetRootPart(subject: Instance?): BasePart?
 	return subject:FindFirstChild("HumanoidRootPart")
 		or subject:FindFirstChild("Torso")
 		or subject:FindFirstChildWhichIsA("BasePart")
+end
+
+
+-- Removes all spaces from the input string
+function utilMod.RemoveSpaces(input: string): string
+    -- Ensure input is a string (defensive programming)
+    if typeof(input) ~= "string" then
+        error("RemoveSpaces expected a string, got " .. typeof(input), 2)
+    end
+    
+    -- Use gsub to replace all spaces (" ") with an empty string
+    return string.gsub(input, " ", "")
 end
 
 function utilMod.GetPosition(subject: Instance | Vector3): Vector3?
@@ -181,7 +194,7 @@ function utilMod.GetModelByIDorName(idOrName: string | number): Model?
 		end
 	end
 
-	local folders: {Folder?} = { Workspace:FindFirstChild("Pets"), Workspace:FindFirstChild("Ferals") }
+	local folders: { Folder? } = { Workspace:FindFirstChild("Pets"), Workspace:FindFirstChild("Ferals") }
 	for _, folder: Folder? in folders do
 		if folder then
 			for _, model: Instance in folder:GetChildren() do
@@ -200,7 +213,9 @@ function utilMod.IsPlayer(instance: Instance): boolean
 end
 
 function utilMod.SetFlagsForMoving(model: Model): ()
-	if model:GetAttribute("IsMoving") then return end
+	if model:GetAttribute("IsMoving") then
+		return
+	end
 	model:SetAttribute("IsMoving", true)
 	model:SetAttribute("IsIdle", false)
 	model:SetAttribute("HasFallen", false)
@@ -208,7 +223,9 @@ function utilMod.SetFlagsForMoving(model: Model): ()
 end
 
 function utilMod.SetFlagsForCombat(model: Model): ()
-	if model:GetAttribute("InCombat") then return end
+	if model:GetAttribute("InCombat") then
+		return
+	end
 	model:SetAttribute("IsMoving", false)
 	model:SetAttribute("IsIdle", false)
 	model:SetAttribute("HasFallen", false)
@@ -216,7 +233,9 @@ function utilMod.SetFlagsForCombat(model: Model): ()
 end
 
 function utilMod.SetFlagsForDeath(model: Model): ()
-	if model:GetAttribute("HasFallen") then return end
+	if model:GetAttribute("HasFallen") then
+		return
+	end
 	model:SetAttribute("IsMoving", false)
 	model:SetAttribute("IsIdle", false)
 	model:SetAttribute("HasFallen", true)
@@ -224,12 +243,14 @@ function utilMod.SetFlagsForDeath(model: Model): ()
 end
 
 function utilMod.SetFlagsForIdle(model: Model): ()
-	if model:GetAttribute("IsIdle") then return end
+	if model:GetAttribute("IsIdle") then
+		return
+	end
 	model:SetAttribute("IsMoving", false)
 	model:SetAttribute("IsIdle", true)
 	model:SetAttribute("HasFallen", false)
 	model:SetAttribute("InCombat", false)
-	model:SetAttribute("IdleStartTime", tick())
+	model:SetAttribute("IdleStartTime", time())
 end
 
 function utilMod.HexToColor3(hex: string): Color3
@@ -238,6 +259,22 @@ function utilMod.HexToColor3(hex: string): Color3
 	local g: number = tonumber(hex:sub(3, 4), 16) or 0
 	local b: number = tonumber(hex:sub(5, 6), 16) or 0
 	return Color3.fromRGB(r, g, b)
+end
+
+function utilMod.TempMarker(position: Vector3): ()
+	local marker = Instance.new("Part")
+	marker.Name = "TempMarker"
+	marker.Size = Vector3.new(1, 1, 1)
+	marker.Position = position
+	marker.Anchored = true
+	marker.CanCollide = false
+	marker.Material = Enum.Material.Neon
+	marker.Color = Color3.fromRGB(0, 255, 0) -- Bright green for visibility
+	marker.Parent = workspace
+
+	task.delay(1, function()
+		marker:Destroy()
+	end)
 end
 
 function utilMod.SpinToTargetInCombat(model: Model, targetModel: Model, lerpAlpha: number?): ()
@@ -252,7 +289,8 @@ function utilMod.SpinToTargetInCombat(model: Model, targetModel: Model, lerpAlph
 		return
 	end
 
-	local direction: Vector3 = Vector3.new(targetRoot.Position.X - hrp.Position.X, 0, targetRoot.Position.Z - hrp.Position.Z)
+	local direction: Vector3 =
+		Vector3.new(targetRoot.Position.X - hrp.Position.X, 0, targetRoot.Position.Z - hrp.Position.Z)
 
 	if direction.Magnitude > 0.1 then
 		local targetCFrame: CFrame = CFrame.lookAt(hrp.Position, hrp.Position + direction)
@@ -260,63 +298,13 @@ function utilMod.SpinToTargetInCombat(model: Model, targetModel: Model, lerpAlph
 	end
 end
 
-function utilMod.IdleSpinToOwner(model: Model, ownerModel: Model): ()
-	if not model or not ownerModel or not model:GetAttribute("IsIdle") then
-		return
-	end
-	if model:GetAttribute("CanIdleSpin") == false then
-		return
-	end
-	model:SetAttribute("CanIdleSpin", false)
-
-	task.spawn(function()
-		local hrp: BasePart? = utilMod.GetRootPart(model)
-		local ownerRoot: BasePart? = utilMod.GetRootPart(ownerModel)
-		if not hrp or not ownerRoot then
-			model:SetAttribute("CanIdleSpin", true)
-			return
-		end
-
-		local toOwner: Vector3 = Vector3.new(ownerRoot.Position.X - hrp.Position.X, 0, ownerRoot.Position.Z - hrp.Position.Z)
-		if toOwner.Magnitude < 0.3 then
-			model:SetAttribute("CanIdleSpin", true)
-			return
-		end
-
-		local targetCFrame: CFrame = CFrame.lookAt(hrp.Position, hrp.Position + toOwner)
-		local connection: RBXScriptConnection?
-
-		connection = RunService.Heartbeat:Connect(function(dt: number)
-			if not model:GetAttribute("IsIdle") or not ownerModel.Parent then
-				if connection then
-					connection:Disconnect()
-				end
-				model:SetAttribute("CanIdleSpin", true)
-				return
-			end
-
-			local alpha: number = math.min(4 * dt, 1)
-			hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, alpha)
-
-			if (hrp.CFrame.LookVector - targetCFrame.LookVector).Magnitude < 0.05 then
-				hrp.CFrame = targetCFrame
-				if connection then
-					connection:Disconnect()
-				end
-			end
-		end)
-
-		local delayTime: number = Random.new():NextInteger(8, 15)
-		task.delay(delayTime, function()
-			if model.Parent and model:GetAttribute("IsIdle") then
-				model:SetAttribute("CanIdleSpin", true)
-			end
-		end)
-	end)
-end
-
-function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?, spinCooldown: boolean?): ()
-	if spinCooldown == true or model:GetAttribute("SpinningToOwner") then
+function utilMod.SpinToOwner(
+	model: Model,
+	hrp: BasePart,
+	ownerInstance: Model,
+	rng: Random?
+): ()
+	if model:GetAttribute("SpinningToOwner") or model:GetAttribute("HasFallen") then
 		return
 	end
 	model:SetAttribute("SpinningToOwner", true)
@@ -346,7 +334,7 @@ function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, 
 				return
 			end
 
-			local alpha: number = math.min(12 * dt, 1)
+			local alpha: number = math.min(3 * dt, 0.3)
 			hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, alpha)
 
 			if (hrp.CFrame.LookVector - targetCFrame.LookVector).Magnitude < 0.05 then
@@ -375,7 +363,7 @@ function utilMod.DistancetoGround(position: Vector3): number?
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.IgnoreWater = true
 
-	local grounditems: {Instance} = CollectionService:GetTagged("Ground")
+	local grounditems: { Instance } = CollectionService:GetTagged("Ground")
 	params.FilterDescendantsInstances = grounditems
 
 	local result: RaycastResult? = Workspace:Raycast(rayOrigin, rayDirection, params)
@@ -517,7 +505,7 @@ function utilMod.GetSeedFromName(name: string, useTime: boolean?): number
 	seed = bit32.bxor(seed, bit32.rshift(seed, 16))
 
 	if useTime then
-		seed = bit32.bxor(seed, math.floor(tick() % 1 * 1e6))
+		seed = bit32.bxor(seed, math.floor(time() % 1 * 1e6))
 	end
 
 	return seed
@@ -536,9 +524,13 @@ function utilMod.GetClosestPlayerSkipAlly(player: Player): Player?
 	local bestDist: number = math.huge
 
 	for _, other: Player in Players:GetPlayers() do
-		if other:GetAttribute("HasFallen") then continue end
+		if other:GetAttribute("HasFallen") then
+			continue
+		end
 		if other ~= player and other.Character then
-			if utilMod.IsAlly(other.Character, player.Character) then continue end
+			if utilMod.IsAlly(other.Character, player.Character) then
+				continue
+			end
 			local dist: number? = utilMod.GetDistance(other.Character, myPos)
 			if dist and dist < bestDist then
 				bestDist = dist
@@ -564,7 +556,9 @@ function utilMod.GetClosestModelSkipAllyPets(player: Player, folderName: "Pets" 
 	local bestDist: number = math.huge
 
 	for _, model: Instance in folder:GetChildren() do
-		if model:GetAttribute("HasFallen") then continue end
+		if model:GetAttribute("HasFallen") then
+			continue
+		end
 		if model:IsA("Model") and not utilMod.IsAlly(player.Character, model :: Model) then
 			local dist: number? = utilMod.GetDistance(model, myPos)
 			if dist and dist < bestDist then
@@ -588,7 +582,9 @@ function utilMod.GetEnemyModelsWithinRange(player: Player, range: number): { Mod
 		if folder then
 			for _, model: Instance in folder:GetChildren() do
 				if model:IsA("Model") and not utilMod.IsAlly(player.Character, model :: Model) then
-					if model:GetAttribute("HasFallen") then continue end
+					if model:GetAttribute("HasFallen") then
+						continue
+					end
 					local dist: number? = utilMod.GetDistance(model, myPos)
 					if dist and dist <= range then
 						table.insert(result, model :: Model)
@@ -608,7 +604,9 @@ function utilMod.GetEnemyPlayersWithinRange(player: Player, range: number): { Mo
 	end
 
 	for _, other: Player in Players:GetPlayers() do
-		if other:GetAttribute("HasFallen") then continue end
+		if other:GetAttribute("HasFallen") then
+			continue
+		end
 		if other ~= player and other.Character and not utilMod.IsAlly(player.Character, other.Character) then
 			local dist: number? = utilMod.GetDistance(other.Character, myPos)
 			if dist and dist <= range then
@@ -630,7 +628,9 @@ function utilMod.IsEnemyInRange(player: Player, range: number): boolean
 		if folder then
 			for _, model: Instance in folder:GetChildren() do
 				if model:IsA("Model") and not utilMod.IsAlly(player.Character, model :: Model) then
-					if model:GetAttribute("HasFallen") then continue end
+					if model:GetAttribute("HasFallen") then
+						continue
+					end
 					local dist: number? = utilMod.GetDistance(model, myPos)
 					if dist and dist <= range then
 						return true
@@ -642,7 +642,9 @@ function utilMod.IsEnemyInRange(player: Player, range: number): boolean
 
 	for _, other: Player in Players:GetPlayers() do
 		if other ~= player and other.Character and not utilMod.IsAlly(player.Character, other.Character) then
-			if other:GetAttribute("HasFallen") then continue end
+			if other:GetAttribute("HasFallen") then
+				continue
+			end
 			local dist: number? = utilMod.GetDistance(other.Character, myPos)
 			if dist and dist <= range then
 				return true
@@ -759,10 +761,14 @@ function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userI
 	end
 	local result: { Model } = {}
 	local pets: Folder? = Workspace:FindFirstChild("Pets")
-	if not pets then return result end
+	if not pets then
+		return result
+	end
 	for _, pet: Instance in pets:GetChildren() do
 		if pet:IsA("Model") and not utilMod.IsAlly(player.Character, pet :: Model) then
-			if pet:GetAttribute("HasFallen") then continue end
+			if pet:GetAttribute("HasFallen") then
+				continue
+			end
 			local petroot: BasePart? = utilMod.GetRootPart(pet)
 			if petroot then
 				local dist: number? = utilMod.GetDistance(petroot.Position, hrp.Position)
@@ -781,7 +787,9 @@ function utilMod.GetCharactersModelsWithinRange(pos: Vector3, range: number): { 
 	-- Player characters
 	for _, player: Player in Players:GetPlayers() do
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-			if player:GetAttribute("HasFallen") then continue end
+			if player:GetAttribute("HasFallen") then
+				continue
+			end
 			local hrp: BasePart = player.Character.HumanoidRootPart
 			if utilMod.GetDistance(pos, hrp.Position) <= range then
 				table.insert(result, player.Character)
@@ -794,7 +802,9 @@ function utilMod.GetCharactersModelsWithinRange(pos: Vector3, range: number): { 
 	if petsFolder then
 		for _, petModel: Instance in petsFolder:GetChildren() do
 			if petModel:IsA("Model") and petModel:FindFirstChild("HumanoidRootPart") then
-				if petModel:GetAttribute("HasFallen") then continue end
+				if petModel:GetAttribute("HasFallen") then
+					continue
+				end
 				local hrp: BasePart = petModel.HumanoidRootPart
 				if utilMod.GetDistance(pos, hrp.Position) <= range then
 					table.insert(result, petModel :: Model)

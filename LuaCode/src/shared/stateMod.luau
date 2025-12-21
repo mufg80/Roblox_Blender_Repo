@@ -286,7 +286,7 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 			-- No enemies
 			if model:GetAttribute("IsStationary") ~= false then
 				if utilMod.GetDistance(spawnPosition, hrp.Position) > 3
-					and tick() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15)
+					and time() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15)
 				then
 					if not model:GetAttribute("IsMoving") then
 						utilMod.SetFlagsForMoving(model)
@@ -310,7 +310,7 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 						utilMod.SetFlagsForMoving(model)
 					end
 					movingDirection = "HomewardBound"
-				elseif tick() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15) then
+				elseif time() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15) then
 					if not model:GetAttribute("IsMoving") then
 						utilMod.SetFlagsForMoving(model)
 					elseif model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then

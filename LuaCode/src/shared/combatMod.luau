@@ -12,7 +12,7 @@ local effectMod = require(ReplicatedStorage.Shared.effectMod)
 
 local combatMod = {}
 
-local random = Random.new(tick())
+local random = Random.new(time())
 
 --==============================================================================
 -- Calculates mana cost for summoning a creature based on its level

@@ -363,6 +363,7 @@ game.Players.PlayerAdded:Connect(function(player: Player)
 	local level: number = math.random(2, 7)
 	local mtype: number = math.random(1, 3)
 	mtype = 1
+	level = 7
 	if mtype == 1 then
 		player:SetAttribute("Magic", statsMod.MagicType.Artificer)
 		player:SetAttribute("ArtificerLevel", level)
