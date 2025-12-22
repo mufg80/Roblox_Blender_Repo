@@ -12,11 +12,11 @@ export type TargetIdentifier = number | string | Model | "SpawnPoint" | "Lith"
 export type PathMod = {
 	GetTakeLithLoc: (model: Model, hrp: BasePart) -> Vector3?,
 	GetDefendLithLoc: (model: Model, hrp: BasePart) -> Vector3?,
-	GetCurrentTarget: (model: Model) -> (Model?) | "SpawnPoint" | "Lith",
+	GetCurrentTarget: (model: Model) -> Model | nil | "SpawnPoint" | "Lith",
 	PathfindToPosition: (model: Model, targetPosition: Vector3, targetIdOrName: TargetIdentifier) -> boolean,
 	IsPathActive: (model: Model) -> boolean,
 	ShortCircuitTravel: (model: Model) -> (),
-	GetTargetPet: (model: Model, targetIdOrName: number | string) -> Vector3?,
+	GetTargetPet: (model: Model, targetIdOrName: number | string, random: Random) -> Vector3?,
 	GetTargetLith: (pos: Vector3) -> Vector3?,
 }
 
@@ -54,11 +54,17 @@ function pathMod.GetTakeLithLoc(model: Model, hrp: BasePart): Vector3?
 
 	for _, point in ipairs(points) do
 		-- Skip if it's a ManaSpout or owned by the same player
-		if point.Name == "ManaSpout" then continue end
-		if point:GetAttribute("OwnedBy") == playerUserId then continue end
+		if point.Name == "ManaSpout" then
+			continue
+		end
+		if point:GetAttribute("OwnedBy") == playerUserId then
+			continue
+		end
 
 		local meshPart = point:FindFirstChildOfClass("MeshPart")
-		if not meshPart then continue end
+		if not meshPart then
+			continue
+		end
 
 		local dist = utilMod.GetDistance(meshPart.Position, hrp.Position)
 		if dist < closestDist then
@@ -101,18 +107,24 @@ function pathMod.GetDefendLithLoc(model: Model, hrp: BasePart): Vector3?
 	end
 
 	local playerUserId: number = plr.UserId
-	local underAttackLiths: {MeshPart} = {}
-	local ownedLiths: {MeshPart} = {}
+	local underAttackLiths: { MeshPart } = {}
+	local ownedLiths: { MeshPart } = {}
 
 	-- Collect owned liths and those under attack
 	for _, point in ipairs(points) do
-		if point.Name == "ManaSpout" then continue end
+		if point.Name == "ManaSpout" then
+			continue
+		end
 
 		local meshPart = point:FindFirstChildOfClass("MeshPart")
-		if not meshPart then continue end
+		if not meshPart then
+			continue
+		end
 
 		local ownedBy = point:GetAttribute("OwnedBy")
-		if ownedBy ~= playerUserId then continue end
+		if ownedBy ~= playerUserId then
+			continue
+		end
 
 		table.insert(ownedLiths, meshPart)
 
@@ -161,7 +173,7 @@ function pathMod.GetDefendLithLoc(model: Model, hrp: BasePart): Vector3?
 end
 
 -- Internal tracking
-local activePaths: {[Model]: {connection: RBXScriptConnection, targetIdOrName: TargetIdentifier}} = {}
+local activePaths: { [Model]: { connection: RBXScriptConnection, targetIdOrName: TargetIdentifier } } = {}
 
 local function addModel(model: Model, targetIdOrName: TargetIdentifier, connection: RBXScriptConnection?)
 	if not activePaths[model] then
@@ -169,7 +181,7 @@ local function addModel(model: Model, targetIdOrName: TargetIdentifier, connecti
 	end
 end
 
-function pathMod.GetCurrentTarget(model: Model): (Model?) | "SpawnPoint" | "Lith"
+function pathMod.GetCurrentTarget(model: Model): Model | nil | "SpawnPoint" | "Lith"
 	local entry = activePaths[model]
 	if not entry then
 		return nil
@@ -221,8 +233,9 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 	local pathTable = statsMod.Pathing[utilMod.customTrim(model.Name)]
 	local path = pathfindingService:CreatePath(pathTable)
 
+	local targetPosOnFloor = targetPosition and Vector3.new(targetPosition.X, utilMod.DistancetoGround(targetPosition) , targetPosition.Z)
 	local success, err = pcall(function()
-		path:ComputeAsync(rootPart.Position, targetPosition)
+		path:ComputeAsync(rootPart.Position, targetPosOnFloor)
 	end)
 
 	if not success or path.Status ~= Enum.PathStatus.Success then
@@ -232,23 +245,35 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 
 	local waypoints = path:GetWaypoints()
 	local currentWaypointIndex: number = 1
-	for _,waypoint in ipairs(waypoints) do
-		utilMod.TempMarker(waypoint.Position)
-	end
+	-- for _, waypoint in ipairs(waypoints) do
+	-- 	utilMod.TempMarker(waypoint.Position)
+	-- end
+	--utilMod.TempMarker(targetPosition)
+
+	local Recalculate = time() + 1
 	connection = RunService.Heartbeat:Connect(function()
 		if not activePaths[model] then
-			if connection then connection:Disconnect() end
+			if connection then
+				print("disconnect1")
+				connection:Disconnect()
+			end
 			return
 		end
 
 		if not model.Parent then
-			if connection then connection:Disconnect() end
+			if connection then
+				print("disconnect2")
+				connection:Disconnect()
+			end
 			activePaths[model] = nil
 			return
 		end
 
 		if currentWaypointIndex > #waypoints then
-			if connection then connection:Disconnect() end
+			if connection then
+				print("disconnect3")
+				connection:Disconnect()
+			end
 			activePaths[model] = nil
 			return
 		end
@@ -257,7 +282,10 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 		if time() - startTick > 1 then
 			startTick = time()
 			if utilMod.GetDistance(lastpos, rootPart.Position) < 1 then
-				if connection then connection:Disconnect() end
+				if connection then
+					print("stuck disconnect")
+					connection:Disconnect()
+				end
 				activePaths[model] = nil
 				return
 			else
@@ -266,28 +294,29 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 		end
 
 		-- Re-path if target moved too far (for mobile targets)
-		if targetIdOrName ~= "SpawnPoint" and targetIdOrName ~= "Lith" then
-			local mob = utilMod.GetModelByIDorName(targetIdOrName)
-			if mob then
-				local mobhrp = mob:FindFirstChild("HumanoidRootPart") or mob:FindFirstChild("Torso")
-				if mobhrp then
-					local waysoff = utilMod.GetDistance(mobhrp.Position, targetPosition)
-					if waysoff > 10 then
-						if connection then connection:Disconnect() end
-						activePaths[model] = nil
-						task.spawn(function()
-							task.wait()
-							pathMod.PathfindToPosition(model, mobhrp.Position, targetIdOrName)
-						end)
-						return
-					end
+		if targetIdOrName ~= "SpawnPoint" and targetIdOrName ~= "Lith" and time() > Recalculate then
+			Recalculate = time() + 0.5
+			local newPos = pathMod.GetTargetPet(model, targetIdOrName, Random.new(time()))
+			local newPosOnFloor = newPos and Vector3.new(newPos.X, utilMod.DistancetoGround(newPos) , newPos.Z)
+			local dis = newPos and utilMod.GetDistance(newPos, targetPosition)
+			if dis and dis > 2 then
+				if connection then
+					--print("disconnect5 within pathmod heartbeat")
+					connection:Disconnect()
 				end
+				activePaths[model] = nil
+				task.spawn(function()
+					task.wait()
+					local random: Random = Random.new(time())
+					pathMod.PathfindToPosition(model, newPosOnFloor, targetIdOrName)
+				end)
+				return
 			end
 		end
 
 		local waypoint = waypoints[currentWaypointIndex]
-		local distanceToWaypoint = utilMod.GetDistance(rootPart.Position, waypoint.Position)
-
+		local rootpartatground = Vector3.new(rootPart.Position.X, utilMod.DistancetoGround(rootPart.Position) , rootPart.Position.Z)
+		local distanceToWaypoint = utilMod.GetDistance(rootpartatground, waypoint.Position)
 
 		if distanceToWaypoint < 3 and currentWaypointIndex ~= #waypoints then
 			currentWaypointIndex += 1
@@ -295,7 +324,9 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
 				humanoid.Jump = true
 			end
+			utilMod.TempMarker(waypoint.Position)
 			humanoid:MoveTo(waypoint.Position)
+			
 		end
 	end)
 
@@ -329,8 +360,8 @@ function pathMod.ShortCircuitTravel(model: Model)
 		activePaths[model] = nil
 	end
 end
-
-function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string): Vector3?
+local petOffset: { string: Vector3 } = {}
+function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string, random: Random): Vector3?
 	local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
 	if not hrp then
 		return nil
@@ -350,15 +381,17 @@ function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string): Ve
 		end
 
 		local distance = utilMod.GetDistance(playerhrp.Position, hrp.Position)
-		if distance >= 25 then
-			local random = Random.new(utilMod.GetSeedFromName(model.Name))
-
+		if distance >= 30 then
+			if not petOffset[model.Name] then
+				local randomOffset = Vector3.new(random:NextInteger(-12, 12), 0, random:NextInteger(5, 15))
+				petOffset[model.Name] = randomOffset
+			end
 			local direction = -playerhrp.CFrame.LookVector
-			local randomDistance = random:NextInteger(10, 20)
-			local targetPosition = playerhrp.Position + direction * randomDistance
-			local rightVector = playerhrp.CFrame.RightVector
-			local randomOffset = random:NextInteger(-15, 15)
-			targetPosition += rightVector * randomOffset
+			local direction1 = playerhrp.CFrame.RightVector
+			local targetPosition = playerhrp.Position
+				+ (direction * petOffset[model.Name].Z)
+				+ (direction1 * petOffset[model.Name].X)
+			--utilMod.TempMarker(targetPosition)
 			return targetPosition
 		end
 		return nil
@@ -379,6 +412,7 @@ function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string): Ve
 		local distanceForAttacker = ((enemyTable and enemyTable.distanceForAttacker) or 4) - 2
 		local direction = (enemyhrp.Position - hrp.Position).Unit
 		local targetPosition = enemyhrp.Position - direction * distanceForAttacker
+		--targetPosition = Vector3.new(targetPosition.X, utilMod.DistancetoGround(targetPosition) , targetPosition.Z)
 		return targetPosition
 	end
 

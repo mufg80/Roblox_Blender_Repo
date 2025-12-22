@@ -23,14 +23,14 @@ export type Context = {
 	lithDefendPosition: Vector3?,
 
 	aggro: any, -- your aggroMod instance
-	pet: any,   -- your petControlMod instance
+	pet: any, -- your petControlMod instance
 
 	-- Mutable persistent state (shared across frames)
 	mutable: {
 		lithTakeRandomLoc: Vector3?,
 		lithDefendRandomLoc: Vector3?,
 		homewardBound: boolean,
-	}
+	},
 }
 
 export type StateResult = {
@@ -47,7 +47,7 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 	local acceptableDistance = context.acceptableDistance
 	local spawnPosition = context.spawnPosition
 	local hrp = context.hrp
-
+	local random = context.random
 	local petAttack = context.petAttack
 	local petFollow = context.petFollow
 	local petTakeLith = context.petTakeLith
@@ -73,7 +73,8 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 			mutable.lithTakeRandomLoc = nil
 		end
 
-		if petAttack and petFollow
+		if
+			petAttack and petFollow
 			or (petAttack and petDefendLith and lithDefendPosition == nil)
 			or (petAttack and petTakeLith and lithTakePosition == nil)
 		then
@@ -98,17 +99,20 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 				end
 			else
 				-- No enemies → follow owner
-				local check: Vector3? = ownerInstance and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+				local check: Vector3? = ownerInstance
+					and pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId, random)
 				if check then
-					if not model:GetAttribute("IsMoving") then
-						utilMod.SetFlagsForMoving(model)
-					end
+					utilMod.SetFlagsForMoving(model)
 					movingDirection = "MovingToOwner"
 				else
-					utilMod.SetFlagsForIdle(model)
+					if pathMod.IsPathActive(model) then
+						utilMod.SetFlagsForMoving(model)
+						movingDirection = "MovingToOwner"
+					else
+						utilMod.SetFlagsForIdle(model)
+					end
 				end
 			end
-
 		elseif petAttack and petDefendLith then
 			-- Attack + Defend Lith: finish combat first, then move to defend position
 			if hasEnemies then
@@ -148,7 +152,6 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 					utilMod.SetFlagsForIdle(model)
 				end
 			end
-
 		elseif petAttack and petTakeLith then
 			-- Attack + Take Lith: finish combat first, then move to take position
 			if hasEnemies then
@@ -188,7 +191,6 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 					utilMod.SetFlagsForIdle(model)
 				end
 			end
-
 		elseif petAttack and not petFollow then
 			-- Guard position: attack enemies, but return to spawnPosition if drifted
 			if hasEnemies then
@@ -223,13 +225,13 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 					end
 				end
 			end
-
 		elseif not petAttack and petFollow then
 			-- Passive follow only
 			aggro.ClearHateList()
 
 			if ownerInstance then
-				local check: Vector3? = pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+				local check: Vector3? =
+					pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
 				if check then
 					if not model:GetAttribute("IsMoving") then
 						utilMod.SetFlagsForMoving(model)
@@ -241,7 +243,6 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 			else
 				utilMod.SetFlagsForIdle(model)
 			end
-
 		elseif not petAttack and not petFollow then
 			-- Stay planted
 			aggro.ClearHateList()
@@ -257,11 +258,9 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 				pathMod.ShortCircuitTravel(model)
 			end
 			movingDirection = "NotMoving"
-
 		else
 			warn("Unhandled pet command combination")
 		end
-
 	else
 		-- === FERAL (NON-PET) LOGIC ===
 		if hasEnemies then
@@ -285,8 +284,10 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 		else
 			-- No enemies
 			if model:GetAttribute("IsStationary") ~= false then
-				if utilMod.GetDistance(spawnPosition, hrp.Position) > 3
-					and time() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15)
+				if
+					utilMod.GetDistance(spawnPosition, hrp.Position) > 3
+					and time() - (model:GetAttribute("IdleStartTime") or 0)
+						> (model:GetAttribute("IdleReset") or 15)
 				then
 					if not model:GetAttribute("IsMoving") then
 						utilMod.SetFlagsForMoving(model)
@@ -297,7 +298,8 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 				end
 			else
 				-- Roaming feral
-				local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition) > (model:GetAttribute("RangeLimit") or 50)
+				local tooFar = utilMod.GetDistance(hrp.Position, spawnPosition)
+					> (model:GetAttribute("RangeLimit") or 50)
 
 				if tooFar and not mutable.homewardBound then
 					mutable.homewardBound = true
@@ -310,7 +312,9 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 						utilMod.SetFlagsForMoving(model)
 					end
 					movingDirection = "HomewardBound"
-				elseif time() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15) then
+				elseif
+					time() - (model:GetAttribute("IdleStartTime") or 0) > (model:GetAttribute("IdleReset") or 15)
+				then
 					if not model:GetAttribute("IsMoving") then
 						utilMod.SetFlagsForMoving(model)
 					elseif model:GetAttribute("IsMoving") and not pathMod.IsPathActive(model) then

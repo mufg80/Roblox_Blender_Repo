@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
 local ServerStorage = game:GetService("ServerStorage")
-
+local PhysicsService = game:GetService("PhysicsService")
 local dataStoreEnabled: boolean = false
 
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
@@ -12,6 +12,35 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local recyleMod = require(ReplicatedStorage.Shared.recycleMod)
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local lithMod = require(ReplicatedStorage.Shared.lithMod)
+
+local function setCollisionGroup(plrId:string, part:"BasePart")
+
+	local exists = false
+	for _, name in ipairs(PhysicsService:GetRegisteredCollisionGroups()) do
+		if name.name == plrId then
+			exists = true
+			break
+		end
+	end
+
+	if not exists then
+		PhysicsService:RegisterCollisionGroup(plrId)
+		PhysicsService:CollisionGroupSetCollidable(plrId, plrId, false)
+		local plr = game.Players:GetPlayerByUserId(tonumber(plrId))
+		local char = plr.Character
+		if char then
+			repeat task.wait() until char
+			for _,part in ipairs(char:GetChildren())do
+				if part:IsA("BasePart") or part:IsA("MeshPart")then
+					part.CollisionGroup = plrId
+				end
+			end
+		end
+	end
+	if part:IsA("BasePart") then
+		part.CollisionGroup = plrId
+	end
+end
 
 local function setStaffandPets(player: Player): ()
 	local character: Model? = player.Character
@@ -401,6 +430,9 @@ summonevent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 			player:GetAttribute("Souls"),
 			player:GetAttribute("MaxSouls")
 		)
+		local hrp = summonedCreature:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+		setCollisionGroup(tostring(player.UserId),hrp)
 		summonevent:FireClient(player, summonedCreature, player:GetAttribute("Souls"))
 	end)
 

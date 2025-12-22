@@ -81,8 +81,8 @@ local function GetRandomAttack(animTracks: any, random: Random): AnimationTrack?
 	end
 	local doPrimary = random:NextInteger(1, 3) == 1
 	if doPrimary then
-        local index = animTracks.favoredAttack
-        return animTracks.attacks[index]
+		local index = animTracks.favoredAttack
+		return animTracks.attacks[index]
 	else
 		local index = random:NextInteger(1, #animTracks.attacks)
 		return animTracks.attacks[index]
@@ -158,7 +158,7 @@ function actionsMod.PerformActions(context: table)
 		end
 
 		if movingDirection == "MovingToCombatTarget" then
-			local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"))
+			local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"), random)
 			if target and not pathMod.IsPathActive(model) then
 				pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
 			elseif pathMod.GetCurrentTarget(model) ~= combatTargetModel then
@@ -193,7 +193,7 @@ function actionsMod.PerformActions(context: table)
 			end
 		elseif movingDirection == "MovingToOwner" then
 			local ownerId = model:GetAttribute("OwnedBy")
-			local target = pathMod.GetTargetPet(model, ownerId)
+			local target = pathMod.GetTargetPet(model, ownerId, random)
 			if target and not pathMod.IsPathActive(model) then
 				pathMod.PathfindToPosition(model, target, ownerId)
 			elseif pathMod.GetCurrentTarget(model) ~= utilMod.GetModelByIDorName(ownerId) then
@@ -243,13 +243,14 @@ function actionsMod.PerformActions(context: table)
 
 		if pathMod.IsPathActive(model) then
 			pathMod.ShortCircuitTravel(model)
+			print("shorting travel10")
 		end
 		local timeNumber = time() - (model:GetAttribute("IdleStartTime") or 0)
 		local cool = time() > (model:GetAttribute("SpinCoolDown") or 0)
 
 		if ownerInstance and cool and timeNumber > random:NextInteger(10, 20) then
-			model:SetAttribute("SpinCoolDown", time() + random:NextInteger(8, 15))
-			utilMod.SpinToOwner(model, hrp, ownerInstance, random, context.spincooldown)
+			model:SetAttribute("SpinCoolDown", time() + random:NextInteger(10, 25))
+			utilMod.SpinToOwner(model, hrp, ownerInstance, random)
 		end
 	end
 end

@@ -134,8 +134,6 @@ task.spawn(function()
 		local lithDefendPosition = pet.GetLithDefendPosition()
 
 		if not model:GetAttribute("HasFallen") then
-			-- starting over using pet commands integrated into state logic.
-
 			----------------------------------------------------------------
 			-- Aggro
 			----------------------------------------------------------------
@@ -168,7 +166,7 @@ task.spawn(function()
 				acceptableDistance = acceptableDistance,
 				spawnPosition = pet.GetSpawnPoint(),
 				hrp = hrp,
-
+				random = random,
 				petAttack = pet.IsAttackEnabled(),
 				petFollow = pet.IsFollowEnabled(),
 				petTakeLith = pet.IsTakeLithEnabled(),
@@ -230,23 +228,7 @@ task.spawn(function()
 			lastAttackTime = actionContext.lastAttackTime.value
 			spincooldown = actionContext.spincooldown
 			homewardBound = actionContext.homewardBound
-			-- Handle long idle → short idle transition when idle
-			if model:GetAttribute("IsIdle") and #animTracks.idle >= 2 then
-				local longIdle = animTracks.idle[2]
-				local shortIdle = animTracks.idle[1]
-
-				if longIdle and longIdle.IsPlaying then
-					if idleConnection then
-						idleConnection:Disconnect()
-					end
-					idleConnection = longIdle.Stopped:Connect(function()
-						if shortIdle and not shortIdle.IsPlaying then
-							shortIdle:Play()
-						end
-						idleConnection = nil
-					end)
-				end
-			end
+			
 		else
 			----------------------------------------------------------------
 			-- Death

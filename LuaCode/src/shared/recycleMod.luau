@@ -57,6 +57,8 @@ function recycleMod.resetNPC(npc: Model): ()
 	destroyEvent("BuffDebuffEvent")
 	destroyEvent("RemoveBuffDebuffEvent")
 	destroyEvent("AddThreat")
+	local hrp = npc:FindFirstChild("HumanoidRootPart")
+	hrp.CollisionGroup = "default"
 
 	-- Restart scripts
 	for _, s in npc:GetDescendants() do
