@@ -44,6 +44,11 @@ export type AnimTrackDict = {
 	attacks: { AnimationTrack? },
 	cast: AnimationTrack?,
 	favoredAttack: number,
+	moveSpeed: number?,
+	idleSpeed: number?,
+	deathSpeed: number?,
+	castSpeed: number?,
+	attackSpeeds: {number?},
 }
 
 local animTracks: AnimTrackDict = {
@@ -56,6 +61,11 @@ local animTracks: AnimTrackDict = {
 	attacks = {},
 	cast = nil,
 	favoredAttack = nil,
+	moveSpeed = nil,
+	idleSpeed = nil,
+	deathSpeed = nil,
+	castSpeed = nil,
+	attackSpeeds = {1,1,1,1},
 }
 
 if animator then
@@ -80,14 +90,16 @@ if animator then
 	table.insert(animTracks.attacks, load("PoAttack3", false))
 	animTracks.favoredAttack = 1
 	-- Get minAttackDelay (longest animation length)
-	for _, attack: AnimationTrack in ipairs(animTracks.attacks) do
-		-- Wait until the length is loaded (it's async)
-		while attack.Length <= 0 do
-			task.wait() -- or RunService.Heartbeat:Wait() for more precision
-		end
+	if animTracks.attacks then
+		for _, attack: AnimationTrack in ipairs(animTracks.attacks) do
+			-- Wait until the length is loaded (it's async)
+			while attack.Length <= 0 do
+				task.wait() -- or RunService.Heartbeat:Wait() for more precision
+			end
 
-		if MINATTACKDELAY < attack.Length then
-			MINATTACKDELAY = attack.Length
+			if MINATTACKDELAY < attack.Length then
+				MINATTACKDELAY = attack.Length
+			end
 		end
 	end
 end

@@ -25,7 +25,7 @@ local spellCastColor: Color3? = nil
 local db: boolean = true
 local Frame: Frame = magicgui:FindFirstChild("CastFrame")
 local globalCooldown: number = time()
-local petNames: {string} = {}
+local petNames: { string } = {}
 
 -- health and mana
 local function ChangeMana(): ()
@@ -60,8 +60,8 @@ local function DiableButton(button: GuiButton): ()
 end
 
 local function DisableButtons(): ()
-	local creaturebuttons: {Instance} = magicgui.CreatureFrame:GetChildren()
-	local spellbuttons: {Instance} = magicgui.SpellFrame:GetChildren()
+	local creaturebuttons: { Instance } = magicgui.CreatureFrame:GetChildren()
+	local spellbuttons: { Instance } = magicgui.SpellFrame:GetChildren()
 
 	-- Enable all buttons first
 	for _, button in pairs(creaturebuttons) do
@@ -222,8 +222,8 @@ local function updateMagicUI(): ()
 		return
 	end
 
-	local Creatureframeitems: {Instance} = magicgui.CreatureFrame:GetChildren()
-	local Spellframeitems: {Instance} = magicgui.SpellFrame:GetChildren()
+	local Creatureframeitems: { Instance } = magicgui.CreatureFrame:GetChildren()
+	local Spellframeitems: { Instance } = magicgui.SpellFrame:GetChildren()
 
 	for _, item in pairs(Creatureframeitems) do
 		if item:IsA("GuiObject") and item.Name ~= "UIListLayout" and item.Name ~= "aCreaturesLabel" then
@@ -284,8 +284,8 @@ hum.HealthChanged:Connect(ChangeHealth)
 ChangeHealth()
 ChangeMana()
 
-local creaturebuttons: {Instance} = magicgui.CreatureFrame:GetChildren()
-local spellbuttons: {Instance} = magicgui.SpellFrame:GetChildren()
+local creaturebuttons: { Instance } = magicgui.CreatureFrame:GetChildren()
+local spellbuttons: { Instance } = magicgui.SpellFrame:GetChildren()
 
 for _, button in pairs(creaturebuttons) do
 	if button:IsA("GuiButton") then
@@ -295,7 +295,9 @@ for _, button in pairs(creaturebuttons) do
 			end
 			db = false
 			replicatedstorage.Events.SummonEvent:FireServer(utilMod.RemoveSpaces(button.Text))
-			local secs: number = statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)] and (statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)].level or 3 / 2) or 1.5
+			local secs: number = statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)]
+					and (statsMod.creatureStats[utilMod.RemoveSpaces(button.Text)].level or 3 / 2)
+				or 1.5
 			local startTime: number = time()
 			local connection: RBXScriptConnection?
 
@@ -332,7 +334,10 @@ for _, button in pairs(spellbuttons) do
 			local Frame: Frame = magicgui:FindFirstChild("CastFrame")
 			Frame.Visible = true
 			globalCooldown = time() + secs + 1
-			player:SetAttribute("button_" .. utilMod.RemoveSpaces(button.Text), time() + secs + statsMod.SpellInfo[utilMod.RemoveSpaces(button.Text)].cooldown)
+			player:SetAttribute(
+				"button_" .. utilMod.RemoveSpaces(button.Text),
+				time() + secs + statsMod.SpellInfo[utilMod.RemoveSpaces(button.Text)].cooldown
+			)
 			local innerFill: Frame = Frame.InnerFill
 			innerFill.BackgroundColor3 = Color3.fromHex(spellCastColor or "#FFFFFF")
 			connection = runservice.RenderStepped:Connect(function(delta: number)
@@ -385,7 +390,7 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 		existingFrame:Destroy()
 	end
 
-	local petframe: Frame = replicatedstorage:WaitForChild("PetFrameContainer"):Clone()
+	local petframe: Frame = replicatedstorage:WaitForChild("GUIComponents").PetFrameContainer:Clone()
 	petframe.Name = summonedCreature.Name .. "_PetFrame"
 	petframe.Parent = statsGui.HudFrame
 	petframe.Visible = true
@@ -399,7 +404,7 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 	local connection: RBXScriptConnection?
 
 	local function updateHealth(): ()
-		local inner: Frame = petframe.PetMeterBar.InnerFill
+		local inner: Frame = petframe.ZHealthMana.PetMeterBar.InnerFill
 		local den: number = hum.MaxHealth
 		local num: number = hum.Health
 		local fraction: number
@@ -430,6 +435,35 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 			end
 		end
 	end)
+end)
+
+replicatedstorage.Events.PetManaEvent.OnClientEvent:Connect(function(name, mana, maxmana)
+	--petframe.Name = summonedCreature.Name .. "_PetFrame"
+	local hud = statsGui.HudFrame
+	if not hud then
+		return
+	end
+	local frameName = name .. "_PetFrame"
+	local petFrame = hud:FindFirstChild(frameName)
+	if not petFrame then
+		return
+	end
+	petFrame.ZHealthMana.ZPetManaMeterBar.Visible = true
+	local innerFill = petFrame.ZHealthMana.ZPetManaMeterBar.InnerFill
+
+	innerFill.Visible = true
+	if not innerFill then
+		return
+	end
+	local den: number = maxmana or 1
+	local num: number = mana or 0.1
+	local fraction: number
+	if den == 0 then
+		fraction = 0
+	else
+		fraction = math.clamp(num / den, 0, 1)
+	end
+	innerFill.Size = UDim2.new(fraction, 0, 1, 0)
 end)
 
 replicatedstorage.Events.SpellCastEvent.OnClientEvent:Connect(function(spellname: string)
@@ -468,12 +502,13 @@ local function PetEventActivation(): ()
 		Attacking: boolean,
 		TakingLith: boolean,
 		DefendingLith: boolean,
-	} = {
-		Following = isPetFollowing,
-		Attacking = isPetAttacking,
-		TakingLith = isPetTakingLith,
-		DefendingLith = isPetDefendingLith,
-	}
+	} =
+		{
+			Following = isPetFollowing,
+			Attacking = isPetAttacking,
+			TakingLith = isPetTakingLith,
+			DefendingLith = isPetDefendingLith,
+		}
 	replicatedstorage.Events.PetEvent:FireServer(commands)
 end
 
@@ -549,14 +584,49 @@ buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string,
 	if typeof(id) == "number" then
 		-- is a player
 		local playerBuffFrame: Frame = statsGui.HudFrame.PlayerEffectsFrame
-		if spelltype == "buff" then
-			spelllabel = playerBuffFrame.BuffLabel
-		elseif spelltype == "debuff" then
-			spelllabel = playerBuffFrame.DebuffLabel
-		elseif spelltype == "heal" then
-			spelllabel = playerBuffFrame.HealLabel
+		if command == "Add" then
+			if spelltype == "buff" then
+				spelllabel = playerBuffFrame.BuffLabel:Clone()
+				spelllabel.Parent = playerBuffFrame
+			elseif spelltype == "debuff" then
+				spelllabel = playerBuffFrame.DebuffLabel:Clone()
+				spelllabel.Parent = playerBuffFrame
+			elseif spelltype == "heal" then
+				spelllabel = playerBuffFrame.HealLabel:Clone()
+				spelllabel.Parent = playerBuffFrame
+			elseif spelltype == "damage" then
+				spelllabel = playerBuffFrame.DamageLabel:Clone()
+				spelllabel.Parent = playerBuffFrame
+			else
+				warn("Should not reach me.")
+			end
 		else
-			warn("Should not reach me.")
+			for _, child in ipairs(playerBuffFrame:GetChildren()) do
+				if spelltype == "buff" then
+					if child.Name == "BuffLabel" and child.Visible == true then
+						spelllabel = child
+						break
+					end
+					
+				elseif spelltype == "debuff" then
+					if child.Name == "DebuffLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+				elseif spelltype == "heal" then
+					if child.Name == "HealLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+				elseif spelltype == "damage" then
+					if child.Name == "DamageLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+				else
+					warn("Should not reach me.")
+				end
+			end
 		end
 	else
 		-- pets buff
@@ -564,7 +634,6 @@ buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string,
 		local frame: Frame? = statsGui.HudFrame:FindFirstChild(petinfoframe)
 
 		if spelltype == "buff" then
-			spelllabel = frame and frame.ZZBuffFrame.BuffLabel
 		elseif spelltype == "debuff" then
 			spelllabel = frame and frame.ZZBuffFrame.DebuffLabel
 		elseif spelltype == "heal" then
@@ -572,11 +641,61 @@ buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string,
 		else
 			warn("Should not reach me.")
 		end
+		if command == "Add" then
+			if spelltype == "buff" then
+				spelllabel = frame and frame.ZZBuffFrame.BuffLabel:Clone()
+				spelllabel.Parent = frame.ZZBuffFrame
+			elseif spelltype == "debuff" then
+				spelllabel = frame and frame.ZZBuffFrame.DebuffLabel:Clone()
+				spelllabel.Parent = frame.ZZBuffFrame
+			elseif spelltype == "heal" then
+				spelllabel = frame and frame.ZZBuffFrame.HealLabel:Clone()
+				spelllabel.Parent = frame.ZZBuffFrame
+			elseif spelltype == "damage" then
+				spelllabel = frame and frame.ZZBuffFrame.DamageLabel:Clone()
+				spelllabel.Parent = frame.ZZBuffFrame
+			else
+				warn("Should not reach me.")
+			end
+		else
+			for _, child in ipairs(frame.ZZBuffFrame:GetChildren()) do
+				if spelltype == "buff" then
+					if child.Name == "BuffLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+					
+				elseif spelltype == "debuff" then
+					if child.Name == "DebuffLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+				elseif spelltype == "heal" then
+					if child.Name == "HealLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+				elseif spelltype == "damage" then
+					if child.Name == "DamageLabel" and child.Visible == true  then
+						spelllabel = child
+						break
+					end
+				else
+					warn("Should not reach me.")
+				end
+			end
+		end
+
 	end
 	if command == "Add" then
-		if spelllabel then spelllabel.Visible = true end
+		if spelllabel then
+			spelllabel.Visible = true
+		end
 	else
-		if spelllabel then spelllabel.Visible = false end
+		if spelllabel then
+			spelllabel.Visible = false
+			spelllabel.Parent = nil
+		end
 	end
 end)
 

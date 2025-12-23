@@ -47,7 +47,7 @@ local function PlayIdles(animTracks: any)
 		local idleToPlay: AnimationTrack = animTracks.idle[1]
 		idleToPlay.Looped = true
 		if idleToPlay then
-			idleToPlay:Play(1)
+			idleToPlay:Play(0.3, 1, animTracks.idleSpeed or 1)
 		end
 	elseif #animTracks.idle == 2 then
 		local tracktoplay1: AnimationTrack = animTracks.idle[1]
@@ -55,13 +55,13 @@ local function PlayIdles(animTracks: any)
 		tracktoplay2.Looped = true
 		tracktoplay1.Looped = false
 		local total = math.random(15, 30)
-		tracktoplay2:Play(1)
+		tracktoplay2:Play(1, 1, animTracks.idleSpeed or 1)
 		animTracks.idleConnection = task.delay(total, function()
 			if tracktoplay2 and tracktoplay2.IsPlaying then
 				tracktoplay2:Stop(0.5)
-				tracktoplay1:Play(0.5)
+				tracktoplay1:Play(0.5, 1, animTracks.idleSpeed or 1)
 				animTracks.delayConnection = tracktoplay1.Stopped:Connect(function()
-					tracktoplay2:Play(0.5)
+					tracktoplay2:Play(0.5, .9, animTracks.idleSpeed or 1)
 				end)
 			end
 		end)
@@ -75,19 +75,21 @@ local function StopMove(animTracks: any)
 	end
 end
 
-local function GetRandomAttack(animTracks: any, random: Random): AnimationTrack?
+local function GetRandomAttack(animTracks: any, random: Random): {anim: AnimationTrack?, index:number?}
 	if #animTracks.attacks == 0 then
 		return nil
 	end
 	local doPrimary = random:NextInteger(1, 3) == 1
 	if doPrimary then
 		local index = animTracks.favoredAttack
-		return animTracks.attacks[index]
+		return {animTracks.attacks[index], index}
 	else
 		local index = random:NextInteger(1, #animTracks.attacks)
-		return animTracks.attacks[index]
+		return {animTracks.attacks[index], index}
 	end
 end
+
+local healerCache: { string: boolean } = {}
 
 function actionsMod.PerformActions(context: table)
 	local model = context.model
@@ -117,10 +119,14 @@ function actionsMod.PerformActions(context: table)
 	local utilMod = context.utilMod
 	local pet = context.pet
 
+	if not healerCache[model.Name] then
+		healerCache[model.Name] = utilMod.IsMobHealer(model)
+	end
+
 	----------------------------------------------------------------
 	-- Combat Actions
 	----------------------------------------------------------------
-	if model:GetAttribute("InCombat") then
+	if model:GetAttribute("InCombat") and not healerCache[model.Name] then
 		StopMove(animTracks)
 		PlayIdles(animTracks)
 		if combatTargetModel then
@@ -135,8 +141,8 @@ function actionsMod.PerformActions(context: table)
 
 				if time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
 					local track = GetRandomAttack(animTracks, random)
-					if track and not track.IsPlaying then
-						track:Play(0.2, 1, 1)
+					if track.anim and not track.anim.IsPlaying then
+						track.anim:Play(0.2, 1, animTracks.attackSpeeds[track.index])
 						lastAttackWrapper.value = time()
 
 						task.delay(0.5, function()
@@ -144,6 +150,22 @@ function actionsMod.PerformActions(context: table)
 						end)
 					end
 				end
+			end
+		end
+	elseif model:GetAttribute("InCombat") and healerCache[model.Name] then
+		StopMove(animTracks)
+		PlayIdles(animTracks)
+		if combatTargetModel then
+			if pathMod.IsPathActive(model) then
+				if utilMod.GetAcceptableDistanceForCaster(model, combatTargetModel) then
+					pathMod.ShortCircuitTravel(model)
+				end
+			end
+
+			if not pathMod.IsPathActive(model) then
+				utilMod.SpinToTargetInCombat(model, combatTargetModel, 0.3)
+
+				-- Attack or regen mana
 			end
 		end
 	end
@@ -154,10 +176,12 @@ function actionsMod.PerformActions(context: table)
 	if model:GetAttribute("IsMoving") then
 		StopIdle(animTracks)
 		if animTracks.move and not animTracks.move.IsPlaying then
-			animTracks.move:Play()
+			local tracktoplay:AnimationTrack = animTracks.move
+			print("moving at "..animTracks.moveSpeed)
+			tracktoplay:Play(.3,.9,animTracks.moveSpeed or 1)
 		end
 
-		if movingDirection == "MovingToCombatTarget" then
+		if movingDirection == "MovingToCombatTarget" and not healerCache[model.Name] then
 			local target = pathMod.GetTargetPet(model, model:GetAttribute("TargetIDorName"), random)
 			if target and not pathMod.IsPathActive(model) then
 				pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
@@ -165,6 +189,8 @@ function actionsMod.PerformActions(context: table)
 				pathMod.ShortCircuitTravel(model)
 				pathMod.PathfindToPosition(model, target, model:GetAttribute("TargetIDorName"))
 			end
+		elseif movingDirection == "MovingToCombatTarget" and healerCache[model.Name] then
+			-- move to within 45 studs
 		elseif movingDirection == "MovingToNearestLith" then
 			if petDefendLith then
 				if lithDefendPosition then
@@ -251,6 +277,33 @@ function actionsMod.PerformActions(context: table)
 		if ownerInstance and cool and timeNumber > random:NextInteger(10, 20) then
 			model:SetAttribute("SpinCoolDown", time() + random:NextInteger(10, 25))
 			utilMod.SpinToOwner(model, hrp, ownerInstance, random)
+		end
+		if healerCache[model.Name] then
+			local mana = model:GetAttribute("Mana") or 0
+			local maxMana = model:GetAttribute("MaxMana") or 1
+			local nextCastTime = model:GetAttribute("IdleCastCoolDown") or 0
+			if mana / maxMana > 0.8 and time() > nextCastTime then
+				nextCastTime = time() + random:NextInteger(20, 40)
+				model:SetAttribute("IdleCastCoolDown", nextCastTime)
+				local tracktoplay: AnimationTrack = animTracks.cast
+				tracktoplay:Play(0.3, 0.9, animTracks.castSpeed or 1)
+				print("CastHeal - Pet")
+				task.delay(0.5, function()
+					local spellname = nil
+					if random:NextInteger(1, 2) == 5 then
+						spellname = "PriestBuff"
+					else
+						spellname = "PriestHeal"
+					end
+					local userId = model:GetAttribute("OwnedBy")
+					if userId and typeof(userId) == "number" then
+						local plr = game.Players:GetPlayerByUserId(userId)
+						if plr and plr.Character then
+							combatMod.ApplyPriestSpell(model, plr.Character, spellname)
+						end
+					end
+				end)
+			end
 		end
 	end
 end

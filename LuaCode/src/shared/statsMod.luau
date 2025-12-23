@@ -466,6 +466,51 @@ statsMod.SpellInfo = {
 		effectOffsetXZ = 0,
 		printedName = "Natures Defenders"
 	},
+	PriestHeal = {
+		manaCost = 0.7,
+		magicType = "any",
+		spellType = "heal",
+		missChance = 0.2,
+		range = 20,
+		cooldown = 5,
+		numberTargets = 1,
+		aggro = 50,
+		effectMultiplier = 0,
+        castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 0,
+		printedName = "Priest Heal"
+	},
+	PriestBuff = {
+		manaCost = 0.7,
+		magicType = "any",
+		spellType = "buff",
+		missChance = 0.2,
+		range = 30,
+		cooldown = 5,
+		numberTargets = 4,
+		aggro = 50,
+		effectMultiplier = 0,
+        castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 0,
+		printedName = "Priest Buff"
+	},
+	PriestNuke = {
+		manaCost = 0.7,
+		magicType = "any",
+		spellType = "damage",
+		missChance = 0.2,
+		range = 50,
+		cooldown = 5,
+		numberTargets = 1,
+		aggro = 50,
+		effectMultiplier = 0,
+        castTime = 3,
+		effectTime = 5,
+		effectOffsetXZ = 0,
+		printedName = "Priest Nuke"
+	},
 }
 
 -- Buff/Debuff stat modifications
@@ -546,6 +591,20 @@ statsMod.BuffInfo = {
 		speed = -0.3,
 		seconds = 30,
 		maxDamage = -0.1,
+	},
+	PriestHeal = { hitPoints = 10, seconds = 10 },
+	PriestBuff = {
+		hitPoints = 30,
+		attack = 0.00,
+		attackDelay = -0.00,
+		defense = 0.00,
+		armour = 0.00,
+		primordialmagicdefense = 0.1,
+		artificermagicdefense = 0.1,
+		naturemagicdefense = 0.1,
+		speed = 0.0,
+		seconds = 10,
+		maxDamage = 0.19,
 	},
 }
 
@@ -638,7 +697,7 @@ statsMod.creatureStats = {
 		primordialmagicdefense = 0.20,
 		artificermagicdefense = 0.45,
 		naturemagicdefense = 0.25,
-		speed = 0.9,
+		speed = 0.7,
 		maxDamage = 0.35,
 		distanceForAttacker = 5,
 		height = 2.7,

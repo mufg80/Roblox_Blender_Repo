@@ -37,6 +37,9 @@ export type StateResult = {
 	movingDirection: string,
 }
 
+
+local healerCache:{string:boolean} = {}
+
 -- Main function called every loop from the NPC script
 function stateMod.UpdateState(model: Model, context: Context): StateResult
 	local mutable = context.mutable
@@ -58,13 +61,19 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 	local aggro = context.aggro
 
 	local movingDirection = "NotMoving"
-
+	if not healerCache[model.Name] then
+		healerCache[model.Name] = utilMod.IsMobHealer(model)
+	end
 	-- === PET STATE LOGIC ===
 
 	local isPet: boolean = model:GetAttribute("OwnedBy") ~= nil
 		and model:GetAttribute("OwnedBy") ~= ""
 		and model:GetAttribute("OwnedBy") ~= "None"
 		and model:GetAttribute("OwnedBy") ~= "none"
+
+	if healerCache[model.Name] then
+		acceptableDistance = utilMod.GetAcceptableDistanceForCaster(combatTargetModel, model)
+	end
 
 	if isPet then
 		-- Clear lith caches when following (as in original blink logic and follow mode)

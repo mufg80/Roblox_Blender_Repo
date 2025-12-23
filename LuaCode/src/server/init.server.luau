@@ -13,8 +13,7 @@ local recyleMod = require(ReplicatedStorage.Shared.recycleMod)
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local lithMod = require(ReplicatedStorage.Shared.lithMod)
 
-local function setCollisionGroup(plrId:string, part:"BasePart")
-
+local function setCollisionGroup(plrId: string, part: "BasePart")
 	local exists = false
 	for _, name in ipairs(PhysicsService:GetRegisteredCollisionGroups()) do
 		if name.name == plrId then
@@ -29,9 +28,11 @@ local function setCollisionGroup(plrId:string, part:"BasePart")
 		local plr = game.Players:GetPlayerByUserId(tonumber(plrId))
 		local char = plr.Character
 		if char then
-			repeat task.wait() until char
-			for _,part in ipairs(char:GetChildren())do
-				if part:IsA("BasePart") or part:IsA("MeshPart")then
+			repeat
+				task.wait()
+			until char
+			for _, part in ipairs(char:GetChildren()) do
+				if part:IsA("BasePart") or part:IsA("MeshPart") then
 					part.CollisionGroup = plrId
 				end
 			end
@@ -48,7 +49,7 @@ local function setStaffandPets(player: Player): ()
 		return
 	end
 
-	local prim: {Instance} = character:GetChildren()
+	local prim: { Instance } = character:GetChildren()
 	for _, item in pairs(prim) do
 		if item:IsA("Tool") then
 			local stype: any = item:GetAttribute("StaffType")
@@ -60,7 +61,7 @@ local function setStaffandPets(player: Player): ()
 
 	local backpack: Backpack? = player:FindFirstChildOfClass("Backpack")
 	if backpack then
-		local items: {Instance} = backpack:GetChildren()
+		local items: { Instance } = backpack:GetChildren()
 		for _, item in pairs(items) do
 			if item:IsA("Tool") then
 				local stype: any = item:GetAttribute("StaffType")
@@ -72,7 +73,7 @@ local function setStaffandPets(player: Player): ()
 	end
 
 	local currentType: any = player:GetAttribute("Magic")
-	local pets: {Model} = utilMod.MyPets(player)
+	local pets: { Model } = utilMod.MyPets(player)
 	for _, pet: Model in pairs(pets) do
 		if statsMod.creatureStats[pet.Name] and statsMod.creatureStats[pet.Name].magicType ~= currentType then
 			pet:Destroy()
@@ -114,7 +115,7 @@ local function GetMagicType(player: Player): string?
 	return nil
 end
 
-local function setStats(thisPlayer: Player): ()
+local function setStats(thisPlayer: Player, spellname: string): ()
 	local baseStats: { [string]: any } = utilMod.GetStatsFromFolder(thisPlayer)
 	local humanoid: Humanoid? = thisPlayer.Character and thisPlayer.Character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then
@@ -133,6 +134,10 @@ local function setStats(thisPlayer: Player): ()
 	if humanoid.Health > humanoid.MaxHealth then
 		humanoid.Health = humanoid.MaxHealth
 	end
+	if statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
+		humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
+	end
+
 	humanoid.WalkSpeed = 16 * baseStats.speed
 	humanoid:SetAttribute("LastHealth", humanoid.Health)
 end
@@ -148,7 +153,9 @@ end
 
 local function CharacterAdded(character: Model): ()
 	local plr: Player? = game.Players:GetPlayerFromCharacter(character)
-	if not plr then return end
+	if not plr then
+		return
+	end
 
 	local max: number? = plr:GetAttribute("MaxSouls")
 	local soul: number? = plr:GetAttribute("Souls")
@@ -160,7 +167,8 @@ local function CharacterAdded(character: Model): ()
 	if hum then
 		local connection: thread? = nil
 		hum.HealthChanged:Connect(function(health: number)
-			local damageTaken: number = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - health) or 0
+			local damageTaken: number = hum:GetAttribute("LastHealth") and (hum:GetAttribute("LastHealth") - health)
+				or 0
 
 			hum:SetAttribute("LastHealth", health)
 			if damageTaken > 0 then
@@ -219,7 +227,7 @@ game.Players.PlayerAdded:Connect(function(player: Player)
 	AddBuffDebuffEvent.Parent = player
 
 	AddBuffDebuffEvent.Event:Connect(function(_player1: Player, _spellname: string)
-		setStats(player)
+		setStats(player, _spellname)
 	end)
 
 	local RemoveBuffDebuffEvent: BindableEvent = Instance.new("BindableEvent")
@@ -228,7 +236,9 @@ game.Players.PlayerAdded:Connect(function(player: Player)
 
 	RemoveBuffDebuffEvent.Event:Connect(function(_player1: Player, _spellname: string)
 		local character: Model? = player.Character
-		if not character then return end
+		if not character then
+			return
+		end
 		local atts: { [string]: any } = character:GetAttributes()
 		local isbuffstartingwithBuffTrue: boolean = true
 		for attName: string, _ in pairs(atts) do
@@ -362,13 +372,14 @@ game.Players.PlayerAdded:Connect(function(player: Player)
 				PrimordialLevel: number,
 				NatureLevel: number,
 				Experience: number,
-			} = {
-				Magic = statsMod.MagicType.None,
-				ArtificerLevel = 1,
-				PrimordialLevel = 1,
-				NatureLevel = 1,
-				Experience = 1,
-			}
+			} =
+				{
+					Magic = statsMod.MagicType.None,
+					ArtificerLevel = 1,
+					PrimordialLevel = 1,
+					NatureLevel = 1,
+					Experience = 1,
+				}
 
 			local allAtts: { [string]: any } = player:GetAttributes()
 			for key: string, value: any in pairs(allAtts) do
@@ -404,7 +415,7 @@ game.Players.PlayerAdded:Connect(function(player: Player)
 		player:SetAttribute("NatureLevel", level)
 	end
 end)
-
+local petManaEvent: RemoteEvent = ReplicatedStorage.Events.PetManaEvent
 local summonevent: RemoteEvent = ReplicatedStorage.Events:WaitForChild("SummonEvent")
 summonevent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 	local spawnpoint: Vector3? = utilMod.FindClearSpawnPoint(player, 10)
@@ -413,7 +424,8 @@ summonevent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 		return
 	end
 
-	local secs: number = statsMod.creatureStats[creatureName] and (statsMod.creatureStats[creatureName].level or 3 / 2) or 1.5
+	local secs: number = statsMod.creatureStats[creatureName] and (statsMod.creatureStats[creatureName].level or 3 / 2)
+		or 1.5
 	task.delay(secs, function()
 		if player:GetAttribute("HasFallen") then
 			return
@@ -431,9 +443,19 @@ summonevent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 			player:GetAttribute("MaxSouls")
 		)
 		local hrp = summonedCreature:FindFirstChild("HumanoidRootPart")
-		if not hrp then return end
-		setCollisionGroup(tostring(player.UserId),hrp)
+		if not hrp then
+			return
+		end
+		setCollisionGroup(tostring(player.UserId), hrp)
 		summonevent:FireClient(player, summonedCreature, player:GetAttribute("Souls"))
+		if utilMod.IsMobHealer(summonedCreature) then
+			petManaEvent:FireClient(
+				player,
+				summonedCreature.Name,
+				summonedCreature:GetAttribute("Mana"),
+				summonedCreature:GetAttribute("MaxMana")
+			)
+		end
 	end)
 
 	effectMod.SummonCreatureEffect(spawnpoint, creatureName, secs)
@@ -452,22 +474,27 @@ spellevent.OnServerEvent:Connect(function(player: Player, spellname: string)
 end)
 
 local petEvents: RemoteEvent = ReplicatedStorage.Events:WaitForChild("PetEvent")
-petEvents.OnServerEvent:Connect(function(plr: Player, commands: {
-	Following: boolean,
-	Attacking: boolean,
-	TakingLith: boolean,
-	DefendingLith: boolean,
-})
+petEvents.OnServerEvent:Connect(function(
+	plr: Player,
+	commands: {
+		Following: boolean,
+		Attacking: boolean,
+		TakingLith: boolean,
+		DefendingLith: boolean,
+	}
+)
 	plr:SetAttribute("PetAttack", commands.Attacking)
 	plr:SetAttribute("PetFollow", commands.Following)
 	plr:SetAttribute("PetTakeLith", commands.TakingLith)
 	plr:SetAttribute("PetDefendLith", commands.DefendingLith)
 end)
 
-local spawnpoints: {BasePart} = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
+local spawnpoints: { BasePart } = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
 
 local function spawnferal(): ()
-	if #spawnpoints == 0 then return end
+	if #spawnpoints == 0 then
+		return
+	end
 
 	local rand: number = math.random(1, #spawnpoints)
 	local point: BasePart = spawnpoints[rand]
@@ -478,7 +505,9 @@ local function spawnferal(): ()
 		creature.Parent = workspace:WaitForChild("Ferals")
 	else
 		local template: Model? = ServerStorage.Entities:FindFirstChild("FeralArtifactGuardian")
-		if not template then return end
+		if not template then
+			return
+		end
 		creature = template:Clone()
 		creature.Name = utilMod.uniqueName(creature.Name)
 		creature:SetAttribute("OwnedBy", "None")
@@ -498,7 +527,7 @@ local function spawnferal(): ()
 	end
 end
 
-local manaspawnpoints: {BasePart} = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
+local manaspawnpoints: { BasePart } = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
 
 for _, point: BasePart in pairs(manaspawnpoints) do
 	if point:GetAttribute("HasBuilding") ~= true then
@@ -512,13 +541,14 @@ for _, point: BasePart in pairs(manaspawnpoints) do
 	end
 end
 
+-- Mana Regen Health Regen
 task.spawn(function()
 	while task.wait(6) do
 		for _, plr: Player in game.Players:GetPlayers() do
 			local mana: number? = plr:GetAttribute("Mana")
 			local maxMana: number? = plr:GetAttribute("MaxMana")
 			if mana and maxMana then
-				local newmana: number = math.min(mana + 12, maxMana)
+				local newmana: number = math.min(mana + 6, maxMana)
 				plr:SetAttribute("Mana", newmana)
 			end
 
@@ -529,6 +559,23 @@ task.spawn(function()
 					if hum and hum.Health < hum.MaxHealth then
 						local health: number = math.clamp(hum.Health + 10, 1, hum.MaxHealth)
 						hum.Health = health
+					end
+				end
+			end
+		end
+		local pets = workspace:FindFirstChild("Pets"):GetChildren()
+		for _, mod in pairs(pets) do
+			local name = utilMod.customTrim(mod.Name)
+			if name == "Druid" or name == "StoneManaPriest" or name == "MudPriest" then
+				if not mod:GetAttribute("HasFallen") and not mod:GetAttribute("InCombat") then
+					local mana = mod:GetAttribute("Mana") or 0
+					local max = mod:GetAttribute("MaxMana") or 1
+					mod:SetAttribute("Mana", math.min(mana + 13, max))
+
+					local plr: Player = game.Players:GetPlayerByUserId(mod:GetAttribute("OwnedBy"))
+					if plr then
+						local newmana = mod:GetAttribute("Mana")
+						petManaEvent:FireClient(plr, mod.Name, newmana, max)
 					end
 				end
 			end

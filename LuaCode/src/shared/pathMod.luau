@@ -233,7 +233,8 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 	local pathTable = statsMod.Pathing[utilMod.customTrim(model.Name)]
 	local path = pathfindingService:CreatePath(pathTable)
 
-	local targetPosOnFloor = targetPosition and Vector3.new(targetPosition.X, utilMod.DistancetoGround(targetPosition) , targetPosition.Z)
+	local targetPosOnFloor = targetPosition
+		and Vector3.new(targetPosition.X, utilMod.DistancetoGround(targetPosition), targetPosition.Z)
 	local success, err = pcall(function()
 		path:ComputeAsync(rootPart.Position, targetPosOnFloor)
 	end)
@@ -297,7 +298,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 		if targetIdOrName ~= "SpawnPoint" and targetIdOrName ~= "Lith" and time() > Recalculate then
 			Recalculate = time() + 0.5
 			local newPos = pathMod.GetTargetPet(model, targetIdOrName, Random.new(time()))
-			local newPosOnFloor = newPos and Vector3.new(newPos.X, utilMod.DistancetoGround(newPos) , newPos.Z)
+			local newPosOnFloor = newPos and Vector3.new(newPos.X, utilMod.DistancetoGround(newPos), newPos.Z)
 			local dis = newPos and utilMod.GetDistance(newPos, targetPosition)
 			if dis and dis > 2 then
 				if connection then
@@ -315,10 +316,13 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 		end
 
 		local waypoint = waypoints[currentWaypointIndex]
-		local rootpartatground = Vector3.new(rootPart.Position.X, utilMod.DistancetoGround(rootPart.Position) , rootPart.Position.Z)
+		local rootpartatground =
+			Vector3.new(rootPart.Position.X, utilMod.DistancetoGround(rootPart.Position), rootPart.Position.Z)
 		local distanceToWaypoint = utilMod.GetDistance(rootpartatground, waypoint.Position)
 
-		if distanceToWaypoint < 3 and currentWaypointIndex ~= #waypoints then
+		if distanceToWaypoint < 1 and currentWaypointIndex == #waypoints then
+			currentWaypointIndex += 1
+		elseif distanceToWaypoint < 3 and currentWaypointIndex ~= #waypoints then
 			currentWaypointIndex += 1
 		else
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
@@ -326,7 +330,6 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			end
 			utilMod.TempMarker(waypoint.Position)
 			humanoid:MoveTo(waypoint.Position)
-			
 		end
 	end)
 
@@ -360,7 +363,30 @@ function pathMod.ShortCircuitTravel(model: Model)
 		activePaths[model] = nil
 	end
 end
+
 local petOffset: { string: Vector3 } = {}
+
+local function GetRandomPos(model: Model, random: Random)
+	local counter = 0
+	local finished = false
+	local randomOffset = nil
+	while not finished do
+		counter += 1
+		randomOffset = Vector3.new(random:NextInteger(-12, 12), 0, random:NextInteger(5, 15))
+		local good = true
+		for key, pos in pairs(petOffset) do
+			if utilMod.GetDistance(randomOffset, pos) < 5 then
+				good = false
+			end
+		end
+		if good then
+			finished = true
+		end
+	end
+
+	petOffset[model.Name] = randomOffset
+end
+
 function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string, random: Random): Vector3?
 	local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
 	if not hrp then
@@ -383,8 +409,7 @@ function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string, ran
 		local distance = utilMod.GetDistance(playerhrp.Position, hrp.Position)
 		if distance >= 30 then
 			if not petOffset[model.Name] then
-				local randomOffset = Vector3.new(random:NextInteger(-12, 12), 0, random:NextInteger(5, 15))
-				petOffset[model.Name] = randomOffset
+				GetRandomPos(model, random)
 			end
 			local direction = -playerhrp.CFrame.LookVector
 			local direction1 = playerhrp.CFrame.RightVector

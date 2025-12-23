@@ -298,7 +298,7 @@ function combatMod.ExecuteSpellDamageToBody(playerId: number, target: Model, dam
 			creator:Destroy()
 		end
 	end)
-	print("DamageDonebySpell: ".. damage)
+	print("DamageDonebySpell: " .. damage)
 	humanoid.Health = math.max(humanoid.Health - damage, 1)
 	return true
 end
@@ -367,6 +367,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		if summonedCreature.Parent == nil then
 			return
 		end
+		task.wait(1)
 		for _, part in pairs(summonedCreature:GetDescendants()) do
 			if part:IsA("MeshPart") then
 				if part.Transparency > 0 then
@@ -435,7 +436,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		for _, plr in playersInRange do
 			if affected < info.numberTargets then
 				local dmg = combatMod.SpellAttackResult(player, plr, spellname)
-				
+
 				task.delay(0.5, function()
 					combatMod.ExecuteSpellDamageToBody(player.UserId, plr.Character, dmg)
 				end)
@@ -445,7 +446,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		for _, mob in modelsInRange do
 			if affected < info.numberTargets then
 				local dmg = combatMod.SpellAttackResult(player, mob, spellname)
-				
+
 				task.delay(0.5, function()
 					combatMod.ExecuteSpellDamageToBody(player.UserId, mob, dmg)
 				end)
@@ -601,6 +602,66 @@ function combatMod.CalculateAggro(damageTaken: number): number
 	return damageTaken * 1.5 + 30
 end
 
+function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string): ()
+	local ownedby = model:GetAttribute("OwnedBy")
+	local plrOwner = ownedby and game.Players:GetPlayerByUserId(ownedby)
+	if not plrOwner then return end
+
+	local info = statsMod.SpellInfo[spellname]
+	if not info then
+		warn("Spell not found:", spellname)
+		return
+	end
+
+	local cost = info.manaCost * statsMod.MaxSpellCost
+	local mana = model:GetAttribute("Mana") or 0
+	if mana < cost then
+		warn("Not enough mana")
+		return
+	end
+
+	if info.spellType == "damage" then
+		
+	elseif info.spellType == "areaDamage" then
+		warn("Should not reach me.")
+	elseif info.spellType == "buff" or info.spellType == "debuff" or info.spellType == "heal" then
+		local applied = false
+		if info.spellType == "heal" or info.spellType == "buff" then
+			local charcontainer = {}
+			applied = buffMod.BuffDebuffHeal(model, plrOwner, spellname) or applied
+			if applied then
+				table.insert(charcontainer, model)
+			end
+			for _, pet in utilMod.MyPets(plrOwner) do
+				
+				applied = buffMod.BuffDebuffHeal(model, pet, spellname) or applied
+				if applied then
+					table.insert(charcontainer, pet)
+					buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, pet)
+				end
+			end
+			if applied then
+				effectMod.BuffEffects(charcontainer, spellname)
+			end
+		end
+
+		if info.spellType == "debuff" then
+			warn("Should not reach me.")
+		end
+		if applied then
+			buffMod.SelectTargetsForAggro(model, info)
+			model:SetAttribute("Mana", mana - cost)
+			local repevent = ReplicatedStorage.Events.PetManaEvent
+			if repevent then
+				repevent:FireClient(plrOwner, model.Name, model:GetAttribute("Mana"), model:GetAttribute("MaxMana"))
+			end
+		end
+	elseif info.spellType == "utility" then
+		warn("Should not reach me.")
+	end
+
+end
+
 export type CombatMod = {
 	LeveltoManaCost: (creatureInstance: Instance) -> number,
 	SpellAttackResult: (attacker: Instance, defender: Instance, spellName: string) -> number,
@@ -615,6 +676,7 @@ export type CombatMod = {
 	GetPlayerType: (player: Player?) -> string?,
 	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
 	CalculateAggro: (damageTaken: number) -> number,
+	ApplyPriestSpell: (model: Model, target: Model, spellname: string) -> (),
 }
 
 return combatMod :: CombatMod

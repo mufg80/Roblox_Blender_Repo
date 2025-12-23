@@ -24,7 +24,7 @@ function petControlMod.Setup(model: Model): table
 	local petDefendlith: boolean = false
 	local lithTakePosition: Vector3? = nil
 	local lithDefendPosition: Vector3? = nil
-	local spawnPoint:Vector3? = model:FindFirstChild("HumanoidRootPart").Position or nil
+	local spawnPoint: Vector3? = model:FindFirstChild("HumanoidRootPart").Position or nil
 	local connections: { RBXScriptConnection } = {}
 
 	-- Billboard (cached)
@@ -113,6 +113,46 @@ function petControlMod.Setup(model: Model): table
 		inner.Size = UDim2.new(fraction, 0, 1, 0)
 	end
 
+	local function updateManaBar()
+		if not utilMod.IsMobHealer(model) then
+			return
+		end
+		local bb = getOrCreateBillboard()
+		if not bb then
+			return
+		end
+
+		local frame = bb:FindFirstChild("Frame")
+		if not frame then
+			return
+		end
+
+		local container = frame:FindFirstChild("PetFrameContainer")
+		if not container then
+			return
+		end
+
+		local mbar = container:FindFirstChild("ZPetManaMeterBar")
+		if not mbar then
+			return
+		end
+
+		local minner: Frame = mbar:FindFirstChild("MInnerFill")
+		if not minner then
+			return
+		end
+
+		mbar.Visible = true
+		minner.Visible = true
+		local mana = model:GetAttribute("Mana") or 0
+		local maxmana = model:GetAttribute("MaxMana") or 1
+		local mFraction = math.clamp(mana / maxmana, 0, 1)
+		minner.Size = UDim2.new(mFraction, 0, 1, 0)
+	end
+	updateManaBar()
+
+	model:GetAttributeChangedSignal("Mana"):Connect(updateManaBar)
+	model:GetAttributeChangedSignal("MaxMana"):Connect(updateManaBar)
 	-- Initial billboard setup
 	updateNameLabel()
 	updateHealthBar()

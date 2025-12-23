@@ -12,16 +12,16 @@ local utilMod = {}
 
 export type UtilMod = {
 	GetPlayerLevel: (plr: Player) -> number,
-
+	IsMobHealer: (model: Model) -> boolean,
 	IsAlly: (sourceModel: Model, targetModel: Model) -> boolean,
-
+	GetAcceptableDistanceForCaster: (combatTargetModel: Model?, model: Model) -> boolean,
 	GetRootPart: (subject: Instance?) -> BasePart?,
 	GetPosition: (subject: Instance | Vector3) -> Vector3?,
 	GetDistance: (a: Instance | Vector3, b: Instance | Vector3) -> number?,
-
+	GetPartyMembers: (model: Instance) ->  { Player: Player, Character: Model?, pets: { Model } } ,
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
-	RemoveSpaces:(input: string) -> string,
+	RemoveSpaces: (input: string) -> string,
 	SetFlagsForMoving: (model: Model) -> (),
 	SetFlagsForCombat: (model: Model) -> (),
 	SetFlagsForDeath: (model: Model) -> (),
@@ -58,6 +58,23 @@ export type UtilMod = {
 
 	customTrim: (input: string?) -> string,
 }
+
+function utilMod.GetAcceptableDistanceForCaster(combatTargetModel: Model?, model: Model): boolean
+	local targetHRP = combatTargetModel and combatTargetModel:FindFirstChild("HumanoidRootPart")
+	local myhrp = model and model:FindFirstChild("HumanoidRootPart")
+	if not myhrp or not targetHRP then
+		return false
+	end
+	return utilMod.GetDistance(myhrp.Position, targetHRP.Position) < 45
+end
+
+function utilMod.IsMobHealer(model: Model): boolean
+	local thisMob = utilMod.customTrim(model.Name)
+	if thisMob == "Druid" or thisMob == "StoneManaPriest" or thisMob == "MudPriest" then
+		return true
+	end
+	return false
+end
 
 function utilMod.GetPlayerLevel(plr: Player): number
 	local magictype: any = plr:GetAttribute("Magic")
@@ -154,16 +171,15 @@ function utilMod.GetRootPart(subject: Instance?): BasePart?
 		or subject:FindFirstChildWhichIsA("BasePart")
 end
 
-
 -- Removes all spaces from the input string
 function utilMod.RemoveSpaces(input: string): string
-    -- Ensure input is a string (defensive programming)
-    if typeof(input) ~= "string" then
-        error("RemoveSpaces expected a string, got " .. typeof(input), 2)
-    end
-    
-    -- Use gsub to replace all spaces (" ") with an empty string
-    return string.gsub(input, " ", "")
+	-- Ensure input is a string (defensive programming)
+	if typeof(input) ~= "string" then
+		error("RemoveSpaces expected a string, got " .. typeof(input), 2)
+	end
+
+	-- Use gsub to replace all spaces (" ") with an empty string
+	return string.gsub(input, " ", "")
 end
 
 function utilMod.GetPosition(subject: Instance | Vector3): Vector3?
@@ -298,12 +314,7 @@ function utilMod.SpinToTargetInCombat(model: Model, targetModel: Model, lerpAlph
 	end
 end
 
-function utilMod.SpinToOwner(
-	model: Model,
-	hrp: BasePart,
-	ownerInstance: Model,
-	rng: Random?
-): ()
+function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?): ()
 	if model:GetAttribute("SpinningToOwner") or model:GetAttribute("HasFallen") then
 		return
 	end
@@ -570,9 +581,78 @@ function utilMod.GetClosestModelSkipAllyPets(player: Player, folderName: "Pets" 
 	return closest
 end
 
+-- Returns a table like: { { Player = Player, Character = Model?, pets = {Model} } }
+function utilMod.GetPartyMembers(model: Instance): { { Player: Player, Character: Model?, pets: { Model } } }
+	local player: Player?
+
+	-- Case 1: The instance is the Player itself
+	if model:IsA("Player") then
+		player = model
+
+	-- Case 2: The instance is a character Model
+	elseif model:IsA("Model") then
+		-- First try the standard way (character with Humanoid)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			player = Players:GetPlayerFromCharacter(model)
+		end
+
+		-- If still no player, check if this model is a pet with the OwnedBy attribute
+		if not player then
+			local ownedByUserId = model:GetAttribute("OwnedBy")
+			if typeof(ownedByUserId) == "number" then
+				player = Players:GetPlayerByUserId(ownedByUserId)
+			end
+		end
+
+		-- If still no player (e.g. it's a pet), traverse upwards looking for OwnedBy attribute
+		if not player then
+			local current = model.Parent
+			while current and current:IsA("Model") and current ~= game do
+				local ownedByUserId = current:GetAttribute("OwnedBy")
+				if typeof(ownedByUserId) == "number" then
+					player = Players:GetPlayerByUserId(ownedByUserId)
+					if player then
+						break
+					end
+				end
+				current = current.Parent
+			end
+		end
+	else
+		error("GetPartyMembers: Expected Player or Model instance, got " .. model.ClassName)
+	end
+
+	-- If we couldn't find a player at all
+	if not player then
+		return {}
+	end
+
+	-- Get the player's current character (may be nil if not spawned)
+	local character = player.Character
+
+	-- Get all owned pet models via your existing function
+	local petModels = utilMod.MyPets(player) or {}
+
+	-- Return the party table (single entry for this player)
+	return {
+		Player = player,
+		Character = character,
+		pets = petModels,
+	}
+end
+
 function utilMod.GetEnemyModelsWithinRange(player: Player, range: number): { Model }
 	local result: { Model } = {}
-	local myPos: Vector3? = utilMod.GetPosition(player.Character)
+	local casterModel = nil
+	local plrOwner = nil
+	local partyTable = utilMod.GetPartyMembers(player)
+	if partyTable.Player.Name == player.Name then
+		casterModel = partyTable.Character
+	else
+		casterModel = player
+	end
+	local myPos: Vector3? = utilMod.GetPosition(casterModel)
 	if not myPos then
 		return result
 	end
@@ -581,7 +661,7 @@ function utilMod.GetEnemyModelsWithinRange(player: Player, range: number): { Mod
 		local folder: Folder? = Workspace:FindFirstChild(folderName)
 		if folder then
 			for _, model: Instance in folder:GetChildren() do
-				if model:IsA("Model") and not utilMod.IsAlly(player.Character, model :: Model) then
+				if model:IsA("Model") and not utilMod.IsAlly(plrOwner, model :: Model) then
 					if model:GetAttribute("HasFallen") then
 						continue
 					end
