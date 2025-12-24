@@ -18,7 +18,7 @@ export type UtilMod = {
 	GetRootPart: (subject: Instance?) -> BasePart?,
 	GetPosition: (subject: Instance | Vector3) -> Vector3?,
 	GetDistance: (a: Instance | Vector3, b: Instance | Vector3) -> number?,
-	GetPartyMembers: (model: Instance) ->  { Player: Player, Character: Model?, pets: { Model } } ,
+	GetPartyMembers: (model: Instance) -> { Player: Player, Character: Model?, pets: { Model } },
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
 	RemoveSpaces: (input: string) -> string,
@@ -33,7 +33,7 @@ export type UtilMod = {
 
 	DistancetoGround: (position: Vector3) -> number?,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
-
+	IsPlayerCharacter: (model: Model?) -> boolean,
 	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
 
 	uniqueName: (baseName: string) -> string,
@@ -44,7 +44,8 @@ export type UtilMod = {
 	GetEnemyModelsWithinRange: (player: Player, range: number) -> { Model },
 	GetEnemyPlayersWithinRange: (player: Player, range: number) -> { Model },
 	IsEnemyInRange: (player: Player, range: number) -> boolean,
-
+	GetAttribute: (model: Model?, attr: string) -> any,
+	SetAttribute: (model: Model?, attr: string, value: any) -> (),
 	MyPets: (player: Player) -> { Model },
 
 	CopyStatsToFolder: (target: Instance, stats: { [string]: any }, folderName: string?) -> Folder,
@@ -58,6 +59,220 @@ export type UtilMod = {
 
 	customTrim: (input: string?) -> string,
 }
+
+-- ────────────────────────────────────────────────────────────────
+-- Caches for fast lookups
+-- ────────────────────────────────────────────────────────────────
+
+local characterCache = {} -- [Model] = true (is character)
+local playerFromCharacter = {} -- [Model] = Player (fast GetPlayerFromCharacter replacement)
+
+local function updateCharacterCache()
+	characterCache = {}
+	playerFromCharacter = {}
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then
+			characterCache[player.Character] = true
+			playerFromCharacter[player.Character] = player
+		end
+	end
+end
+
+-- Initial population
+updateCharacterCache()
+
+-- Update on player/character changes
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		characterCache[char] = true
+		playerFromCharacter[char] = player
+	end)
+	player.CharacterRemoving:Connect(function(char)
+		characterCache[char] = nil
+		playerFromCharacter[char] = nil
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if player.Character then
+		characterCache[player.Character] = nil
+		playerFromCharacter[player.Character] = nil
+	end
+end)
+
+-- ────────────────────────────────────────────────────────────────
+-- IsPlayerCharacter – now uses cache
+-- ────────────────────────────────────────────────────────────────
+
+function utilMod.IsPlayerCharacter(instance: Model?): boolean
+	if not instance or not instance:IsA("Model") then
+		return false
+	end
+	return characterCache[instance] == true
+end
+
+-- ────────────────────────────────────────────────────────────────
+-- GetPlayerFromCharacter – fast cached version
+-- ────────────────────────────────────────────────────────────────
+
+function utilMod.GetPlayerFromCharacter(model: Model?): Player?
+	if not model or not model:IsA("Model") then
+		return nil
+	end
+	return playerFromCharacter[model]
+end
+
+-- ────────────────────────────────────────────────────────────────
+-- Safe SetAttribute – supports Player or Model
+-- ────────────────────────────────────────────────────────────────
+
+--- Sets an attribute.
+--- - If `instance` is a Player → stores on the Player
+--- - If `instance` is a Model that is a character → stores on its Player
+--- - Otherwise → stores directly on the Model
+---
+--- @param instance Player | Model?
+--- @param attr string
+--- @param value any
+function utilMod.SetAttribute(instance: Player | Model?, attr: string, value: any)
+	if not instance then
+		return -- silent fail
+	end
+
+	if instance:IsA("Player") then
+		instance:SetAttribute(attr, value)
+		return
+	end
+
+	if instance:IsA("Model") then
+		if utilMod.IsPlayerCharacter(instance) then
+			local player = utilMod.GetPlayerFromCharacter(instance)
+			if player then
+				player:SetAttribute(attr, value)
+				return
+			end
+			-- Rare fallback: player disconnected mid-frame
+			warn("SetAttribute: Character without Player:", instance.Name)
+		end
+
+		-- Default: store on the model itself
+		instance:SetAttribute(attr, value)
+		return
+	elseif instance:IsA("Part") then
+		instance:SetAttribute(attr, value)
+		return
+	elseif instance:IsA("Humanoid") then
+		instance:SetAttribute(attr, value)
+		return
+	end
+
+	warn("SetAttribute: Unsupported instance type:", instance.ClassName)
+end
+
+-- ────────────────────────────────────────────────────────────────
+-- Safe GetAttribute – supports Player or Model
+-- ────────────────────────────────────────────────────────────────
+
+--- Gets an attribute.
+--- - If `instance` is a Player → reads from the Player
+--- - If `instance` is a Model that is a character → reads from its Player
+--- - Otherwise → reads from the Model
+---
+--- @param instance Player | Model?
+--- @param attr string
+--- @return any
+function utilMod.GetAttribute(instance: Player | Model?, attr: string): any
+	if not instance then
+		return nil
+	end
+
+	if instance:IsA("Player") then
+		return instance:GetAttribute(attr)
+	end
+
+	if instance:IsA("Model") then
+		if utilMod.IsPlayerCharacter(instance) then
+			local player = utilMod.GetPlayerFromCharacter(instance)
+			if player then
+				return player:GetAttribute(attr)
+			end
+			-- Rare fallback
+			warn("GetAttribute: Character without Player:", instance.Name)
+		end
+
+		-- Default: read from model
+		return instance:GetAttribute(attr)
+	elseif instance:IsA("Part") then
+		return instance:GetAttribute(attr)
+	elseif instance:IsA("Humanoid") then
+		return instance:GetAttribute(attr)
+	end
+
+	warn("GetAttribute: Unsupported instance type:", instance.ClassName)
+	return nil
+end
+--- Checks if the given instance is a Player's character (i.e. returns true for any character Model).
+--- Uses the fast character → player cache for O(1) lookup.
+---
+--- @param instance Instance?
+--- @return boolean
+function utilMod.IsPlayer(instance: Instance?): boolean
+	if not instance or not instance:IsA("Model") then
+		return false
+	end
+
+	-- Fast cache check
+	return playerFromCharacter[instance] ~= nil
+end
+
+-- Sets flags for a model in the "Moving" state
+-- @param model Model
+function utilMod.SetFlagsForMoving(model: Model)
+	if utilMod.GetAttribute(model, "IsMoving") then
+		return
+	end
+	utilMod.SetAttribute(model, "IsMoving", true)
+	utilMod.SetAttribute(model, "IsIdle", false)
+	utilMod.SetAttribute(model, "HasFallen", false)
+	utilMod.SetAttribute(model, "InCombat", false)
+end
+
+-- Sets flags for a model in the "Combat" state
+-- @param model Model
+function utilMod.SetFlagsForCombat(model: Model)
+	if utilMod.GetAttribute(model, "InCombat") then
+		return
+	end
+	utilMod.SetAttribute(model, "IsMoving", false)
+	utilMod.SetAttribute(model, "IsIdle", false)
+	utilMod.SetAttribute(model, "HasFallen", false)
+	utilMod.SetAttribute(model, "InCombat", true)
+end
+
+-- Sets flags for a model in the "Death" state
+-- @param model Model
+function utilMod.SetFlagsForDeath(model: Model)
+	if utilMod.GetAttribute(model, "HasFallen") then
+		return
+	end
+	utilMod.SetAttribute(model, "IsMoving", false)
+	utilMod.SetAttribute(model, "IsIdle", false)
+	utilMod.SetAttribute(model, "HasFallen", true)
+	utilMod.SetAttribute(model, "InCombat", false)
+end
+
+-- Sets flags for a model in the "Idle" state
+-- @param model Model
+function utilMod.SetFlagsForIdle(model: Model)
+	if utilMod.GetAttribute(model, "IsIdle") then
+		return
+	end
+	utilMod.SetAttribute(model, "IsMoving", false)
+	utilMod.SetAttribute(model, "IsIdle", true)
+	utilMod.SetAttribute(model, "HasFallen", false)
+	utilMod.SetAttribute(model, "InCombat", false)
+	utilMod.SetAttribute(model, "IdleStartTime", time())
+end
 
 function utilMod.GetAcceptableDistanceForCaster(combatTargetModel: Model?, model: Model): boolean
 	local targetHRP = combatTargetModel and combatTargetModel:FindFirstChild("HumanoidRootPart")
@@ -77,13 +292,13 @@ function utilMod.IsMobHealer(model: Model): boolean
 end
 
 function utilMod.GetPlayerLevel(plr: Player): number
-	local magictype: any = plr:GetAttribute("Magic")
+	local magictype: any = utilMod.GetAttribute(plr, "Magic")
 	if magictype == statsMod.MagicType.Artificer then
-		return plr:GetAttribute("ArtificerLevel") or 1
+		return utilMod.GetAttribute(plr, "ArtificerLevel") or 1
 	elseif magictype == statsMod.MagicType.Primordial then
-		return plr:GetAttribute("PrimordialLevel") or 1
+		return utilMod.GetAttribute(plr, "PrimordialLevel") or 1
 	elseif magictype == statsMod.MagicType.Nature then
-		return plr:GetAttribute("NatureLevel") or 1
+		return utilMod.GetAttribute(plr, "NatureLevel") or 1
 	else
 		return 1
 	end
@@ -102,7 +317,7 @@ function utilMod.IsAlly(sourceModel: Model, targetModel: Model): boolean
 			return nil
 		end
 
-		local player: Player? = game.Players:GetPlayerByUserId(model:GetAttribute("UserId") or 0)
+		local player: Player? = game.Players:GetPlayerByUserId(utilMod.GetAttribute(model, "UserId") or 0)
 		if not player then
 			local humanoid: Humanoid? = model:FindFirstChildWhichIsA("Humanoid")
 			if humanoid then
@@ -113,7 +328,7 @@ function utilMod.IsAlly(sourceModel: Model, targetModel: Model): boolean
 			return player.UserId
 		end
 
-		local ownedBy: any = model:GetAttribute("OwnedBy")
+		local ownedBy: any = utilMod.GetAttribute(model, "OwnedBy")
 		if ownedBy and ownedBy ~= "None" and ownedBy ~= "none" and ownedBy ~= "" then
 			return tonumber(ownedBy)
 		end
@@ -139,8 +354,8 @@ function utilMod.IsAlly(sourceModel: Model, targetModel: Model): boolean
 		return false
 	end
 
-	local sourceAllyId: any = sourcePlayer:GetAttribute("AllyId")
-	local targetAllyId: any = targetPlayer:GetAttribute("AllyId")
+	local sourceAllyId: any = utilMod.GetAttribute(sourcePlayer, "AllyId")
+	local targetAllyId: any = utilMod.GetAttribute(targetPlayer, "AllyId")
 
 	if typeof(sourceAllyId) == "string" then
 		sourceAllyId = (sourceAllyId == "None" or sourceAllyId == "none" or sourceAllyId == "") and nil
@@ -224,51 +439,6 @@ function utilMod.GetModelByIDorName(idOrName: string | number): Model?
 	return nil
 end
 
-function utilMod.IsPlayer(instance: Instance): boolean
-	return Players:GetPlayerFromCharacter(instance) ~= nil
-end
-
-function utilMod.SetFlagsForMoving(model: Model): ()
-	if model:GetAttribute("IsMoving") then
-		return
-	end
-	model:SetAttribute("IsMoving", true)
-	model:SetAttribute("IsIdle", false)
-	model:SetAttribute("HasFallen", false)
-	model:SetAttribute("InCombat", false)
-end
-
-function utilMod.SetFlagsForCombat(model: Model): ()
-	if model:GetAttribute("InCombat") then
-		return
-	end
-	model:SetAttribute("IsMoving", false)
-	model:SetAttribute("IsIdle", false)
-	model:SetAttribute("HasFallen", false)
-	model:SetAttribute("InCombat", true)
-end
-
-function utilMod.SetFlagsForDeath(model: Model): ()
-	if model:GetAttribute("HasFallen") then
-		return
-	end
-	model:SetAttribute("IsMoving", false)
-	model:SetAttribute("IsIdle", false)
-	model:SetAttribute("HasFallen", true)
-	model:SetAttribute("InCombat", false)
-end
-
-function utilMod.SetFlagsForIdle(model: Model): ()
-	if model:GetAttribute("IsIdle") then
-		return
-	end
-	model:SetAttribute("IsMoving", false)
-	model:SetAttribute("IsIdle", true)
-	model:SetAttribute("HasFallen", false)
-	model:SetAttribute("InCombat", false)
-	model:SetAttribute("IdleStartTime", time())
-end
-
 function utilMod.HexToColor3(hex: string): Color3
 	hex = hex:gsub("#", "")
 	local r: number = tonumber(hex:sub(1, 2), 16) or 0
@@ -315,21 +485,21 @@ function utilMod.SpinToTargetInCombat(model: Model, targetModel: Model, lerpAlph
 end
 
 function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?): ()
-	if model:GetAttribute("SpinningToOwner") or model:GetAttribute("HasFallen") then
+	if utilMod.GetAttribute(model, "SpinningToOwner") or utilMod.GetAttribute(model, "HasFallen") then
 		return
 	end
-	model:SetAttribute("SpinningToOwner", true)
+	utilMod.SetAttribute(model, "SpinningToOwner", true)
 
 	task.spawn(function()
 		local tHRP: BasePart? = utilMod.GetRootPart(ownerInstance)
 		if not tHRP then
-			model:SetAttribute("SpinningToOwner", false)
+			utilMod.SetAttribute(model, "SpinningToOwner", false)
 			return
 		end
 
 		local direction: Vector3 = Vector3.new(tHRP.Position.X - hrp.Position.X, 0, tHRP.Position.Z - hrp.Position.Z)
 		if direction.Magnitude < 0.1 then
-			model:SetAttribute("SpinningToOwner", false)
+			utilMod.SetAttribute(model, "SpinningToOwner", false)
 			return
 		end
 
@@ -337,11 +507,11 @@ function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, 
 		local connection: RBXScriptConnection?
 
 		connection = RunService.Heartbeat:Connect(function(dt: number)
-			if not model:GetAttribute("IsIdle") or not ownerInstance.Parent or not hrp.Parent then
+			if not utilMod.GetAttribute(model, "IsIdle") or not ownerInstance.Parent or not hrp.Parent then
 				if connection then
 					connection:Disconnect()
 				end
-				model:SetAttribute("SpinningToOwner", false)
+				utilMod.SetAttribute(model, "SpinningToOwner", false)
 				return
 			end
 
@@ -353,14 +523,14 @@ function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, 
 				if connection then
 					connection:Disconnect()
 				end
-				model:SetAttribute("SpinningToOwner", false)
+				utilMod.SetAttribute(model, "SpinningToOwner", false)
 			end
 		end)
 
 		task.delay(5, function()
 			if connection and connection.Connected then
 				connection:Disconnect()
-				model:SetAttribute("SpinningToOwner", false)
+				utilMod.SetAttribute(model, "SpinningToOwner", false)
 			end
 		end)
 	end)
@@ -535,7 +705,7 @@ function utilMod.GetClosestPlayerSkipAlly(player: Player): Player?
 	local bestDist: number = math.huge
 
 	for _, other: Player in Players:GetPlayers() do
-		if other:GetAttribute("HasFallen") then
+		if utilMod.GetAttribute(other, "HasFallen") then
 			continue
 		end
 		if other ~= player and other.Character then
@@ -567,7 +737,7 @@ function utilMod.GetClosestModelSkipAllyPets(player: Player, folderName: "Pets" 
 	local bestDist: number = math.huge
 
 	for _, model: Instance in folder:GetChildren() do
-		if model:GetAttribute("HasFallen") then
+		if utilMod.GetAttribute(model, "HasFallen") then
 			continue
 		end
 		if model:IsA("Model") and not utilMod.IsAlly(player.Character, model :: Model) then
@@ -599,7 +769,7 @@ function utilMod.GetPartyMembers(model: Instance): { { Player: Player, Character
 
 		-- If still no player, check if this model is a pet with the OwnedBy attribute
 		if not player then
-			local ownedByUserId = model:GetAttribute("OwnedBy")
+			local ownedByUserId = utilMod.GetAttribute(model, "OwnedBy")
 			if typeof(ownedByUserId) == "number" then
 				player = Players:GetPlayerByUserId(ownedByUserId)
 			end
@@ -609,7 +779,7 @@ function utilMod.GetPartyMembers(model: Instance): { { Player: Player, Character
 		if not player then
 			local current = model.Parent
 			while current and current:IsA("Model") and current ~= game do
-				local ownedByUserId = current:GetAttribute("OwnedBy")
+				local ownedByUserId = utilMod.GetAttribute(current, "OwnedBy")
 				if typeof(ownedByUserId) == "number" then
 					player = Players:GetPlayerByUserId(ownedByUserId)
 					if player then
@@ -662,7 +832,7 @@ function utilMod.GetEnemyModelsWithinRange(player: Player, range: number): { Mod
 		if folder then
 			for _, model: Instance in folder:GetChildren() do
 				if model:IsA("Model") and not utilMod.IsAlly(plrOwner, model :: Model) then
-					if model:GetAttribute("HasFallen") then
+					if utilMod.GetAttribute(model, "HasFallen") then
 						continue
 					end
 					local dist: number? = utilMod.GetDistance(model, myPos)
@@ -684,7 +854,7 @@ function utilMod.GetEnemyPlayersWithinRange(player: Player, range: number): { Mo
 	end
 
 	for _, other: Player in Players:GetPlayers() do
-		if other:GetAttribute("HasFallen") then
+		if utilMod.GetAttribute(other, "HasFallen") then
 			continue
 		end
 		if other ~= player and other.Character and not utilMod.IsAlly(player.Character, other.Character) then
@@ -708,7 +878,7 @@ function utilMod.IsEnemyInRange(player: Player, range: number): boolean
 		if folder then
 			for _, model: Instance in folder:GetChildren() do
 				if model:IsA("Model") and not utilMod.IsAlly(player.Character, model :: Model) then
-					if model:GetAttribute("HasFallen") then
+					if utilMod.GetAttribute(model, "HasFallen") then
 						continue
 					end
 					local dist: number? = utilMod.GetDistance(model, myPos)
@@ -722,7 +892,7 @@ function utilMod.IsEnemyInRange(player: Player, range: number): boolean
 
 	for _, other: Player in Players:GetPlayers() do
 		if other ~= player and other.Character and not utilMod.IsAlly(player.Character, other.Character) then
-			if other:GetAttribute("HasFallen") then
+			if utilMod.GetAttribute(other, "HasFallen") then
 				continue
 			end
 			local dist: number? = utilMod.GetDistance(other.Character, myPos)
@@ -743,7 +913,7 @@ function utilMod.MyPets(player: Player): { Model }
 	end
 
 	for _, pet: Instance in petsFolder:GetChildren() do
-		if pet:IsA("Model") and pet:GetAttribute("OwnedBy") == player.UserId then
+		if pet:IsA("Model") and utilMod.GetAttribute(pet, "OwnedBy") == player.UserId then
 			table.insert(result, pet :: Model)
 		end
 	end
@@ -846,7 +1016,7 @@ function utilMod.GetOpposingPetsWithinRange(player: Player, range: number, userI
 	end
 	for _, pet: Instance in pets:GetChildren() do
 		if pet:IsA("Model") and not utilMod.IsAlly(player.Character, pet :: Model) then
-			if pet:GetAttribute("HasFallen") then
+			if utilMod.GetAttribute(pet, "HasFallen") then
 				continue
 			end
 			local petroot: BasePart? = utilMod.GetRootPart(pet)
@@ -867,7 +1037,7 @@ function utilMod.GetCharactersModelsWithinRange(pos: Vector3, range: number): { 
 	-- Player characters
 	for _, player: Player in Players:GetPlayers() do
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-			if player:GetAttribute("HasFallen") then
+			if utilMod.GetAttribute(player.Character, "HasFallen") then
 				continue
 			end
 			local hrp: BasePart = player.Character.HumanoidRootPart
@@ -882,7 +1052,7 @@ function utilMod.GetCharactersModelsWithinRange(pos: Vector3, range: number): { 
 	if petsFolder then
 		for _, petModel: Instance in petsFolder:GetChildren() do
 			if petModel:IsA("Model") and petModel:FindFirstChild("HumanoidRootPart") then
-				if petModel:GetAttribute("HasFallen") then
+				if utilMod.GetAttribute(petModel, "HasFallen") then
 					continue
 				end
 				local hrp: BasePart = petModel.HumanoidRootPart

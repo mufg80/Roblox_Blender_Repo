@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local model: Model = script.Parent
 
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
@@ -12,21 +13,23 @@ local petControlMod = require(ReplicatedStorage.Shared.petControlMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
 local stateMod = require(ReplicatedStorage.Shared.stateMod)
 local actionsMod = require(ReplicatedStorage.Shared.actionsMod)
+
 local thisMob: string = utilMod.customTrim(model.Name)
 local random = Random.new(utilMod.GetSeedFromName(thisMob))
+
 local MINATTACKDELAY = 0
 local humanoid: Humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp: BasePart = model:FindFirstChild("HumanoidRootPart")
 
 if not humanoid or not hrp then
-	return
+    return
 end
 
 local aggro = aggroMod.Setup(model)
 local pet = petControlMod.Setup(model)
 
 local sourceStats: { [string]: any } = combatMod.ShallowTableCopy(thisMob)
-utilMod.CopyStatsToFolder(script.Parent, sourceStats)
+utilMod.CopyStatsToFolder(model, sourceStats)
 -- NEW: Let buffMod take over event creation + stat refreshing + base stat restoration
 buffMod.Setup(model, sourceStats)
 
@@ -34,230 +37,233 @@ buffMod.Setup(model, sourceStats)
 local animator: Animator? = humanoid:FindFirstChildOfClass("Animator")
 
 export type AnimTrackDict = {
-	idle: { AnimationTrack? },
-	delayConnection: RBXScriptConnection?,
-	idleConnection: thread?,
-	move: AnimationTrack?,
-	blink: AnimationTrack?,
-	death: AnimationTrack?,
-	attacks: { AnimationTrack? },
-	cast: AnimationTrack?,
-	favoredAttack: number,
-	moveSpeed: number?,
-	idleSpeed: number?,
-	deathSpeed: number?,
-	castSpeed: number?,
-	attackSpeeds: {number?},
+    idle: { AnimationTrack? },
+    delayConnection: RBXScriptConnection?,
+    idleConnection: thread?,
+    move: AnimationTrack?,
+    blink: AnimationTrack?,
+    death: AnimationTrack?,
+    attacks: { AnimationTrack? },
+    cast: AnimationTrack?,
+    favoredAttack: number,
+    moveSpeed: number?,
+    idleSpeed: number?,
+    deathSpeed: number?,
+    castSpeed: number?,
+    attackSpeeds: {number?},
 }
 
 local animTracks: AnimTrackDict = {
-	idle = {},
-	delayConnection = nil,
-	idleConnection = nil,
-	move = nil,
-	blink = nil,
-	death = nil,
-	attacks = {},
-	cast = nil,
-	favoredAttack = nil,
-	moveSpeed = 3,
-	idleSpeed = nil,
-	deathSpeed = nil,
-	castSpeed = nil,
-	attackSpeeds = {1,1,1,1},
+    idle = {},
+    delayConnection = nil,
+    idleConnection = nil,
+    move = nil,
+    blink = nil,
+    death = nil,
+    attacks = {},
+    cast = nil,
+    favoredAttack = nil,
+    moveSpeed = nil,
+    idleSpeed = nil,
+    deathSpeed = nil,
+    castSpeed = nil,
+    attackSpeeds = {1,1,1,1},
 }
 
 if animator then
-	local function load(name: string, looped: boolean?): AnimationTrack?
-		local anim: Animation? = model:FindFirstChild(name)
-		if anim then
-			local track: AnimationTrack = animator:LoadAnimation(anim)
-			if looped ~= nil then
-				track.Looped = looped
-			end
-			return track
-		end
-		return nil
-	end
+    local function load(name: string, looped: boolean?): AnimationTrack?
+        local anim: Animation? = model:WaitForChild(name, 5)
+        if anim then
+            local track: AnimationTrack = animator:LoadAnimation(anim)
+            if looped ~= nil then
+                track.Looped = looped
+            end
+            return track
+        end
+        return nil
+    end
 
-	table.insert(animTracks.idle, load("IdleAnim", true))
-	table.insert(animTracks.idle, load("IdleAnimPause", true))
-	animTracks.move = load("MoveAnim", true)
-	animTracks.death = load("FallAnim", false)
-	animTracks.cast = load("SpellAnim", false)
-	animTracks.favoredAttack = 1
-	-- Get minAttackDelay (longest animation length)
-	if animTracks.attacks then
-		for _, attack: AnimationTrack in ipairs(animTracks.attacks) do
-			-- Wait until the length is loaded (it's async)
-			while attack.Length <= 0 do
-				task.wait() -- or RunService.Heartbeat:Wait() for more precision
-			end
+    table.insert(animTracks.idle, load("PoIdle1", false))
+    table.insert(animTracks.idle, load("PoIdle2", true))
+    animTracks.move = load("PoRun", true)
+    animTracks.death = load("PoFall", false)
+    table.insert(animTracks.attacks, load("PoAttack1", false))
+    table.insert(animTracks.attacks, load("PoAttack2", false))
+    table.insert(animTracks.attacks, load("PoAttack3", false))
+    animTracks.favoredAttack = 1
 
-			if MINATTACKDELAY < attack.Length then
-				MINATTACKDELAY = attack.Length
-			end
-		end
-	end
+    -- Get minAttackDelay (longest animation length)
+    for _, attack: AnimationTrack? in animTracks.attacks do
+        if attack then
+            while attack.Length <= 0 do
+                task.wait()
+            end
+            if MINATTACKDELAY < attack.Length then
+                MINATTACKDELAY = attack.Length
+            end
+        end
+    end
 end
 
 -- === MAIN LOOP ===
 task.spawn(function()
-	local lithDefendRandomLoc: Vector3? = nil
-	local lithTakeRandomLoc: Vector3? = nil
+    local lithDefendRandomLoc: Vector3? = nil
+    local lithTakeRandomLoc: Vector3? = nil
 
-	-- Blink loop
-	task.spawn(function()
-		while task.wait(random:NextInteger(4, 15)) do
-			if animTracks.blink and not model:GetAttribute("HasFallen") then
-				animTracks.blink:Play()
-				if random:NextInteger(1, 20) > 10 then
-					lithTakeRandomLoc = nil
-					lithDefendRandomLoc = nil
-				end
-			end
-		end
-	end)
+    -- Blink loop (no blink animation loaded, so just random cache clear)
+    task.spawn(function()
+        while task.wait(random:NextInteger(4, 15)) do
+            if not utilMod.GetAttribute(model, "HasFallen") then
+                if random:NextInteger(1, 20) > 10 then
+                    lithTakeRandomLoc = nil
+                    lithDefendRandomLoc = nil
+                end
+            end
+        end
+    end)
 
-	local lastAttackTime: number = 0
-	local homewardBound: boolean = false
-	local spincooldown: boolean = true
-	local idleConnection: RBXScriptConnection? = nil
-	local deathPlayed = false
+    local lastAttackTime: number = 0
+    local homewardBound: boolean = false
+    local spincooldown: boolean = true
+    local deathPlayed = false
 
-	-- Main loop for npc state
-	while task.wait(0.03) do
-		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
-		if ATTACK_COOLDOWN < MINATTACKDELAY then
-			ATTACK_COOLDOWN = MINATTACKDELAY
-		end
-		local ownerInstance: Model? = pet.GetOwnerModel()
-		local combatTargetModel: Model? = nil
-		local acceptableDistance: boolean? = nil
-		local movingDirection: string = "NotMoving"
+    -- Main loop for npc state
+    while task.wait(0.03) do
+        local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
+        if ATTACK_COOLDOWN < MINATTACKDELAY then
+            ATTACK_COOLDOWN = MINATTACKDELAY
+        end
 
-		local petAttack = pet.IsAttackEnabled()
-		local petFollow = pet.IsFollowEnabled()
-		local petTakeLith = pet.IsTakeLithEnabled()
-		local petDefendLith = pet.IsDefendLithEnabled()
-		local lithTakePosition = pet.GetLithTakePosition()
-		local lithDefendPosition = pet.GetLithDefendPosition()
+        local ownerInstance: Model? = pet.GetOwnerModel()
+        local combatTargetModel: Model? = nil
+        local acceptableDistance: boolean? = nil
+        local movingDirection: string = "NotMoving"
 
-		if not model:GetAttribute("HasFallen") then
-			----------------------------------------------------------------
-			-- Aggro
-			----------------------------------------------------------------
+        local petAttack = pet.IsAttackEnabled()
+        local petFollow = pet.IsFollowEnabled()
+        local petTakeLith = pet.IsTakeLithEnabled()
+        local petDefendLith = pet.IsDefendLithEnabled()
+        local lithTakePosition = pet.GetLithTakePosition()
+        local lithDefendPosition = pet.GetLithDefendPosition()
 
-			aggro.Update()
+        if not utilMod.GetAttribute(model, "HasFallen") then
+            ----------------------------------------------------------------
+            -- Aggro
+            ----------------------------------------------------------------
 
-			----------------------------------------------------------------
-			-- SetStates
-			----------------------------------------------------------------
-			-- Inside your main loop, after updating aggro and pet values:
-			local targetid: any = model:GetAttribute("TargetIDorName")
-			if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
-				combatTargetModel = utilMod.GetModelByIDorName(targetid)
-			end
+            aggro.Update()
 
-			if combatTargetModel then
-				acceptableDistance = combatMod.AcceptableDistanceToOpponent(model, combatTargetModel)
-			end
+            ----------------------------------------------------------------
+            -- SetStates
+            ----------------------------------------------------------------
+            local targetid: any = utilMod.GetAttribute(model, "TargetIDorName")
+            if targetid and targetid ~= "" and targetid ~= "None" and targetid ~= "none" then
+                combatTargetModel = utilMod.GetModelByIDorName(targetid)
+            end
 
-			local mutable = {
-				lithTakeRandomLoc = lithTakeRandomLoc,
-				lithDefendRandomLoc = lithDefendRandomLoc,
-				homewardBound = homewardBound,
-			}
+            if combatTargetModel then
+                acceptableDistance = combatMod.AcceptableDistanceToOpponent(model, combatTargetModel)
+            end
 
-			local context = {
-				hasEnemies = next(aggro.GetHateList()) ~= nil,
-				ownerInstance = pet.GetOwnerModel(),
-				combatTargetModel = combatTargetModel,
-				acceptableDistance = acceptableDistance,
-				spawnPosition = pet.GetSpawnPoint(),
-				hrp = hrp,
-				random = random,
-				petAttack = pet.IsAttackEnabled(),
-				petFollow = pet.IsFollowEnabled(),
-				petTakeLith = pet.IsTakeLithEnabled(),
-				petDefendLith = pet.IsDefendLithEnabled(),
-				lithTakePosition = pet.GetLithTakePosition(),
-				lithDefendPosition = pet.GetLithDefendPosition(),
+            local mutable = {
+                lithTakeRandomLoc = lithTakeRandomLoc,
+                lithDefendRandomLoc = lithDefendRandomLoc,
+                homewardBound = homewardBound,
+            }
 
-				aggro = aggro,
-				pet = pet,
+            local context = {
+                hasEnemies = next(aggro.GetHateList()) ~= nil,
+                ownerInstance = ownerInstance,
+                combatTargetModel = combatTargetModel,
+                acceptableDistance = acceptableDistance,
+                spawnPosition = pet.GetSpawnPoint(),
+                hrp = hrp,
+                random = random,
+                petAttack = petAttack,
+                petFollow = petFollow,
+                petTakeLith = petTakeLith,
+                petDefendLith = petDefendLith,
+                lithTakePosition = lithTakePosition,
+                lithDefendPosition = lithDefendPosition,
 
-				mutable = mutable,
-			}
+                aggro = aggro,
+                pet = pet,
 
-			local stateResult = stateMod.UpdateState(model, context)
+                mutable = mutable,
+            }
 
-			movingDirection = stateResult.movingDirection
+            local stateResult = stateMod.UpdateState(model, context)
 
-			-- Sync mutable state back to locals (important!)
-			lithTakeRandomLoc = mutable.lithTakeRandomLoc
-			lithDefendRandomLoc = mutable.lithDefendRandomLoc
-			homewardBound = mutable.homewardBound
-			----------------------------------------------------------------
-			-- Actions
-			----------------------------------------------------------------
+            movingDirection = stateResult.movingDirection
 
-			local actionContext = {
-				model = model,
-				hrp = hrp,
-				animTracks = animTracks,
-				combatTargetModel = combatTargetModel,
-				movingDirection = movingDirection,
-				ownerInstance = ownerInstance,
-				lastAttackTime = { value = lastAttackTime },
-				ATTACK_COOLDOWN = ATTACK_COOLDOWN,
-				spawnPosition = pet.GetSpawnPoint(),
-				random = random,
+            -- Sync mutable state back to locals (important!)
+            lithTakeRandomLoc = mutable.lithTakeRandomLoc
+            lithDefendRandomLoc = mutable.lithDefendRandomLoc
+            homewardBound = mutable.homewardBound
 
-				petAttack = petAttack,
-				petTakeLith = petTakeLith,
-				petDefendLith = petDefendLith,
-				lithTakePosition = lithTakePosition,
-				lithDefendPosition = lithDefendPosition,
+            ----------------------------------------------------------------
+            -- Actions
+            ----------------------------------------------------------------
 
-				lithTakeRandomLoc = lithTakeRandomLoc,
-				lithDefendRandomLoc = lithDefendRandomLoc,
-				homewardBound = homewardBound,
+            local actionContext = {
+                model = model,
+                hrp = hrp,
+                animTracks = animTracks,
+                combatTargetModel = combatTargetModel,
+                movingDirection = movingDirection,
+                ownerInstance = ownerInstance,
+                lastAttackTime = { value = lastAttackTime },
+                ATTACK_COOLDOWN = ATTACK_COOLDOWN,
+                spawnPosition = pet.GetSpawnPoint(),
+                random = random,
 
-				pathMod = pathMod,
-				combatMod = combatMod,
-				utilMod = utilMod,
-				pet = pet,
+                petAttack = petAttack,
+                petTakeLith = petTakeLith,
+                petDefendLith = petDefendLith,
+                lithTakePosition = lithTakePosition,
+                lithDefendPosition = lithDefendPosition,
 
-				spincooldown = spincooldown,
-			}
+                lithTakeRandomLoc = lithTakeRandomLoc,
+                lithDefendRandomLoc = lithDefendRandomLoc,
+                homewardBound = homewardBound,
 
-			actionsMod.PerformActions(actionContext)
+                pathMod = pathMod,
+                combatMod = combatMod,
+                utilMod = utilMod,
+                pet = pet,
 
-			-- Sync back mutables
-			lastAttackTime = actionContext.lastAttackTime.value
-			spincooldown = actionContext.spincooldown
-			homewardBound = actionContext.homewardBound
-		else
-			----------------------------------------------------------------
-			-- Death
-			----------------------------------------------------------------
-			if animTracks.death then
-				if not animTracks.death.IsPlaying and not deathPlayed then
-					deathPlayed = true
-					if animTracks.blink then
-						animTracks.blink:Stop()
-					end
-					animTracks.death:Play()
-					task.wait(4)
-					model:SetAttribute("RecycleMe", true)
-				end
-			else
-				warn("Should not reach me.")
-				humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-				humanoid.PlatformStand = true
-				model:SetAttribute("RecycleMe", true)
-			end
-		end
-	end
+                spincooldown = spincooldown,
+            }
+
+            actionsMod.PerformActions(actionContext)
+
+            -- Sync back mutables
+            lastAttackTime = actionContext.lastAttackTime.value
+            spincooldown = actionContext.spincooldown
+            homewardBound = actionContext.homewardBound
+        else
+            ----------------------------------------------------------------
+            -- Death
+            ----------------------------------------------------------------
+            if animTracks.death then
+                if not animTracks.death.IsPlaying and not deathPlayed then
+                    deathPlayed = true
+                    local deathanim: AnimationTrack = animTracks.death
+                    deathanim:Play(0.3, 1, 1)
+                    deathanim.Stopped:Connect(function()
+                        local length = deathanim.Length - 0.01
+                        deathanim:AdjustSpeed(0)
+                        deathanim.TimePosition = length
+                        task.wait(2)
+                        utilMod.SetAttribute(model, "RecycleMe", true)
+                    end)
+                end
+            else
+                warn("Should not reach me.")
+                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                humanoid.PlatformStand = true
+                utilMod.SetAttribute(model, "RecycleMe", true)
+            end
+        end
+    end
 end)
