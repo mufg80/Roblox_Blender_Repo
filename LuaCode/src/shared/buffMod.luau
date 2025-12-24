@@ -2,13 +2,14 @@
 
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
+local ContextActionService = game:GetService("ContextActionService")
 local serverStorage = game:GetService("ServerStorage")
 local repstore = game:GetService("ReplicatedStorage")
 
 local buffMod = {}
 
 -- Table to track active buff tasks per model+spell
-local activeBuffs: { [string]: thread } = {}
+local activeBuffs: { [string]: { thread: thread, label: ImageLabel } } = {}
 
 -- Table to track running buff/debuff/heal coroutines
 local RUNNING_EFFECTS: { [string]: thread } = {}
@@ -19,12 +20,13 @@ local modelBaseStats: { [Model]: { [string]: any } } = {}
 
 export type BuffMod = {
 	Setup: (model: Model, sourceStats: { [string]: any }) -> (),
-	ApplyBuffLabel: (spelltype: string, spellname: string, duration: number, model: Model) -> (),
+	ApplyBillboardBuffLabel: (spelltype: string, spellname: string, duration: number, caster: Model, model: Model) -> (),
 	CheckDistanceOnSpouts: (player: Player) -> boolean,
 	ConvertSpout: (player: Player) -> boolean,
 	ReclaimPet: (player: Player, spellname: string, mypets: { Model }) -> boolean,
 	BuffDebuffHeal: (caster: Player?, target: Model | Player, spellname: string) -> boolean,
 	SelectTargetsForAggro: (caster: Player, spellinfo: any) -> (),
+	StartBuffLabelTimer: (imageLabel: ImageLabel, duration: number, model: Model, key: string) -> (),
 }
 
 -- NEW: Setup buff events and stat refresh system on an NPC model
@@ -46,7 +48,7 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any })
 	removeEvent.Parent = model
 
 	-- Local refresh function
-	local function refreshStats(spellname:string)
+	local function refreshStats(spellname: string)
 		local baseStats = utilMod.GetStatsFromFolder(model)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		if not humanoid then
@@ -71,7 +73,6 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any })
 	-- On buff/debuff apply → just refresh
 	addEvent.Event:Connect(function(player: Player, spellname: string)
 		refreshStats(spellname)
-
 	end)
 
 	-- On buff/debuff remove → check if no buffs left → restore base stats
@@ -99,23 +100,21 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any })
 	refreshStats()
 end
 
--- Existing functions unchanged below...
-
-function buffMod.ApplyBuffLabel(spelltype: string, spellname: string, duration: number, model: Model): ()
+function buffMod.ApplyBillboardBuffLabel(
+	spelltype: string,
+	spellname: string,
+	duration: number,
+	caster: Model,
+	model: Model
+)
 	-- Validate spelltype
-	if
-		spelltype ~= "buff"
-		and spelltype ~= "debuff"
-		and spelltype ~= "heal"
-		and spelltype ~= "areaDamage"
-		and spelltype ~= "damage"
-	then
+	if not table.find({ "buff", "debuff", "heal", "areaDamage", "damage" }, spelltype) then
 		warn("ApplyBuffLabel: Invalid spelltype:", spelltype)
 		return
 	end
 
 	-- Map spelltype to label name
-	local labelName: string = ({
+	local labelName = ({
 		buff = "BuffLabel",
 		debuff = "DebuffLabel",
 		heal = "HealLabel",
@@ -128,58 +127,82 @@ function buffMod.ApplyBuffLabel(spelltype: string, spellname: string, duration: 
 		return
 	end
 
-	local imageLabel: ImageLabel? = billboard.Frame.ZZBuffFrame:FindFirstChild(labelName):Clone()
-	if not imageLabel then
+	local templateLabel: ImageLabel? = billboard.Frame.ZZBuffFrame:FindFirstChild(labelName)
+	if not templateLabel then
 		return
 	end
+
+	local imageLabel = templateLabel:Clone()
 	imageLabel.Parent = billboard.Frame.ZZBuffFrame
 
-	-- Unique key per model+spell
-	local key: string = model.Name .. "_" .. spellname
+	-- Unique key per model + spell
+	local key = model.Name .. "_" .. spellname .. "_" .. billboard.Name
 
-	-- Cancel any existing buff task for this key
+	-- Start the timer (this will also cancel any previous one for the same key)
+	buffMod.StartBuffLabelTimer(imageLabel, duration, model, key)
+end
+
+-- buffMod.StartBuffLabelTimer
+-- Handles only the visual display: showing, blinking in the last 5 seconds, and cleanup.
+-- Does NOT handle attribute changes, healing, stat copying, etc.
+-- @param imageLabel: ImageLabel - The already-parented label to control
+-- @param duration: number - Total duration in seconds
+-- @param model: Model - The model to check for death via GetAttribute("HasFallen")
+-- @param key: string - Unique key used to store/cancel the task in activeBuffs
+function buffMod.StartBuffLabelTimer(imageLabel: ImageLabel, duration: number, model: Model, key: string): ()
+	-- Cancel any existing task for this key (in case of re-application)
 	if activeBuffs[key] then
-		pcall(task.cancel, activeBuffs[key])
-		imageLabel.Visible = false
-		imageLabel.Parent = nil
+		task.cancel(activeBuffs[key].thread)
+		activeBuffs[key].label.Visible = false
+		activeBuffs[key].label.Parent = nil
 		activeBuffs[key] = nil
 	end
 
 	local blinkStartDelay: number = duration > 5 and duration - 5 or 0
 
-	-- Spawn the blinking task
-	local newConnection: thread = task.spawn(function()
+	local thread = task.spawn(function()
 		imageLabel.Visible = true
-		local startTime: number = os.clock()
+		local startTime = os.clock()
+
 		while true do
 			task.wait(1)
-			-- Safely check if NPC is still alive and UI exists
-			if not model or not model.Parent or not imageLabel or not imageLabel.Parent then
-				if imageLabel then
+
+			-- Check if model is dead or destroyed
+			if not model or not model.Parent or model:GetAttribute("HasFallen") then
+				if imageLabel and imageLabel.Parent then
 					imageLabel.Visible = false
+					imageLabel.Parent = nil
 				end
 				activeBuffs[key] = nil
 				return
 			end
-			local currentTime: number = os.clock()
-			local elapsed: number = currentTime - startTime
-			-- Blink logic: alternate every second in the last 5s (or whole duration)
+
+			-- Check if UI element was removed externally
+			if not imageLabel or not imageLabel.Parent then
+				activeBuffs[key] = nil
+				return
+			end
+
+			local elapsed = os.clock() - startTime
+
+			-- Blink during the last 5 seconds (or entire duration if shorter)
 			if elapsed >= blinkStartDelay then
-				local elapsedSeconds: number = math.floor(elapsed)
+				local elapsedSeconds = math.floor(elapsed)
 				imageLabel.Visible = (elapsedSeconds % 2 == 1)
 			end
-			-- End buff
+
+			-- Duration expired → clean up
 			if elapsed >= duration then
-				imageLabel.Visible = false
-				imageLabel.Parent = nil
+				if imageLabel and imageLabel.Parent then
+					imageLabel.Visible = false
+					imageLabel.Parent = nil
+				end
 				activeBuffs[key] = nil
 				return
 			end
 		end
 	end)
-
-	-- Store connection
-	activeBuffs[key] = newConnection
+	activeBuffs[key] = {thread = thread, label = imageLabel}
 end
 
 function buffMod.CheckDistanceOnSpouts(player: Player): boolean
@@ -310,14 +333,12 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 	if not dataFolder then
 		return false
 	end
-	print(model.Name)
 	for statName: string, changeValue: number in pairs(buffInfo) do
-		
 		local valueObj: ValueBase? = dataFolder:FindFirstChild(statName)
 		if valueObj and valueObj:IsA("ValueBase") and typeof(valueObj.Value) == "number" then
-			print("BeforeBuff "..valueObj.Name.. "  :  "..valueObj.Value)
+			--print("BeforeBuff "..valueObj.Name.. "  :  "..valueObj.Value)
 			valueObj.Value += changeValue * multiplier
-			print("AfterBuff "..valueObj.Name.. "  :  "..valueObj.Value)
+			--print("AfterBuff "..valueObj.Name.. "  :  "..valueObj.Value)
 		end
 	end
 
@@ -328,20 +349,19 @@ local function FireBuffNotificationEvent(
 	isHeal: boolean,
 	targetIsPlayer: boolean,
 	modelInstance: Model | Player,
-	spellname: string,
-	command: string
+	spellname: string
 ): ()
 	if targetIsPlayer then
 		local player: Player? = game.Players:GetPlayerFromCharacter(modelInstance :: Model)
 		if player then
-			repstore.Events.BuffDebuffHealEvent:FireClient(player, player.UserId, spellname, command)
+			repstore.Events.BuffDebuffHealEvent:FireClient(player, player.UserId, spellname)
 		end
 	else
 		local owner: any = (modelInstance :: Model):GetAttribute("OwnedBy")
 		if owner and owner ~= "None" and owner ~= "none" and owner ~= "" then
 			local plr: Player? = game.Players:GetPlayerByUserId(owner)
 			if plr then
-				repstore.Events.BuffDebuffHealEvent:FireClient(plr, (modelInstance :: Model).Name, spellname, command)
+				repstore.Events.BuffDebuffHealEvent:FireClient(plr, (modelInstance :: Model).Name, spellname)
 			end
 		end
 	end
@@ -378,6 +398,7 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 
 	-- Refresh logic: cancel existing coroutine if one exists
 	if RUNNING_EFFECTS[key] then
+		print("Removingbuffstats")
 		ApplyStatChanges(modelInstance, spellname, -1)
 		task.cancel(RUNNING_EFFECTS[key])
 		modelInstance:SetAttribute("Buff_" .. spellname, nil)
@@ -412,15 +433,18 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		-- Tick event
 		local owner: Instance = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
 		local ev: BindableEvent? = owner:FindFirstChild("BuffDebuffEvent")
-		if ev and ev:IsA("BindableEvent") then
+		if ev and ev:IsA("BindableEvent") and not isHeal then
 			ev:Fire(partyTable.Player, spellname)
 		end
-		FireBuffNotificationEvent(isHeal, targetisplayer, modelInstance, spellname, "Add")
+		FireBuffNotificationEvent(isHeal, targetisplayer, modelInstance, spellname)
+		if not targetisplayer then
+			buffMod.ApplyBillboardBuffLabel(spellinfo.spellType, spellname, duration, casterModel, target)
+		end
 
 		while elapsed < duration do
 			task.wait(tickRate)
 			elapsed += tickRate
-			print(elapsed.. " ".. duration)
+			print(elapsed .. " " .. duration)
 			if not modelInstance or not modelInstance.Parent then
 				break
 			end
@@ -447,11 +471,9 @@ function buffMod.BuffDebuffHeal(caster: Player?, target: Model | Player, spellna
 		-- Removal event
 		local owner: Instance = game.Players:GetPlayerFromCharacter(modelInstance) or modelInstance
 		local ev: BindableEvent? = owner:FindFirstChild("RemoveBuffDebuffEvent")
-		if ev and ev:IsA("BindableEvent") then
-			print("Removeeventfired")
+		if ev and ev:IsA("BindableEvent") and not isHeal then
 			ev:Fire(partyTable.Player, spellname)
 		end
-		FireBuffNotificationEvent(isHeal, targetisplayer, modelInstance, spellname, "Remove")
 
 		-- Cleanup
 		modelInstance:SetAttribute("Buff_" .. spellname, nil)

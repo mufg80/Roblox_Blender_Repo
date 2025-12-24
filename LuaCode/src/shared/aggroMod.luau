@@ -83,7 +83,10 @@ function aggroMod.Setup(model: Model): table
 		-- === Proximity aggro: only add non-fallen entities ===
 		for _, player in Players:GetPlayers() do
 			if isPet and player.UserId == ownedBy then continue end
-			if player:GetAttribute("HasFallen") then continue end  -- Skip fallen players
+			if player:GetAttribute("HasFallen") then
+				hateList[player.UserId] = nil
+				continue
+			end  -- Skip fallen players
 
 			local char = player.Character
 			local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))

@@ -1,7 +1,265 @@
--- ReplicatedStorage.Shared.actionsMod
 --!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local utilMod = require(ReplicatedStorage.Shared.utilMod)
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local actionsMod = {}
+
+local healerCache: { string: boolean } = {}
+local healerType: string? = nil
+local healerHealed: { [string]: number } = {}
+local healerNuked: { [string]: number } = {} -- Tracks last nuke time per priest
+local healerBuffed: { [string]: number } = {}
+
+-- Unified function to cast any Priest spell (Heal, Buff, Nuke, etc.)
+local function CastPriestSpell(
+	animTracks: { cast: AnimationTrack, castSpeed: number? },
+	model: Model,
+	combatMod: any, -- your combat module
+	spellname: string, -- "PriestHeal", "PriestBuff", "PriestNuke", etc.
+	combatTargetModel: Model? -- Optional: only used if spell needs a direct target (e.g., future targeted spells)
+)
+	-- Play the cast animation
+	local trackToPlay: AnimationTrack = animTracks.cast
+	trackToPlay:Play(0.3, 0.9, animTracks.castSpeed or 1)
+
+	print("Cast " .. spellname .. " - Pet")
+
+	-- Delay the actual spell application (simulates cast time / impact)
+	task.delay(0.5, function()
+		local userId = model:GetAttribute("OwnedBy")
+		if userId and typeof(userId) == "number" then
+			local plr = game.Players:GetPlayerByUserId(userId)
+			if plr and plr.Character then
+				-- Apply the spell (your existing logic handles targeting/healing/damage/buffs)
+				combatMod.ApplyPriestSpell(model, plr.Character, spellname, combatTargetModel)
+			end
+		end
+	end)
+end
+
+local function DecideToBuff(model: Model, mana: number, maxmana: number): boolean
+	local buffSpell = statsMod.SpellInfo[healerType .. "PriestBuff"]
+	local manaCost = buffSpell.manaCost * statsMod.MaxSpellCost
+	local castTime = buffSpell.castTime
+	local durationTime = statsMod.BuffInfo[healerType .. "PriestBuff"].seconds
+
+	-- Condition 1: Mana below 60% of maxmana
+	if mana < maxmana * 0.6 then
+		return false
+	end
+
+	-- Ensure enough mana to cast
+	if mana < manaCost then
+		return false
+	end
+
+	-- Condition 2: Check if buff is on cooldown
+	local modelName = model.Name
+	local lastBuffTime = healerBuffed[modelName] or 0
+	local cooldownEnd = lastBuffTime + castTime + durationTime + 10
+
+	if os.clock() < cooldownEnd then
+		return false
+	end
+
+	-- All conditions met: Buff will be cast, store the current time
+	healerBuffed[modelName] = os.clock()
+	return true
+end
+
+local function DecideToHeal(thisModel: Model, mana: number, maxmana: number): boolean
+	local party = utilMod.GetPartyMembers(thisModel)
+	if not party or not party.pets then
+		return
+	end
+	local partyTable = {}
+	table.insert(partyTable, party.Character)
+	for _, pets in ipairs(party.pets) do
+		table.insert(partyTable, pets)
+	end
+	if #partyTable == 0 then
+		return false
+	end
+
+	local healSpell = statsMod.SpellInfo[healerType .. "PriestHeal"]
+	local manaCost = healSpell.manaCost * statsMod.MaxSpellCost
+	local castTime = healSpell.castTime
+	local healDuration = statsMod.BuffInfo[healerType .. "PriestHeal"].seconds or 0 -- fallback if missing
+
+	-- Early mana check
+	if mana < manaCost then
+		return false
+	end
+
+	-- Cooldown check: prevent spamming heal
+	local modelName = thisModel.Name
+	local lastHealTime = healerHealed[modelName] or 0
+	local cooldownEnd = lastHealTime + castTime + healDuration + 3
+
+	if time() < cooldownEnd then
+		return false -- Still on cooldown
+	end
+
+	-- Collect all humanoids from party (player characters + pets)
+	local humanoids: { Humanoid } = {}
+
+	for _, member in ipairs(partyTable) do
+		if member then
+			local humanoid = member:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				table.insert(humanoids, humanoid)
+			end
+		end
+	end
+
+	if #humanoids == 0 then
+		return false
+	end
+
+	-- Priority 1: Anyone critically low (<20%) → heal immediately if any mana
+	for _, humanoid in ipairs(humanoids) do
+		if humanoid.Health > 0 and humanoid.Health / humanoid.MaxHealth < 0.2 then
+			healerHealed[modelName] = time()
+			return true
+		end
+	end
+
+	-- Calculate group average health
+	local totalHealth = 0
+	local totalMaxHealth = 0
+	for _, humanoid in ipairs(humanoids) do
+		if humanoid.Health > 0 then -- avoid dividing dead (0/0)
+			totalHealth += humanoid.Health
+			totalMaxHealth += humanoid.MaxHealth
+		end
+	end
+
+	local groupHealthPercent = totalMaxHealth > 0 and (totalHealth / totalMaxHealth) or 1
+
+	-- Priority 2: Group <50% → heal
+	if groupHealthPercent < 0.5 then
+		healerHealed[modelName] = time()
+		return true
+	end
+
+	-- Priority 3: Group <70% and mana >=50%
+	if groupHealthPercent < 0.7 and mana >= maxmana * 0.5 then
+		healerHealed[modelName] = time()
+		return true
+	end
+
+	-- Priority 4: Group <90% and mana >=80%
+	if groupHealthPercent < 0.9 and mana >= maxmana * 0.8 then
+		healerHealed[modelName] = time()
+		return true
+	end
+
+	return false
+end
+
+local function DecideToNuke(thisModel: Model, mana: number, maxmana: number): boolean
+	local party = utilMod.GetPartyMembers(thisModel)
+	if not party or not party.pets then
+		return
+	end
+	local partyTable = {}
+	table.insert(partyTable, party.Character)
+	for _, pets in ipairs(party.pets) do
+		table.insert(partyTable, pets)
+	end
+	if #partyTable == 0 then
+		return false
+	end
+
+	local nukeSpell = statsMod.SpellInfo[healerType .. "PriestNuke"]
+	if not nukeSpell then
+		warn("PriestNuke spell not found in SpellInfo")
+		return false
+	end
+
+	local manaCost = nukeSpell.manaCost * statsMod.MaxSpellCost
+	local castTime = nukeSpell.castTime or 0
+	local nukeDuration = statsMod.BuffInfo[healerType .. "PriestNuke"].seconds or 0 -- may not have duration
+
+	-- Early exit: not enough mana to cast
+	if mana < manaCost then
+		return false
+	end
+
+	-- Cooldown: prevent spamming nuke (cast time + 5 second base cooldown)
+	-- You can adjust the +5 if you want longer/shorter gaps between nukes
+	local modelName = thisModel.Name
+	local lastNukeTime = healerNuked[modelName] or 0
+	local cooldownEnd = lastNukeTime + castTime + 5
+
+	if time() < cooldownEnd then
+		return false
+	end
+
+	-- Collect all living humanoids in party
+	local humanoids: { Humanoid } = {}
+	local lowestHealthPercent = 1 -- Track the lowest for priority
+	-- Collect all humanoids from party (player characters + pets)
+	local humanoids: { Humanoid } = {}
+
+	for _, member in ipairs(partyTable) do
+		if member then
+			local humanoid = member:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				table.insert(humanoids, humanoid)
+			end
+		end
+	end
+
+	if #humanoids == 0 then
+		return false
+	end
+
+	-- Calculate group average health
+	local totalHealth = 0
+	local totalMaxHealth = 0
+	for _, hum in ipairs(humanoids) do
+		totalHealth += hum.Health
+		totalMaxHealth += hum.MaxHealth
+	end
+	local groupHealthPercent = totalMaxHealth > 0 and (totalHealth / totalMaxHealth) or 1
+
+	-- Mana percentage for dynamic decision-making
+	local manaPercent = mana / maxmana
+
+	-- Priority 1: Someone is below 30% → Nuke aggressively if mana allows
+	if lowestHealthPercent < 0.4 then
+		-- Only require minimum mana for the spell (already checked above)
+		-- But prefer having at least 30% mana to avoid draining completely
+		if manaPercent >= 0.3 then
+			healerNuked[modelName] = time()
+			return true
+		end
+	end
+
+	-- Priority 2: Group health below 50% → Nuke if mana is decent (50%+)
+	if groupHealthPercent < 0.6 and manaPercent >= 0.5 then
+		healerNuked[modelName] = time()
+		return true
+	end
+
+	-- Priority 3: Group health below 80% → Nuke conservatively if mana is high (70%+)
+	if groupHealthPercent < 0.75 and manaPercent >= 0.7 then
+		healerNuked[modelName] = time()
+		return true
+	end
+
+	-- Priority 4: Everything is mostly fine (80%+ health) → Only nuke if mana is very high (90%+)
+	-- This helps conserve mana for heals/buffs
+	if groupHealthPercent < 0.9 and manaPercent >= 0.8 then
+		healerNuked[modelName] = time()
+		return true
+	end
+
+	-- No good reason to nuke right now
+	return false
+end
 
 local function StopIdle(animTracks: any)
 	-- Handle idleConnection (could be thread or connection)
@@ -61,7 +319,7 @@ local function PlayIdles(animTracks: any)
 				tracktoplay2:Stop(0.5)
 				tracktoplay1:Play(0.5, 1, animTracks.idleSpeed or 1)
 				animTracks.delayConnection = tracktoplay1.Stopped:Connect(function()
-					tracktoplay2:Play(0.5, .9, animTracks.idleSpeed or 1)
+					tracktoplay2:Play(0.5, 0.9, animTracks.idleSpeed or 1)
 				end)
 			end
 		end)
@@ -75,21 +333,31 @@ local function StopMove(animTracks: any)
 	end
 end
 
-local function GetRandomAttack(animTracks: any, random: Random): {anim: AnimationTrack?, index:number?}
+local function GetRandomAttack(animTracks: any, random: Random): { anim: AnimationTrack?, index: number? }
 	if #animTracks.attacks == 0 then
 		return nil
 	end
 	local doPrimary = random:NextInteger(1, 3) == 1
 	if doPrimary then
-		local index = animTracks.favoredAttack
-		return {animTracks.attacks[index], index}
+		local ind = animTracks.favoredAttack
+		return { animTracks.attacks[ind], ind }
 	else
-		local index = random:NextInteger(1, #animTracks.attacks)
-		return {animTracks.attacks[index], index}
+		local ind = random:NextInteger(1, #animTracks.attacks)
+		return { anim = animTracks.attacks[ind], index = ind }
 	end
 end
-
-local healerCache: { string: boolean } = {}
+local function GetHealerType(name: string): string
+	local trimmed = utilMod.customTrim(name)
+	if trimmed == "Druid" then
+		return "Nature"
+	elseif trimmed == "StoneManaPriest" then
+		return "Artificer"
+	elseif trimmed == "MudPriest" then
+		return "Primordial"
+	else
+		warn("should not reach me")
+	end
+end
 
 function actionsMod.PerformActions(context: table)
 	local model = context.model
@@ -121,6 +389,9 @@ function actionsMod.PerformActions(context: table)
 
 	if not healerCache[model.Name] then
 		healerCache[model.Name] = utilMod.IsMobHealer(model)
+		if healerCache[model.Name] then
+			healerType = GetHealerType(model.Name)
+		end
 	end
 
 	----------------------------------------------------------------
@@ -163,9 +434,24 @@ function actionsMod.PerformActions(context: table)
 			end
 
 			if not pathMod.IsPathActive(model) then
-				utilMod.SpinToTargetInCombat(model, combatTargetModel, 0.3)
+				if time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
+					local mana = model:GetAttribute("Mana") or 0
+					local maxMana = model:GetAttribute("MaxMana") or 1 -- avoid divide-by-zero edge cases
 
-				-- Attack or regen mana
+					if DecideToHeal(model, mana, maxMana) then
+						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
+						CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestHeal")
+						lastAttackWrapper.value = time()
+					elseif DecideToBuff(model, mana, maxMana) then
+						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
+						CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestBuff")
+						lastAttackWrapper.value = time()
+					elseif DecideToNuke(model, mana, maxMana) then
+						utilMod.SpinToTargetInCombat(model, combatTargetModel, 0.3)
+						CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestNuke", combatTargetModel)
+						lastAttackWrapper.value = time()
+					end
+				end
 			end
 		end
 	end
@@ -176,9 +462,8 @@ function actionsMod.PerformActions(context: table)
 	if model:GetAttribute("IsMoving") then
 		StopIdle(animTracks)
 		if animTracks.move and not animTracks.move.IsPlaying then
-			local tracktoplay:AnimationTrack = animTracks.move
-			print("moving at "..animTracks.moveSpeed)
-			tracktoplay:Play(.3,.9,animTracks.moveSpeed or 1)
+			local tracktoplay: AnimationTrack = animTracks.move
+			tracktoplay:Play(0.3, 0.9, animTracks.moveSpeed or 1)
 		end
 
 		if movingDirection == "MovingToCombatTarget" and not healerCache[model.Name] then
@@ -278,32 +563,33 @@ function actionsMod.PerformActions(context: table)
 			model:SetAttribute("SpinCoolDown", time() + random:NextInteger(10, 25))
 			utilMod.SpinToOwner(model, hrp, ownerInstance, random)
 		end
+
 		if healerCache[model.Name] then
 			local mana = model:GetAttribute("Mana") or 0
 			local maxMana = model:GetAttribute("MaxMana") or 1
+			-- for testing
+			--CastPriestSpell(animTracks, model, combatMod,  healerType.."PriestBuff", nil)
 			local nextCastTime = model:GetAttribute("IdleCastCoolDown") or 0
-			if mana / maxMana > 0.8 and time() > nextCastTime then
-				nextCastTime = time() + random:NextInteger(20, 40)
+			if
+				DecideToHeal(model, mana, maxMana)
+				and time() > nextCastTime
+				and time() - lastAttackWrapper.value >= ATTACK_COOLDOWN
+			then
+				nextCastTime = time() + random:NextInteger(10, 40)
 				model:SetAttribute("IdleCastCoolDown", nextCastTime)
-				local tracktoplay: AnimationTrack = animTracks.cast
-				tracktoplay:Play(0.3, 0.9, animTracks.castSpeed or 1)
-				print("CastHeal - Pet")
-				task.delay(0.5, function()
-					local spellname = nil
-					if random:NextInteger(1, 2) == 5 then
-						spellname = "PriestBuff"
-					else
-						spellname = "PriestHeal"
-					end
-					local userId = model:GetAttribute("OwnedBy")
-					if userId and typeof(userId) == "number" then
-						local plr = game.Players:GetPlayerByUserId(userId)
-						if plr and plr.Character then
-							combatMod.ApplyPriestSpell(model, plr.Character, spellname)
-						end
-					end
-				end)
+				lastAttackWrapper.value = time()
+				CastPriestSpell(animTracks, model, combatMod,  healerType.."PriestHeal", nil)
 			end
+
+			-- Debugging spells
+			-- if time() > nextCastTime
+			-- 	and time() - lastAttackWrapper.value >= ATTACK_COOLDOWN
+			-- then
+			-- 	nextCastTime = time() + random:NextInteger(5, 20)
+			-- 	model:SetAttribute("IdleCastCoolDown", nextCastTime)
+			-- 	lastAttackWrapper.value = time()
+			-- 	CastPriestSpell(animTracks, model, combatMod,  healerType.."PriestBuff", nil)
+			-- end
 		end
 	end
 end

@@ -262,26 +262,33 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
 end
 
 --==============================================================================
--- Generic damage application used by spells/abilities
+-- Generic damage application used by spells/abilities (works for Players AND Pets)
 --==============================================================================
-function combatMod.ExecuteSpellDamageToBody(playerId: number, target: Model, damage: number?): boolean
-	local owningplayer = Players:GetPlayerByUserId(playerId)
-	if not owningplayer then
+function combatMod.ExecuteSpellDamageToBody(source: Player | Model, target: Model, damage: number?): boolean
+	local owningPlayer: Player?
+
+	-- Determine the owning player: direct Player or pet's owner
+	if typeof(source) == "Instance" and source:IsA("Player") then
+		owningPlayer = source
+	elseif source:IsA("Model") then
+		local userId = source:GetAttribute("OwnedBy")
+		if typeof(userId) == "number" then
+			owningPlayer = Players:GetPlayerByUserId(userId)
+		end
+	end
+
+	if not owningPlayer then
+		return false  -- No valid owner → can't apply threat or tag
+	end
+
+	-- Prevent friendly fire (ally check uses character models)
+	local sourceCharacter = owningPlayer.Character or (source:IsA("Model") and source)
+	if not sourceCharacter or sourceCharacter == target then
 		return false
 	end
 
-	if not owningplayer.Character or owningplayer.Character == target then
+	if utilMod.IsAlly(sourceCharacter, target) then
 		return false
-	end
-	if utilMod.IsAlly(owningplayer.Character, target) then
-		return false
-	end
-
-	if not damage or damage <= 0 then
-		utilMod.ApplyThreat(owningplayer, target, 25)
-		return false
-	else
-		utilMod.ApplyThreat(owningplayer, target, combatMod.CalculateAggro(damage))
 	end
 
 	local humanoid = target:FindFirstChildOfClass("Humanoid")
@@ -289,17 +296,31 @@ function combatMod.ExecuteSpellDamageToBody(playerId: number, target: Model, dam
 		return false
 	end
 
-	local creator = Instance.new("ObjectValue")
-	creator.Name = "creator"
-	creator.Value = owningplayer
-	creator.Parent = humanoid
-	task.delay(0.5, function()
-		if creator and creator.Parent then
-			creator:Destroy()
-		end
-	end)
-	print("DamageDonebySpell: " .. damage)
-	humanoid.Health = math.max(humanoid.Health - damage, 1)
+	-- Apply threat (even if damage is 0 or nil, for "poke" threat)
+	local threatAmount = if not damage or damage <= 0
+		then 25
+		else combatMod.CalculateAggro(damage)
+
+	utilMod.ApplyThreat(owningPlayer, target, threatAmount)
+
+	-- Only apply actual damage if damage > 0
+	if damage and damage > 0 then
+		-- Tag the humanoid so damager gets credit (for quests, etc.)
+		local creator = Instance.new("ObjectValue")
+		creator.Name = "creator"
+		creator.Value = owningPlayer  -- Important: tag the PLAYER, not the pet
+		creator.Parent = humanoid
+
+		task.delay(0.5, function()
+			if creator and creator.Parent then
+				creator:Destroy()
+			end
+		end)
+
+		print("DamageDonebySpell: " .. damage .. " (from " .. owningPlayer.Name .. "'s pet)")
+		humanoid.Health = math.max(humanoid.Health - damage, 1)
+	end
+
 	return true
 end
 
@@ -420,7 +441,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			end
 			local damage = combatMod.SpellAttackResult(player, target, spellname)
 			task.delay(0.5, function()
-				combatMod.ExecuteSpellDamageToBody(player.UserId, target, damage)
+				combatMod.ExecuteSpellDamageToBody(player, target, damage)
 			end)
 			player:SetAttribute("Mana", mana - cost)
 			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart").Position, spellname)
@@ -438,7 +459,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 				local dmg = combatMod.SpellAttackResult(player, plr, spellname)
 
 				task.delay(0.5, function()
-					combatMod.ExecuteSpellDamageToBody(player.UserId, plr.Character, dmg)
+					combatMod.ExecuteSpellDamageToBody(player, plr.Character, dmg)
 				end)
 				affected += 1
 			end
@@ -448,7 +469,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 				local dmg = combatMod.SpellAttackResult(player, mob, spellname)
 
 				task.delay(0.5, function()
-					combatMod.ExecuteSpellDamageToBody(player.UserId, mob, dmg)
+					combatMod.ExecuteSpellDamageToBody(player, mob, dmg)
 				end)
 				buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, mob)
 				affected += 1
@@ -602,10 +623,12 @@ function combatMod.CalculateAggro(damageTaken: number): number
 	return damageTaken * 1.5 + 30
 end
 
-function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string): ()
+function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string, combatTargetModel:Model): ()
 	local ownedby = model:GetAttribute("OwnedBy")
 	local plrOwner = ownedby and game.Players:GetPlayerByUserId(ownedby)
-	if not plrOwner then return end
+	if not plrOwner or not plrOwner.Character then
+		return
+	end
 
 	local info = statsMod.SpellInfo[spellname]
 	if not info then
@@ -621,23 +644,41 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 	end
 
 	if info.spellType == "damage" then
-		
+		if not combatTargetModel then return end
+		local target = combatTargetModel
+
+		local dis = utilMod.GetDistance(model:FindFirstChild("HumanoidRootPart").Position, target:FindFirstChild("HumanoidRootPart").Position)
+		if target and dis and dis < info.range then
+			local isPlayer = false
+			if target:IsA("Player") then
+				target = target.Character
+				isPlayer = true
+			end
+			local damage = combatMod.SpellAttackResult(model, target, spellname)
+			task.delay(0.5, function()
+				combatMod.ExecuteSpellDamageToBody(model, target, damage)
+			end)
+			model:SetAttribute("Mana", mana - cost)
+			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart").Position, spellname)
+			if not isPlayer then
+				buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
+			end
+		end
 	elseif info.spellType == "areaDamage" then
 		warn("Should not reach me.")
+
 	elseif info.spellType == "buff" or info.spellType == "debuff" or info.spellType == "heal" then
 		local applied = false
 		if info.spellType == "heal" or info.spellType == "buff" then
 			local charcontainer = {}
-			applied = buffMod.BuffDebuffHeal(model, plrOwner, spellname) or applied
+			applied = buffMod.BuffDebuffHeal(model, plrOwner, spellname)
 			if applied then
-				table.insert(charcontainer, model)
+				table.insert(charcontainer, plrOwner.Character)
 			end
 			for _, pet in utilMod.MyPets(plrOwner) do
-				
-				applied = buffMod.BuffDebuffHeal(model, pet, spellname) or applied
+				applied = buffMod.BuffDebuffHeal(model, pet, spellname)
 				if applied then
 					table.insert(charcontainer, pet)
-					buffMod.ApplyBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, pet)
 				end
 			end
 			if applied then
@@ -659,7 +700,6 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 	elseif info.spellType == "utility" then
 		warn("Should not reach me.")
 	end
-
 end
 
 export type CombatMod = {

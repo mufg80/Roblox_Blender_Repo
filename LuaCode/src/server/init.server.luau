@@ -557,7 +557,7 @@ task.spawn(function()
 				if char then
 					local hum: Humanoid? = char:FindFirstChild("Humanoid")
 					if hum and hum.Health < hum.MaxHealth then
-						local health: number = math.clamp(hum.Health + 10, 1, hum.MaxHealth)
+						local health: number = math.clamp(hum.Health + 1, 1, hum.MaxHealth)
 						hum.Health = health
 					end
 				end

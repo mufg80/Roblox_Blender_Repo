@@ -75,6 +75,20 @@ local function DisableButtons(): ()
 		end
 	end
 
+	if player:GetAttribute("HasFallen") then
+		for _, button in pairs(creaturebuttons) do
+			if button:IsA("GuiButton") then
+				DiableButton(button)
+			end
+		end
+		for _, button in pairs(spellbuttons) do
+			if button:IsA("GuiButton") then
+				DiableButton(button)
+			end
+		end
+		return
+	end
+
 	-- If casting disable all buttons
 	if time() < globalCooldown then
 		for _, button in pairs(creaturebuttons) do
@@ -572,132 +586,86 @@ end)
 -- Initial visual update
 UpdateButtonVisuals()
 
--- Buffs
 local buffEvent: RemoteEvent = replicatedstorage.Events.BuffDebuffHealEvent
-buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string, command: string)
-	--print(tostring(id) .. " " .. spellname .. " " .. command)
-	local spelltype: string? = statsMod.SpellInfo[spellname].spellType
-	if not spelltype then
+
+buffEvent.OnClientEvent:Connect(function(id: number | string, spellname: string)
+	local spellInfo = statsMod.SpellInfo[spellname]
+	if not spellInfo then
+		warn("Received buff event for unknown spell:", spellname)
 		return
 	end
-	local spelllabel: TextLabel? = nil
+
+	local spelltype: string = spellInfo.spellType
+	if not table.find({ "buff", "debuff", "heal", "damage" }, spelltype) then
+		warn("Invalid spelltype:", spelltype)
+		return
+	end
+
+	-- Determine duration: use BuffInfo.seconds if available, else 1 second for instant visuals
+	local duration = 1 -- default for damage/heal flashes
+	if statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].seconds then
+		duration = statsMod.BuffInfo[spellname].seconds
+	end
+
+	local imageLabel: ImageLabel? = nil
+	local parentFrame: Frame? = nil
+	local keyPrefix: string = ""
+	local model = nil
 	if typeof(id) == "number" then
-		-- is a player
-		local playerBuffFrame: Frame = statsGui.HudFrame.PlayerEffectsFrame
-		if command == "Add" then
-			if spelltype == "buff" then
-				spelllabel = playerBuffFrame.BuffLabel:Clone()
-				spelllabel.Parent = playerBuffFrame
-			elseif spelltype == "debuff" then
-				spelllabel = playerBuffFrame.DebuffLabel:Clone()
-				spelllabel.Parent = playerBuffFrame
-			elseif spelltype == "heal" then
-				spelllabel = playerBuffFrame.HealLabel:Clone()
-				spelllabel.Parent = playerBuffFrame
-			elseif spelltype == "damage" then
-				spelllabel = playerBuffFrame.DamageLabel:Clone()
-				spelllabel.Parent = playerBuffFrame
-			else
-				warn("Should not reach me.")
-			end
-		else
-			for _, child in ipairs(playerBuffFrame:GetChildren()) do
-				if spelltype == "buff" then
-					if child.Name == "BuffLabel" and child.Visible == true then
-						spelllabel = child
-						break
-					end
-					
-				elseif spelltype == "debuff" then
-					if child.Name == "DebuffLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-				elseif spelltype == "heal" then
-					if child.Name == "HealLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-				elseif spelltype == "damage" then
-					if child.Name == "DamageLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-				else
-					warn("Should not reach me.")
-				end
-			end
+		-- Player buffs
+		parentFrame = statsGui.HudFrame.PlayerEffectsFrame
+		keyPrefix = "Player"
+		local plrtarget = game.Players:GetPlayerByUserId(id)
+		if plrtarget and plrtarget.Character then
+			model = plrtarget.Character
+		else return
 		end
 	else
-		-- pets buff
-		local petinfoframe: string = tostring(id) .. "_PetFrame"
-		local frame: Frame? = statsGui.HudFrame:FindFirstChild(petinfoframe)
-
-		if spelltype == "buff" then
-		elseif spelltype == "debuff" then
-			spelllabel = frame and frame.ZZBuffFrame.DebuffLabel
-		elseif spelltype == "heal" then
-			spelllabel = frame and frame.ZZBuffFrame.HealLabel
-		else
-			warn("Should not reach me.")
+		-- Pet buffs
+		local petFrameName = tostring(id) .. "_PetFrame"
+		parentFrame = statsGui.HudFrame:FindFirstChild(petFrameName)
+		if not parentFrame then
+			return -- Pet UI not visible yet
 		end
-		if command == "Add" then
-			if spelltype == "buff" then
-				spelllabel = frame and frame.ZZBuffFrame.BuffLabel:Clone()
-				spelllabel.Parent = frame.ZZBuffFrame
-			elseif spelltype == "debuff" then
-				spelllabel = frame and frame.ZZBuffFrame.DebuffLabel:Clone()
-				spelllabel.Parent = frame.ZZBuffFrame
-			elseif spelltype == "heal" then
-				spelllabel = frame and frame.ZZBuffFrame.HealLabel:Clone()
-				spelllabel.Parent = frame.ZZBuffFrame
-			elseif spelltype == "damage" then
-				spelllabel = frame and frame.ZZBuffFrame.DamageLabel:Clone()
-				spelllabel.Parent = frame.ZZBuffFrame
-			else
-				warn("Should not reach me.")
-			end
-		else
-			for _, child in ipairs(frame.ZZBuffFrame:GetChildren()) do
-				if spelltype == "buff" then
-					if child.Name == "BuffLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-					
-				elseif spelltype == "debuff" then
-					if child.Name == "DebuffLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-				elseif spelltype == "heal" then
-					if child.Name == "HealLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-				elseif spelltype == "damage" then
-					if child.Name == "DamageLabel" and child.Visible == true  then
-						spelllabel = child
-						break
-					end
-				else
-					warn("Should not reach me.")
-				end
+		parentFrame = parentFrame.ZZBuffFrame
+		keyPrefix = tostring(id)
+		for _, mod in workspace.Pets:GetChildren() do
+			if mod.Name == id then
+				model = mod
 			end
 		end
+	end
 
+	if not parentFrame then
+		return
 	end
-	if command == "Add" then
-		if spelllabel then
-			spelllabel.Visible = true
-		end
-	else
-		if spelllabel then
-			spelllabel.Visible = false
-			spelllabel.Parent = nil
-		end
+
+	-- Map spelltype to template label name
+	local templateName = ({
+		buff = "BuffLabel",
+		debuff = "DebuffLabel",
+		heal = "HealLabel",
+		damage = "DamageLabel",
+	})[spelltype]
+
+	local template = parentFrame:FindFirstChild(templateName)
+	if not template then
+		warn("Missing template label:", templateName, "in", parentFrame:GetFullName())
+		return
 	end
+
+	-- Clone and parent the label
+	imageLabel = template:Clone()
+	imageLabel.Name = templateName .. "_" .. spellname -- optional: unique name
+	imageLabel.Parent = parentFrame
+
+	-- Unique key: prevents stacking same buff visually + allows cancellation
+	local key = keyPrefix .. "_" .. spellname.."_"..parentFrame.Name
+
+	-- Start the blinking timer (handles show → blink → cleanup, including early cancel)
+	buffMod.StartBuffLabelTimer(imageLabel, duration, model, key)
 end)
+
 
 -- admin area
 if players.LocalPlayer.UserId == 2484051658 then
