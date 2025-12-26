@@ -31,13 +31,6 @@ local arcHeight: number = stats.arcHeight
 local bulletTemplateName: string = stats.BulletTemplate or tool:GetAttribute("BulletTemplate") or "StarterStaffBullet"
 local trailChildName: string = stats.TrailChildName or tool:GetAttribute("TrailChildName") or "StarterStaffTrail"
 
--- Set muzzle collision group
-if muzzle:IsA("BasePart") then
-	muzzle.CollisionGroup = "Weapon"
-else
-	warn("BulletStartPosition is not a BasePart in", tool.Name)
-end
-
 -- Single shared RemoteEvent
 local REMOTE_NAME: string = "FireStaff"
 local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
@@ -63,30 +56,9 @@ local function fireBullet(player: Player, targetPos: Vector3): ()
 	-- CLONE FIRST, then customize (fixes shared template bug!)
 	local bullet: Instance = bulletTemplate:Clone()
 	bullet:SetAttribute("Owner", player.Name)
-	bullet.Position = muzzle.Position + Vector3.new(0, 0.5, 0)
+	bullet.Position = muzzle.Position + Vector3.new(0, 1, 0)
 	bullet.Parent = workspace
 
-	-- Set Bullet collision group (handles Part or Model w/ PrimaryPart)
-	local function setBulletCollision(obj: Instance): ()
-		if obj:IsA("BasePart") then
-			obj.CollisionGroup = "Bullet"
-		end
-	end
-	if bullet:IsA("BasePart") then
-		setBulletCollision(bullet)
-	elseif bullet:IsA("Model") and bullet.PrimaryPart then
-		setBulletCollision(bullet.PrimaryPart)
-		for _, descendant: Instance in bullet:GetDescendants() do
-			setBulletCollision(descendant)
-		end
-	end
-
-	-- Owner immunity: Set player parts to "Player" group (run per shot)
-	for _, part: Instance in character:GetDescendants() do
-		if part:IsA("BasePart") and not part:IsDescendantOf(tool) then
-			part.CollisionGroup = "Player"
-		end
-	end
 
 	-- Trajectory calc
 	local startPos: Vector3 = bullet.Position

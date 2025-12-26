@@ -9,6 +9,8 @@ local aggroMod = {}
 
 -- Inside aggroMod.Setup(model)
 function aggroMod.Setup(model: Model): table
+    if not model then warn("Should not reach me.") return end
+
     local humanoid = model:FindFirstChildOfClass("Humanoid")
     local hrp = model:FindFirstChild("HumanoidRootPart")
     if not humanoid or not hrp then

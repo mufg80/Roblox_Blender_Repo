@@ -114,7 +114,7 @@ task.spawn(function()
     task.spawn(function()
         while task.wait(random:NextInteger(4, 15)) do
             if not utilMod.GetAttribute(model, "HasFallen") then
-                if random:NextInteger(1, 20) > 10 then
+                if random:NextInteger(1, 100) > 30 then
                     lithTakeRandomLoc = nil
                     lithDefendRandomLoc = nil
                 end
@@ -124,7 +124,6 @@ task.spawn(function()
 
     local lastAttackTime: number = 0
     local homewardBound: boolean = false
-    local spincooldown: boolean = true
     local deathPlayed = false
 
     -- Main loop for npc state
@@ -133,7 +132,6 @@ task.spawn(function()
         if ATTACK_COOLDOWN < MINATTACKDELAY then
             ATTACK_COOLDOWN = MINATTACKDELAY
         end
-
         local ownerInstance: Model? = pet.GetOwnerModel()
         local combatTargetModel: Model? = nil
         local acceptableDistance: boolean? = nil
@@ -231,16 +229,15 @@ task.spawn(function()
                 combatMod = combatMod,
                 utilMod = utilMod,
                 pet = pet,
-
-                spincooldown = spincooldown,
             }
 
             actionsMod.PerformActions(actionContext)
 
             -- Sync back mutables
-            lastAttackTime = actionContext.lastAttackTime.value
-            spincooldown = actionContext.spincooldown
+            lastAttackTime = actionContext.lastAttackTime
             homewardBound = actionContext.homewardBound
+            lithDefendRandomLoc = actionContext.lithDefendRandomLoc
+            lithTakeRandomLoc = actionContext.lithTakeRandomLoc
         else
             ----------------------------------------------------------------
             -- Death

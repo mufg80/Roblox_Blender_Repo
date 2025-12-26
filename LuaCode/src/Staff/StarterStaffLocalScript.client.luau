@@ -8,7 +8,7 @@ local player: Player = Players.LocalPlayer
 local character: Model = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
 local animator: Animator = humanoid:WaitForChild("Animator")
-
+player:SetAttribute("Firing", false)
 -- Load animations from tool's child Animation objects (different IDs per staff)
 local fireAnimObj: Animation = tool:WaitForChild("StarterStaffAnimation")
 local holdAnimObj: Animation = tool:WaitForChild("StarterStaffHoldAnimation")
@@ -63,6 +63,7 @@ tool.Activated:Connect(function()
 	local mouseHit: CFrame = mouse.Hit
 
 	if not fireTrack.IsPlaying and canPlayAnim then
+		player:SetAttribute("Firing", true)
 		canPlayAnim = false
 		holdTrack:Stop()
 		fireTrack:Play()
@@ -72,6 +73,7 @@ tool.Activated:Connect(function()
 	end
 
 	task.wait(1)  -- Cooldown
+	player:SetAttribute("Firing", false)
 	debounce = true
 end)
 

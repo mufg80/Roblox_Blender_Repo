@@ -15,328 +15,362 @@ local lithMod = require(ReplicatedStorage.Shared.lithMod)
 
 local dataStoreEnabled: boolean = false
 
-local function setCollisionGroup(plrId: string, part: BasePart)
-    local groupName = plrId
-    local exists = false
-    for _, group in ipairs(PhysicsService:GetRegisteredCollisionGroups()) do
-        if group.name == groupName then
-            exists = true
-            break
-        end
-    end
+local function setCollisionGroup(plrId: number, model:Model)
+	if not plrId or not model then
+		warn("should not reach me")
+		return
+	end
+	if typeof(plrId) ~= "number" or not model:IsA("Model") then
+		warn("Should not reach me")
+		return
+	end
+	if not game.Players:GetPlayerByUserId(plrId) then
+		warn("Should not reach me")
+		return
+	end
+	local groupName = tostring(plrId)
+	local exists = false
+	for _, group in ipairs(PhysicsService:GetRegisteredCollisionGroups()) do
+		if group.name == groupName then
+			exists = true
+			break
+		end
+	end
 
-    if not exists then
-        PhysicsService:RegisterCollisionGroup(groupName)
-        PhysicsService:CollisionGroupSetCollidable(groupName, groupName, false)
-    end
-
-    part.CollisionGroup = groupName
+	if not exists then
+		PhysicsService:RegisterCollisionGroup(groupName)
+		PhysicsService:CollisionGroupSetCollidable(groupName, groupName, false)
+	end
+	for _,part in model:GetDescendants() do
+		if part:IsA("MeshPart") or part:IsA("BasePart") then
+			part.CollisionGroup = groupName
+		end
+	end
 end
 
-local function setStaffandPets(player: Player): ()
-    local character = player.Character
-    if not character then return end
+local function setStaffandPets(player:Player, char: Model): ()
+	if not player then warn("Should not reach me.") return end
+	if not char then warn("Should not reach me.") return end
+	
 
-    -- Remove old staffs from character and backpack
-    for _, item in character:GetChildren() do
-        if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
-            item:Destroy()
-        end
-    end
+	-- Remove old staffs from character and backpack
+	for _, item in char:GetChildren() do
+		if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
+			item:Destroy()
+		end
+	end
 
-    local backpack = player:FindFirstChildOfClass("Backpack")
-    if backpack then
-        for _, item in backpack:GetChildren() do
-            if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
-                item:Destroy()
-            end
-        end
-    end
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if backpack then
+		for _, item in backpack:GetChildren() do
+			if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
+				item:Destroy()
+			end
+		end
+	end
 
-    -- Remove mismatched pets
-    local currentType = utilMod.GetAttribute(player, "Magic")
-    local pets = utilMod.MyPets(player)
-    for _, pet in pets do
-        local petType = statsMod.creatureStats[pet.Name] and statsMod.creatureStats[pet.Name].magicType
-        if petType and petType ~= currentType then
-            pet:Destroy()
-            local souls = utilMod.GetAttribute(player, "Souls") or 0
-            utilMod.SetAttribute(player, "Souls", souls + 1)
-        end
-    end
+	-- Remove mismatched pets
+	local currentType = utilMod.GetAttribute(player, "Magic")
+	local pets = utilMod.MyPets(char)
+	for _, pet in pets do
+		local petType = statsMod.creatureStats[pet.Name] and statsMod.creatureStats[pet.Name].magicType
+		if petType and petType ~= currentType then
+			pet:Destroy()
+			local souls = utilMod.GetAttribute(player, "Souls") or 0
+			utilMod.SetAttribute(player, "Souls", souls + 1)
+		end
+	end
 
-    -- Give correct starter staff
-    local staffName
-    if currentType == statsMod.MagicType.Artificer then
-        staffName = "StarterStaffArtificer"
-    elseif currentType == statsMod.MagicType.Primordial then
-        staffName = "StarterStaffPrimordial"
-    elseif currentType == statsMod.MagicType.Nature then
-        staffName = "StarterStaffNature"
-    end
+	-- Give correct starter staff
+	local staffName
+	if currentType == statsMod.MagicType.Artificer then
+		staffName = "StarterStaffArtificer"
+	elseif currentType == statsMod.MagicType.Primordial then
+		staffName = "StarterStaffPrimordial"
+	elseif currentType == statsMod.MagicType.Nature then
+		staffName = "StarterStaffNature"
+	end
 
-    if staffName and backpack then
-        local template = ServerStorage.Staffs:FindFirstChild(staffName)
-        if template then
-            local clone = template:Clone()
-            clone.Parent = backpack
-        end
-    end
+	if staffName and backpack then
+		local template = ServerStorage.Staffs:FindFirstChild(staffName)
+		if template then
+			local clone = template:Clone()
+			clone.Parent = backpack
+		end
+	end
 end
 
 local function GetMagicType(player: Player): string?
-    local magic = utilMod.GetAttribute(player, "Magic")
-    if magic == statsMod.MagicType.Artificer then return "ArtificerLevel" end
-    if magic == statsMod.MagicType.Primordial then return "PrimordialLevel" end
-    if magic == statsMod.MagicType.Nature then return "NatureLevel" end
-    return nil
+	local magic = utilMod.GetAttribute(player, "Magic")
+	if magic == statsMod.MagicType.Artificer then
+		return "ArtificerLevel"
+	end
+	if magic == statsMod.MagicType.Primordial then
+		return "PrimordialLevel"
+	end
+	if magic == statsMod.MagicType.Nature then
+		return "NatureLevel"
+	end
+	return nil
 end
 
-local function setStats(player: Player, spellname: string?)
-    local baseStats = utilMod.GetStatsFromFolder(player)
-    local character = player.Character
-    if not character then return end
+local function setStats(Char: Model, spellname: string?)
+	local baseStats = utilMod.GetStatsFromFolder(Char)
+	local character = Char
+	if not character then
+		return
+	end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
 
-    humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
-    if humanoid.Health > humanoid.MaxHealth then
-        humanoid.Health = humanoid.MaxHealth
-    end
+	humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
+	if humanoid.Health > humanoid.MaxHealth then
+		humanoid.Health = humanoid.MaxHealth
+	end
 
-    if spellname and statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
-        humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
-    end
+	if spellname and statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
+		humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
+	end
 
-    humanoid.WalkSpeed = 16 * (baseStats.speed or 1)
-    utilMod.SetAttribute(humanoid, "LastHealth", humanoid.Health)
+	humanoid.WalkSpeed = 16 * (baseStats.speed or 1)
+	utilMod.SetAttribute(humanoid, "LastHealth", humanoid.Health)
 end
 
 local function ReduceMana(player: Player)
-    local current = utilMod.GetAttribute(player, "Mana")
-    local max = utilMod.GetAttribute(player, "MaxMana")
-    if current and max and current > max then
-        utilMod.SetAttribute(player, "Mana", max)
-    end
+	local current = utilMod.GetAttribute(player, "Mana")
+	local max = utilMod.GetAttribute(player, "MaxMana")
+	if current and max and current > max then
+		utilMod.SetAttribute(player, "Mana", max)
+	end
 end
 
 local function CharacterAdded(character: Model)
-    local player = Players:GetPlayerFromCharacter(character)
-    if not player then return end
+	local player = Players:GetPlayerFromCharacter(character)
+	if not player then
+		return
+	end
+	setCollisionGroup(player.UserId, character)
+	local souls = utilMod.GetAttribute(player, "Souls") or 0
+	local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0
+	ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, souls, maxSouls)
 
-    local souls = utilMod.GetAttribute(player, "Souls") or 0
-    local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0
-    ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, souls, maxSouls)
+	setStats(player)
 
-    setStats(player)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+	local inCombatTimeout
+	humanoid.HealthChanged:Connect(function(health)
+		local lastHealth = utilMod.GetAttribute(humanoid, "LastHealth")
+		local damage = lastHealth and (lastHealth - health) or 0
+		utilMod.SetAttribute(humanoid, "LastHealth", health)
 
-    local inCombatTimeout
-    humanoid.HealthChanged:Connect(function(health)
-        local lastHealth = utilMod.GetAttribute(humanoid, "LastHealth")
-        local damage = lastHealth and (lastHealth - health) or 0
-        utilMod.SetAttribute(humanoid, "LastHealth", health)
+		if damage > 0 then
+			utilMod.SetAttribute(player, "InCombat", true)
+			if inCombatTimeout then
+				task.cancel(inCombatTimeout)
+			end
+			inCombatTimeout = task.delay(5, function()
+				utilMod.SetAttribute(player, "InCombat", false)
+			end)
+		end
 
-        if damage > 0 then
-            utilMod.SetAttribute(player, "InCombat", true)
-            if inCombatTimeout then task.cancel(inCombatTimeout) end
-            inCombatTimeout = task.delay(5, function()
-                utilMod.SetAttribute(player, "InCombat", false)
-            end)
-        end
+		if health < 2 then
+			humanoid.Health = 1
+			utilMod.SetAttribute(player, "HasFallen", true)
+			utilMod.SetAttribute(player, "Mana", 1)
 
-        if health < 2 then
-            humanoid.Health = 1
-            utilMod.SetAttribute(player, "HasFallen", true)
-            utilMod.SetAttribute(player, "Mana", 1)
+			for _, part in character:GetDescendants() do
+				if part:IsA("MeshPart") then
+					part.Transparency = 0.75
+					local adorn = ReplicatedStorage.PlayerHighLight:Clone()
+					adorn.Name = "DeathAdornment"
+					adorn.Parent = part
+				end
+			end
+		end
+	end)
+	-- Buff/Debuff events
+	local addEvent = Instance.new("BindableEvent")
+	addEvent.Name = "BuffDebuffEvent"
+	addEvent.Parent = character
+	addEvent.Event:Connect(function(_, spellname)
+		setStats(character, spellname)
+	end)
 
-            for _, part in character:GetDescendants() do
-                if part:IsA("MeshPart") then
-                    part.Transparency = 0.75
-                    local adorn = ReplicatedStorage.PlayerHighLight:Clone()
-                    adorn.Name = "DeathAdornment"
-                    adorn.Parent = part
-                end
-            end
-        end
-    end)
+	local removeEvent = Instance.new("BindableEvent")
+	removeEvent.Name = "RemoveBuffDebuffEvent"
+	removeEvent.Parent = character
+	removeEvent.Event:Connect(function(_, spellname)
+		if not character then
+			return
+		end
+
+		local hasBuff = false
+		for name in character:GetAttributes() do
+			if typeof(name) == "string" and name:sub(1, 5) == "Buff_" then
+				hasBuff = true
+				break
+			end
+		end
+
+		if not hasBuff then
+			local magic = utilMod.GetAttribute(player, "Magic")
+			local sourceStats
+			if magic == statsMod.MagicType.None then
+				sourceStats = combatMod.ShallowTableCopy("PlayerNone")
+			elseif magic == statsMod.MagicType.Artificer then
+				sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
+			elseif magic == statsMod.MagicType.Primordial then
+				sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
+			elseif magic == statsMod.MagicType.Nature then
+				sourceStats = combatMod.ShallowTableCopy("PlayerNature")
+			end
+
+			if sourceStats then
+				utilMod.CopyStatsToFolder(character, sourceStats)
+				setStats(character)
+			end
+		else
+			setStats(character)
+		end
+	end)
+
+	-- Mana cap enforcement
+	player:GetAttributeChangedSignal("MaxMana"):Connect(function()
+		ReduceMana(player)
+	end)
+
+	-- Magic type change → stats/staff/pets
+	player:GetAttributeChangedSignal("Magic"):Connect(function()
+		local magic = utilMod.GetAttribute(player, "Magic")
+		local sourceStats
+		if magic == statsMod.MagicType.None then
+			sourceStats = combatMod.ShallowTableCopy("PlayerNone")
+			utilMod.SetAttribute(player, "MaxMana", 20)
+		elseif magic == statsMod.MagicType.Artificer then
+			sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
+			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
+		elseif magic == statsMod.MagicType.Primordial then
+			sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
+			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
+		elseif magic == statsMod.MagicType.Nature then
+			sourceStats = combatMod.ShallowTableCopy("PlayerNature")
+			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
+		end
+
+		if sourceStats then
+			utilMod.CopyStatsToFolder(player.Character, sourceStats)
+			setStats(player.Character)
+			setStaffandPets(player, player.Character)
+		end
+	end)
+
+	-- Level changes → mana cap
+	player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
+		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Artificer then
+			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
+		end
+	end)
+
+	player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
+		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Primordial then
+			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
+		end
+	end)
+
+	player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
+		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Nature then
+			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
+		end
+	end)
+
+	-- Mana overflow → cap + wake from fallen if full
+	player:GetAttributeChangedSignal("Mana"):Connect(function()
+		local mana = utilMod.GetAttribute(player, "Mana")
+		local maxMana = utilMod.GetAttribute(player, "MaxMana")
+		if mana and maxMana and mana > maxMana then
+			utilMod.SetAttribute(player, "Mana", maxMana)
+		end
+
+		if mana == maxMana and utilMod.GetAttribute(player, "HasFallen") then
+			utilMod.SetAttribute(player, "HasFallen", false)
+			local char = player.Character
+			if char then
+				for _, part in char:GetDescendants() do
+					if part:IsA("MeshPart") then
+						part.Transparency = 0
+						local adorn = part:FindFirstChild("DeathAdornment")
+						if adorn then
+							adorn:Destroy()
+						end
+					end
+				end
+			end
+		end
+	end)
+
+	-- DataStore (disabled by default)
+	if dataStoreEnabled then
+		local store = DataStoreService:GetDataStore("Testing_035")
+		local success, data = pcall(function()
+			return store:GetAsync(player.UserId)
+		end)
+
+		if success and data then
+			for key, value in data do
+				utilMod.SetAttribute(player, key, value)
+			end
+		else
+			-- Default values already set above
+		end
+
+		game:BindToClose(function()
+			local saveData = {}
+			for key in { "Magic", "ArtificerLevel", "PrimordialLevel", "NatureLevel", "Experience" } do
+				saveData[key] = utilMod.GetAttribute(player, key)
+			end
+
+			pcall(function()
+				store:SetAsync(player.UserId, saveData)
+			end)
+		end)
+	else
+		warn("DataStores disabled")
+	end
+
+	-- Dev/test: force Artificer + level 7
+	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Artificer)
+	utilMod.SetAttribute(player, "ArtificerLevel", 7)
 end
 
 Players.PlayerAdded:Connect(function(player)
-    -- Default attributes
-    utilMod.SetAttribute(player, "Magic", statsMod.MagicType.None)
-    utilMod.SetAttribute(player, "ArtificerLevel", 1)
-    utilMod.SetAttribute(player, "PrimordialLevel", 1)
-    utilMod.SetAttribute(player, "NatureLevel", 1)
-    utilMod.SetAttribute(player, "ArtificerExperience", 1)
-    utilMod.SetAttribute(player, "PrimordialExperience", 1)
-    utilMod.SetAttribute(player, "NatureExperience", 1)
+	-- Default attributes
+	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.None)
+	utilMod.SetAttribute(player, "ArtificerLevel", 1)
+	utilMod.SetAttribute(player, "PrimordialLevel", 1)
+	utilMod.SetAttribute(player, "NatureLevel", 1)
+	utilMod.SetAttribute(player, "ArtificerExperience", 1)
+	utilMod.SetAttribute(player, "PrimordialExperience", 1)
+	utilMod.SetAttribute(player, "NatureExperience", 1)
 
-    utilMod.SetAttribute(player, "MaxMana", 20)
-    utilMod.SetAttribute(player, "Mana", 20)
-    utilMod.SetAttribute(player, "HasFallen", false)
-    utilMod.SetAttribute(player, "AllyId", 0)
-    utilMod.SetAttribute(player, "Souls", 4)
-    utilMod.SetAttribute(player, "MaxSouls", 4)
-    utilMod.SetAttribute(player, "PetAttack", true)
-    utilMod.SetAttribute(player, "PetFollow", true)
-    utilMod.SetAttribute(player, "PetTakeLith", false)
-    utilMod.SetAttribute(player, "PetDefendLith", false)
+	utilMod.SetAttribute(player, "MaxMana", 20)
+	utilMod.SetAttribute(player, "Mana", 20)
+	utilMod.SetAttribute(player, "HasFallen", false)
+	utilMod.SetAttribute(player, "AllyId", 0)
+	utilMod.SetAttribute(player, "Souls", 4)
+	utilMod.SetAttribute(player, "MaxSouls", 4)
+	utilMod.SetAttribute(player, "PetAttack", true)
+	utilMod.SetAttribute(player, "PetFollow", true)
+	utilMod.SetAttribute(player, "PetTakeLith", false)
+	utilMod.SetAttribute(player, "PetDefendLith", false)
 
-    player.CharacterAppearanceLoaded:Connect(CharacterAdded)
-
-    -- Buff/Debuff events
-    local addEvent = Instance.new("BindableEvent")
-    addEvent.Name = "BuffDebuffEvent"
-    addEvent.Parent = player
-    addEvent.Event:Connect(function(_, spellname)
-        setStats(player, spellname)
-    end)
-
-    local removeEvent = Instance.new("BindableEvent")
-    removeEvent.Name = "RemoveBuffDebuffEvent"
-    removeEvent.Parent = player
-    removeEvent.Event:Connect(function(_, spellname)
-        local char = player.Character
-        if not char then return end
-
-        local hasBuff = false
-        for name in char:GetAttributes() do
-            if typeof(name) == "string" and name:sub(1, 5) == "Buff_" then
-                hasBuff = true
-                break
-            end
-        end
-
-        if not hasBuff then
-            local magic = utilMod.GetAttribute(player, "Magic")
-            local sourceStats
-            if magic == statsMod.MagicType.None then
-                sourceStats = combatMod.ShallowTableCopy("PlayerNone")
-            elseif magic == statsMod.MagicType.Artificer then
-                sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
-            elseif magic == statsMod.MagicType.Primordial then
-                sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
-            elseif magic == statsMod.MagicType.Nature then
-                sourceStats = combatMod.ShallowTableCopy("PlayerNature")
-            end
-
-            if sourceStats then
-                utilMod.CopyStatsToFolder(player, sourceStats)
-                setStats(player)
-            end
-        else
-            setStats(player)
-        end
-    end)
-
-    -- Mana cap enforcement
-    player:GetAttributeChangedSignal("MaxMana"):Connect(function()
-        ReduceMana(player)
-    end)
-
-    -- Magic type change → stats/staff/pets
-    player:GetAttributeChangedSignal("Magic"):Connect(function()
-        local magic = utilMod.GetAttribute(player, "Magic")
-        local sourceStats
-        if magic == statsMod.MagicType.None then
-            sourceStats = combatMod.ShallowTableCopy("PlayerNone")
-            utilMod.SetAttribute(player, "MaxMana", 20)
-        elseif magic == statsMod.MagicType.Artificer then
-            sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
-            utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
-        elseif magic == statsMod.MagicType.Primordial then
-            sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
-            utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
-        elseif magic == statsMod.MagicType.Nature then
-            sourceStats = combatMod.ShallowTableCopy("PlayerNature")
-            utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
-        end
-
-        if sourceStats then
-            utilMod.CopyStatsToFolder(player, sourceStats)
-            setStats(player)
-            setStaffandPets(player)
-        end
-    end)
-
-    -- Level changes → mana cap
-    player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
-        if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Artificer then
-            utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
-        end
-    end)
-
-    player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
-        if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Primordial then
-            utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
-        end
-    end)
-
-    player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
-        if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Nature then
-            utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
-        end
-    end)
-
-    -- Mana overflow → cap + wake from fallen if full
-    player:GetAttributeChangedSignal("Mana"):Connect(function()
-        local mana = utilMod.GetAttribute(player, "Mana")
-        local maxMana = utilMod.GetAttribute(player, "MaxMana")
-        if mana and maxMana and mana > maxMana then
-            utilMod.SetAttribute(player, "Mana", maxMana)
-        end
-
-        if mana == maxMana and utilMod.GetAttribute(player, "HasFallen") then
-            utilMod.SetAttribute(player, "HasFallen", false)
-            local char = player.Character
-            if char then
-                for _, part in char:GetDescendants() do
-                    if part:IsA("MeshPart") then
-                        part.Transparency = 0
-                        local adorn = part:FindFirstChild("DeathAdornment")
-                        if adorn then adorn:Destroy() end
-                    end
-                end
-            end
-        end
-    end)
-
-    -- DataStore (disabled by default)
-    if dataStoreEnabled then
-        local store = DataStoreService:GetDataStore("Testing_035")
-        local success, data = pcall(function()
-            return store:GetAsync(player.UserId)
-        end)
-
-        if success and data then
-            for key, value in data do
-                utilMod.SetAttribute(player, key, value)
-            end
-        else
-            -- Default values already set above
-        end
-
-        game:BindToClose(function()
-            local saveData = {}
-            for key in {"Magic", "ArtificerLevel", "PrimordialLevel", "NatureLevel", "Experience"} do
-                saveData[key] = utilMod.GetAttribute(player, key)
-            end
-
-            pcall(function()
-                store:SetAsync(player.UserId, saveData)
-            end)
-        end)
-    else
-        warn("DataStores disabled")
-    end
-
-    -- Dev/test: force Artificer + level 7
-    utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Artificer)
-    utilMod.SetAttribute(player, "ArtificerLevel", 7)
+	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
 end)
 
 -- Remote events
@@ -344,203 +378,221 @@ local petManaEvent = ReplicatedStorage.Events.PetManaEvent
 local summonEvent = ReplicatedStorage.Events.SummonEvent
 
 summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
-    local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
-    if not spawnpoint then return end
+	local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
+	if not spawnpoint then
+		return
+	end
 
-    local castTime = statsMod.creatureStats[creatureName] and (statsMod.creatureStats[creatureName].level or 3) / 2 or 1.5
+	local castTime =utilMod.CreatureCastTime(creatureName)
+	task.delay(castTime, function()
+		if utilMod.GetAttribute(player, "HasFallen") then
+			return
+		end
 
-    task.delay(castTime, function()
-        if utilMod.GetAttribute(player, "HasFallen") then return end
+		local summoned = combatMod.ApplyAbility(player, creatureName, recyleMod, spawnpoint)
+		if not summoned then
+			return
+		end
 
-        local summoned = combatMod.ApplyAbility(player, creatureName, recyleMod, spawnpoint)
-        if not summoned then return end
+		local souls = utilMod.GetAttribute(player, "Souls") or 0
+		if souls > 0 then
+			utilMod.SetAttribute(player, "Souls", souls - 1)
+		else
+			return
+		end
 
-        local souls = utilMod.GetAttribute(player, "Souls") or 0
-        if souls > 0 then
-            utilMod.SetAttribute(player, "Souls", souls - 1)
-        else
-            return
-        end
+		ReplicatedStorage.Events.GainedSoulEvent:FireClient(
+			player,
+			utilMod.GetAttribute(player, "Souls"),
+			utilMod.GetAttribute(player, "MaxSouls")
+		)
+		setCollisionGroup(player.UserId, summoned)
 
-        ReplicatedStorage.Events.GainedSoulEvent:FireClient(
-            player,
-            utilMod.GetAttribute(player, "Souls"),
-            utilMod.GetAttribute(player, "MaxSouls")
-        )
+		summonEvent:FireClient(player, summoned, utilMod.GetAttribute(player, "Souls"))
 
-        local hrp = summoned:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            setCollisionGroup(tostring(player.UserId), hrp)
-        end
+		if utilMod.IsMobHealer(summoned) then
+			petManaEvent:FireClient(
+				player,
+				summoned.Name,
+				utilMod.GetAttribute(summoned, "Mana"),
+				utilMod.GetAttribute(summoned, "MaxMana")
+			)
+		end
+	end)
 
-        summonEvent:FireClient(player, summoned, utilMod.GetAttribute(player, "Souls"))
-
-        if utilMod.IsMobHealer(summoned) then
-            petManaEvent:FireClient(
-                player,
-                summoned.Name,
-                utilMod.GetAttribute(summoned, "Mana"),
-                utilMod.GetAttribute(summoned, "MaxMana")
-            )
-        end
-    end)
-
-    effectMod.SummonCreatureEffect(spawnpoint, creatureName, castTime)
+	effectMod.SummonCreatureEffect(spawnpoint, creatureName, castTime)
 end)
 
 local spellCastEvent = ReplicatedStorage.Events.SpellCastEvent
 spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
-    local spell = statsMod.SpellInfo[spellname]
-    if not spell then return end
+	local spell = statsMod.SpellInfo[spellname]
+	if not spell then
+		return
+	end
 
-    local castTime = spell.castTime or 3
-    task.delay(castTime, function()
-        if utilMod.GetAttribute(player, "HasFallen") then return end
-        combatMod.ApplySpell(player, spellname)
-        spellCastEvent:FireClient(player, spellname)
-    end)
+	local castTime = spell.castTime or 3
+	task.delay(castTime, function()
+		if utilMod.GetAttribute(player, "HasFallen") then
+			return
+		end
+		combatMod.ApplySpell(player, spellname)
+		spellCastEvent:FireClient(player, spellname)
+	end)
 end)
 
 local petEvent = ReplicatedStorage.Events.PetEvent
-petEvent.OnServerEvent:Connect(function(player: Player, commands: { Following: boolean, Attacking: boolean, TakingLith: boolean, DefendingLith: boolean })
-    utilMod.SetAttribute(player, "PetFollow", commands.Following)
-    utilMod.SetAttribute(player, "PetAttack", commands.Attacking)
-    utilMod.SetAttribute(player, "PetTakeLith", commands.TakingLith)
-    utilMod.SetAttribute(player, "PetDefendLith", commands.DefendingLith)
-end)
+petEvent.OnServerEvent:Connect(
+	function(
+		player: Player,
+		commands: { Following: boolean, Attacking: boolean, TakingLith: boolean, DefendingLith: boolean }
+	)
+		utilMod.SetAttribute(player, "PetFollow", commands.Following)
+		utilMod.SetAttribute(player, "PetAttack", commands.Attacking)
+		utilMod.SetAttribute(player, "PetTakeLith", commands.TakingLith)
+		utilMod.SetAttribute(player, "PetDefendLith", commands.DefendingLith)
+	end
+)
 
 -- Feral spawning
 local feralSpawnPoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
 
 local function spawnFeral()
-    if #feralSpawnPoints == 0 then return end
+	if #feralSpawnPoints == 0 then
+		return
+	end
 
-    local rand = math.random(1, #feralSpawnPoints)
-    local point = feralSpawnPoints[rand]
+	local rand = math.random(1, #feralSpawnPoints)
+	local point = feralSpawnPoints[rand]
 
-    local creature
-    if recyleMod.CheckIfExistsFeral("FeralArtifactGuardian") then
-        creature = recyleMod.ReturnFeral("FeralArtifactGuardian")
-    else
-        local template = ServerStorage.Entities:FindFirstChild("FeralArtifactGuardian")
-        if not template then return end
-        creature = template:Clone()
-        creature.Name = utilMod.uniqueName(creature.Name)
-        utilMod.SetAttribute(creature, "OwnedBy", "None")
-        creature:AddTag("Character")
-    end
+	local creature
+	if recyleMod.CheckIfExistsFeral("FeralArtifactGuardian") then
+		creature = recyleMod.ReturnFeral("FeralArtifactGuardian")
+	else
+		local template = ServerStorage.Entities:FindFirstChild("FeralArtifactGuardian")
+		if not template then
+			return
+		end
+		creature = template:Clone()
+		creature.Name = utilMod.uniqueName(creature.Name)
+		utilMod.SetAttribute(creature, "OwnedBy", "None")
+		creature:AddTag("Character")
+	end
 
-    creature.Parent = workspace:WaitForChild("Ferals")
+	creature.Parent = workspace:WaitForChild("Ferals")
 
-    local height = statsMod.creatureStats.ArtifactGuardian.height
-    local offsetHeight = height - point.Position.Y
-    local offsetCFrame = CFrame.new(point.Position.X, offsetHeight, point.Position.Z)
+	local height = statsMod.creatureStats.ArtifactGuardian.height
+	local offsetHeight = height - point.Position.Y
+	local offsetCFrame = CFrame.new(point.Position.X, offsetHeight, point.Position.Z)
 
-    local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
-    if creatureHRP then
-        creatureHRP.CFrame = offsetCFrame
-    else
-        warn("Feral missing HRP:", creature.Name)
-    end
+	local creatureHRP = creature:FindFirstChild("HumanoidRootPart")
+	if creatureHRP then
+		creatureHRP.CFrame = offsetCFrame
+	else
+		warn("Feral missing HRP:", creature.Name)
+	end
 end
 
 -- Spawn initial ferals if none exist
 task.spawn(function()
-    while true do
-        task.wait(1)
-        local ferals = workspace:FindFirstChild("Ferals")
-        if ferals and #ferals:GetChildren() == 0 then
-            spawnFeral()
-        end
-        task.wait(20)
-    end
+	while true do
+		task.wait(1)
+		local ferals = workspace:FindFirstChild("Ferals")
+		if ferals and #ferals:GetChildren() == 0 then
+			spawnFeral()
+		end
+		task.wait(20)
+	end
 end)
 
 -- Mana points (spouts)
 local manaSpawnPoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
 for _, point in manaSpawnPoints do
-    if utilMod.GetAttribute(point, "HasBuilding") ~= true then
-        utilMod.SetAttribute(point, "HasBuilding", true)
-        local spoutTemplate = ServerStorage.Buildings.ManaSpout
-        if spoutTemplate then
-            local clone = spoutTemplate:Clone()
-            clone:PivotTo(point.CFrame)
-            clone.Parent = workspace.ManaPoints
-        end
-    end
+	if utilMod.GetAttribute(point, "HasBuilding") ~= true then
+		utilMod.SetAttribute(point, "HasBuilding", true)
+		local spoutTemplate = ServerStorage.Buildings.ManaSpout
+		if spoutTemplate then
+			local clone = spoutTemplate:Clone()
+			clone:PivotTo(point.CFrame)
+			clone.Parent = workspace.ManaPoints
+		end
+	end
 end
 
 -- Mana/Health regen loop
 task.spawn(function()
-    while task.wait(6) do
-        for _, player in Players:GetPlayers() do
-            local mana = utilMod.GetAttribute(player, "Mana")
-            local maxMana = utilMod.GetAttribute(player, "MaxMana")
-            if mana and maxMana then
-                utilMod.SetAttribute(player, "Mana", math.min(mana + 6, maxMana))
-            end
+	while task.wait(6) do
+		for _, player in Players:GetPlayers() do
+			local mana = utilMod.GetAttribute(player, "Mana")
+			local maxMana = utilMod.GetAttribute(player, "MaxMana")
+			if mana and maxMana then
+				utilMod.SetAttribute(player, "Mana", math.min(mana + 6, maxMana))
+			end
 
-            if not utilMod.GetAttribute(player, "HasFallen") and not utilMod.GetAttribute(player, "InCombat") then
-                local char = player.Character
-                if char then
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.Health < hum.MaxHealth then
-                        hum.Health = math.clamp(hum.Health + 1, 1, hum.MaxHealth)
-                    end
-                end
-            end
-        end
+			if not utilMod.GetAttribute(player, "HasFallen") and not utilMod.GetAttribute(player, "InCombat") then
+				local char = player.Character
+				if char then
+					local hum = char:FindFirstChildOfClass("Humanoid")
+					if hum and hum.Health < hum.MaxHealth then
+						hum.Health = math.clamp(hum.Health + 1, 1, hum.MaxHealth)
+					end
+				end
+			end
+		end
 
-        local pets = workspace:FindFirstChild("Pets")
-        if pets then
-            for _, pet in pets:GetChildren() do
-                local name = utilMod.customTrim(pet.Name)
-                if name == "Druid" or name == "StoneManaPriest" or name == "MudPriest" then
-                    if not utilMod.GetAttribute(pet, "HasFallen") and not utilMod.GetAttribute(pet, "InCombat") then
-                        local mana = utilMod.GetAttribute(pet, "Mana") or 0
-                        local max = utilMod.GetAttribute(pet, "MaxMana") or 1
-                        utilMod.SetAttribute(pet, "Mana", math.min(mana + 13, max))
+		local pets = workspace:FindFirstChild("Pets")
+		if pets then
+			for _, pet in pets:GetChildren() do
+				local name = utilMod.customTrim(pet.Name)
+				if name == "Druid" or name == "StoneManaPriest" or name == "MudPriest" then
+					if not utilMod.GetAttribute(pet, "HasFallen") and not utilMod.GetAttribute(pet, "InCombat") then
+						local mana = utilMod.GetAttribute(pet, "Mana") or 0
+						local max = utilMod.GetAttribute(pet, "MaxMana") or 1
+						utilMod.SetAttribute(pet, "Mana", math.min(mana + 13, max))
 
-                        local ownerId = utilMod.GetAttribute(pet, "OwnedBy")
-                        local owner = Players:GetPlayerByUserId(ownerId)
-                        if owner then
-                            petManaEvent:FireClient(owner, pet.Name, utilMod.GetAttribute(pet, "Mana"), max)
-                        end
-                    end
-                end
-            end
-        end
-    end
+						local ownerId = utilMod.GetAttribute(pet, "OwnedBy")
+						local owner = game.Players:GetPlayerByUserId(ownerId)
+						if owner then
+							petManaEvent:FireClient(owner, pet.Name, utilMod.GetAttribute(pet, "Mana"), max)
+						end
+					end
+				end
+			end
+		end
+	end
 end)
 
 -- Admin commands
 local adminEvent = ReplicatedStorage.Events.AdminEvent
 adminEvent.OnServerEvent:Connect(function(player: Player, command: string)
-    if player.UserId ~= 2484051658 then return end
+	if player.UserId ~= 2484051658 then
+		return
+	end
 
-    if command == "IncrementMagic" then
-        local current = utilMod.GetAttribute(player, "Magic")
-        local nextType
-        if current == statsMod.MagicType.None then
-            nextType = statsMod.MagicType.Artificer
-        elseif current == statsMod.MagicType.Artificer then
-            nextType = statsMod.MagicType.Primordial
-        elseif current == statsMod.MagicType.Primordial then
-            nextType = statsMod.MagicType.Nature
-        elseif current == statsMod.MagicType.Nature then
-            nextType = statsMod.MagicType.None
-        end
-        if nextType then
-            utilMod.SetAttribute(player, "Magic", nextType)
-        end
-    end
+	if command == "IncrementMagic" then
+		local current = utilMod.GetAttribute(player, "Magic")
+		local nextType
+		if current == statsMod.MagicType.None then
+			nextType = statsMod.MagicType.Artificer
+		elseif current == statsMod.MagicType.Artificer then
+			nextType = statsMod.MagicType.Primordial
+		elseif current == statsMod.MagicType.Primordial then
+			nextType = statsMod.MagicType.Nature
+		elseif current == statsMod.MagicType.Nature then
+			nextType = statsMod.MagicType.None
+		end
+		if nextType then
+			utilMod.SetAttribute(player, "Magic", nextType)
+		end
+	end
 
-    if command == "LevelUp" then
-        local levelKey = GetMagicType(player)
-        if not levelKey then return end
-        local current = utilMod.GetAttribute(player, levelKey)
-        if current and current < 7 then
-            utilMod.SetAttribute(player, levelKey, current + 1)
-        end
-    end
+	if command == "LevelUp" then
+		local levelKey = GetMagicType(player)
+		if not levelKey then
+			return
+		end
+		local current = utilMod.GetAttribute(player, levelKey)
+		if current and current < 7 then
+			utilMod.SetAttribute(player, levelKey, current + 1)
+		end
+	end
 end)
