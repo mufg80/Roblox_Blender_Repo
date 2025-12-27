@@ -118,9 +118,12 @@ function combatMod.AcceptableDistanceToOpponent(model: Model, enemy: Model): boo
 	end
 
 	local distance = utilMod.GetDistance(hrp.Position, enemyhrp.Position)
+	if not distance or not enemyTable.distanceForAttacker then
+		warn("should not reach me")
+		return false
+	end
 	return distance <= enemyTable.distanceForAttacker
 end
-
 
 --==============================================================================
 -- Calculates melee damage with miss chance, defense, armour, variance, etc.
@@ -329,35 +332,37 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		summonedCreature.Parent = workspace:WaitForChild("Pets")
 		utilMod.SetAttribute(player, "Mana", mana - cost)
 	end
-	for _, part in pairs(summonedCreature:GetDescendants()) do
-		if part:IsA("MeshPart") then
-			part.Transparency = 1
-		end
-	end
-	local isFinished = false
-	RunService.Heartbeat:Connect(function(delta)
-		if isFinished then
-			for _, part in pairs(summonedCreature:GetDescendants()) do
-				if part:IsA("MeshPart") then
-					part.Transparency = 0
-				end
-			end
-			return
-		end
-		if summonedCreature.Parent == nil then
-			return
-		end
-		task.wait(1)
+	if utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("WindSpirit") then
 		for _, part in pairs(summonedCreature:GetDescendants()) do
 			if part:IsA("MeshPart") then
-				if part.Transparency > 0 then
-					part.Transparency = math.clamp(part.Transparency - delta, 0, 1)
-				else
-					isFinished = true
-				end
+				part.Transparency = 1
 			end
 		end
-	end)
+		local isFinished = false
+		RunService.Heartbeat:Connect(function(delta)
+			if isFinished then
+				for _, part in pairs(summonedCreature:GetDescendants()) do
+					if part:IsA("MeshPart") then
+						part.Transparency = 0
+					end
+				end
+				return
+			end
+			if summonedCreature.Parent == nil then
+				return
+			end
+			task.wait(1)
+			for _, part in pairs(summonedCreature:GetDescendants()) do
+				if part:IsA("MeshPart") then
+					if part.Transparency > 0 then
+						part.Transparency = math.clamp(part.Transparency - delta, 0, 1)
+					else
+						isFinished = true
+					end
+				end
+			end
+		end)
+	end
 
 	local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
 	if creatureHRP then
@@ -407,7 +412,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 				combatMod.ExecuteSpellDamageToBody(player.Character, target, damage)
 			end)
 			utilMod.SetAttribute(player, "Mana", mana - cost)
-			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart").Position, spellname)
+			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart"), spellname)
 			if not isPlayer then
 				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
 			end
@@ -441,9 +446,9 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 		if affected > 0 then
 			utilMod.SetAttribute(player, "Mana", mana - cost)
-			local hrpPos = player.Character:FindFirstChild("HumanoidRootPart").Position
-			if hrpPos then
-				effectMod.AOEDamageEffect(hrpPos, spellname)
+			local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				effectMod.AOEDamageEffect(hrp, spellname)
 			end
 		end
 	elseif info.spellType == "buff" or info.spellType == "debuff" or info.spellType == "heal" then
@@ -520,28 +525,6 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 		end
 	end
-end
-
---==============================================================================
--- Returns the player-specific creature prefix based on their Magic attribute
---==============================================================================
-function combatMod.GetPlayerType(player: Player?): string?
-	if not player then
-		return nil
-	end
-	local magictype = utilMod.GetAttribute(player, "Magic") :: string?
-	if not magictype then
-		return nil
-	end
-
-	if magictype == "Artificer" then
-		return "PlayerArtificer"
-	elseif magictype == "Primordial" then
-		return "PlayerPrimordial"
-	elseif magictype == "Nature" then
-		return "PlayerNature"
-	end
-	return nil
 end
 
 --==============================================================================
@@ -641,7 +624,7 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 				combatMod.ExecuteSpellDamageToBody(model, target, damage)
 			end)
 			utilMod.SetAttribute(model, "Mana", mana - cost)
-			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart").Position, spellname)
+			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart"), spellname)
 			if not isPlayer then
 				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
 			end
@@ -698,7 +681,6 @@ export type CombatMod = {
 	ExecuteSpellDamageToBody: (source: Model, target: Model, damage: number?) -> boolean,
 	ApplyAbility: (player: Player, creatureName: string, recyleMod: any) -> Model?,
 	ApplySpell: (player: Player, spellname: string) -> (),
-	GetPlayerType: (player: Player?) -> string?,
 	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
 	CalculateAggro: (damageTaken: number) -> number,
 	ApplyPriestSpell: (model: Model, target: Model, spellname: string) -> (),

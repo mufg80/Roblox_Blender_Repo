@@ -92,17 +92,17 @@ if animator then
     table.insert(animTracks.attacks, load("PoAttack3", false))
     animTracks.favoredAttack = 1
 
-    -- Get minAttackDelay (longest animation length)
-    for _, attack: AnimationTrack? in animTracks.attacks do
-        if attack then
-            while attack.Length <= 0 do
-                task.wait()
-            end
-            if MINATTACKDELAY < attack.Length then
-                MINATTACKDELAY = attack.Length
-            end
-        end
-    end
+   -- Get minAttackDelay (longest animation length)
+	for i, attack: AnimationTrack? in animTracks.attacks do
+		if attack then
+			while attack.Length <= 0 do
+				task.wait()
+			end
+			if MINATTACKDELAY < attack.Length / (animTracks.attackSpeeds[i] or 1) then
+				MINATTACKDELAY = attack.Length / (animTracks.attackSpeeds[i] or 1)
+			end
+		end
+	end
 end
 
 -- === MAIN LOOP ===
@@ -114,7 +114,7 @@ task.spawn(function()
     task.spawn(function()
         while task.wait(random:NextInteger(4, 15)) do
             if not utilMod.GetAttribute(model, "HasFallen") then
-                if random:NextInteger(1, 100) > 30 then
+                if random:NextInteger(1, 100) > 10 then
                     lithTakeRandomLoc = nil
                     lithDefendRandomLoc = nil
                 end

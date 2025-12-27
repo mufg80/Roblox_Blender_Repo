@@ -420,24 +420,33 @@ replicatedstorage.Events.SummonEvent.OnClientEvent:Connect(function(summonedCrea
 		return
 	end
 	local connection: RBXScriptConnection?
+	
+local function updateHealth(): ()
+	if not petframe then return end
 
-	local function updateHealth(): ()
-		if not petframe or not petframe.ZHealthMana or not petframe.ZHealthMana.PetMeterBar or not petframe.ZHealthMana.PetMeterBar.InnerFill then return end
-		local inner: Frame = petframe.ZHealthMana.PetMeterBar.InnerFill
-		local den: number = hum.MaxHealth
-		local num: number = hum.Health
-		local fraction: number
-		if den == 0 then
-			fraction = 0
-		else
-			fraction = math.clamp(num / den, 0, 1)
-		end
-		inner.Size = UDim2.new(fraction, 0, 1, 0)
-		if hum.Health <= 1 then
-			petframe:Destroy()
-		end
+	local zHealthMana = petframe:FindFirstChild("ZHealthMana")
+	if not zHealthMana then return end
+
+	local inner: Frame = zHealthMana:FindFirstChild("PetMeterBar")
+		and zHealthMana.PetMeterBar:FindFirstChild("InnerFill")
+	if not inner then return end
+
+	local den: number = hum.MaxHealth
+	local num: number = hum.Health
+	local fraction: number
+	if den == 0 then
+		fraction = 0
+	else
+		fraction = math.clamp(num / den, 0, 1)
 	end
-	updateHealth()
+	inner.Size = UDim2.new(fraction, 0, 1, 0)
+	
+	if hum.Health <= 1 then
+		petframe:Destroy()
+	end
+end
+
+updateHealth()
 
 	connection = hum.HealthChanged:Connect(updateHealth)
 	local ancestryConnection: RBXScriptConnection?

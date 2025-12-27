@@ -34,11 +34,11 @@ export type UtilMod = {
 	SpinToOwner: (model: Model, hrp: BasePart, ownerInstance: Model, rng: Random?) -> (),
 	CreatureCastTime: (name: string) -> number,
 	DistancetoGround: (position: Vector3) -> number?,
-	IsGroundSafe:(position: Vector3) -> boolean,
+	IsGroundSafe: (position: Vector3) -> boolean,
 	FindClearSpawnPoint: (player: Player, distance: number) -> Vector3?,
 	IsPlayerCharacter: (model: Model?) -> boolean,
 	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
-
+	GetPlayerType: (player: Player?) -> string?,
 	uniqueName: (baseName: string) -> string,
 	GetSeedFromName: (name: string, useTime: boolean?) -> number,
 
@@ -526,7 +526,11 @@ function utilMod.SpinToOwner(model: Model, hrp: BasePart, ownerInstance: Model, 
 		local connection: RBXScriptConnection?
 		spinningConnections[model] = true
 		connection = RunService.Heartbeat:Connect(function(dt: number)
-			if not utilMod.GetAttribute(model, "IsIdle") and not utilMod.GetAttribute(model, "InCombat") or not ownerInstance.Parent or not hrp.Parent then
+			if
+				not utilMod.GetAttribute(model, "IsIdle") and not utilMod.GetAttribute(model, "InCombat")
+				or not ownerInstance.Parent
+				or not hrp.Parent
+			then
 				if connection then
 					connection:Disconnect()
 				end
@@ -584,36 +588,58 @@ end
 
 -- Returns true if there is ground at this position AND it is NOT labeled "Danger"
 function utilMod.IsGroundSafe(position: Vector3): boolean
-    local rayOrigin = position + Vector3.new(0, 500, 0)
-    local rayDirection = Vector3.new(0, -10000, 0)
+	local rayOrigin = position + Vector3.new(0, 500, 0)
+	local rayDirection = Vector3.new(0, -10000, 0)
 
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Include
-    params.IgnoreWater = true
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.IgnoreWater = true
 
-    -- Only consider parts tagged "Ground"
-    local groundItems = CollectionService:GetTagged("Ground")
-    params.FilterDescendantsInstances = groundItems
+	-- Only consider parts tagged "Ground"
+	local groundItems = CollectionService:GetTagged("Ground")
+	params.FilterDescendantsInstances = groundItems
 
-    local result = workspace:Raycast(rayOrigin, rayDirection, params)
-    if not result then
-        return false  -- no ground found
-    end
+	local result = workspace:Raycast(rayOrigin, rayDirection, params)
+	if not result then
+		return false -- no ground found
+	end
 
-    local hitPart = result.Instance
-    if not hitPart:IsA("BasePart") then
-        return false  -- hit something strange (shouldn't happen with proper tagging)
-    end
+	local hitPart = result.Instance
+	if not hitPart:IsA("BasePart") then
+		return false -- hit something strange (shouldn't happen with proper tagging)
+	end
 
-    -- Look for PathfindingModifier children
-    for _, child in hitPart:GetChildren() do
-        if child:IsA("PathfindingModifier") and child.Label == "Danger" then
-            return false  -- explicitly marked as danger → unsafe
-        end
-    end
+	-- Look for PathfindingModifier children
+	for _, child in hitPart:GetChildren() do
+		if child:IsA("PathfindingModifier") and child.Label == "Danger" then
+			return false -- explicitly marked as danger → unsafe
+		end
+	end
 
-    -- Ground exists and has no "Danger" modifier
-    return true
+	-- Ground exists and has no "Danger" modifier
+	return true
+end
+
+--==============================================================================
+-- Returns the player-specific creature prefix based on their Magic attribute
+--==============================================================================
+function utilMod.GetPlayerType(player: Player?): string?
+	if not player then
+		return nil
+	end
+	local magictype = utilMod.GetAttribute(player, "Magic") :: string?
+	if not magictype then
+		return nil
+	end
+
+	if magictype == "Artificer" then
+		return "PlayerArtificer"
+	elseif magictype == "Primordial" then
+		return "PlayerPrimordial"
+	elseif magictype == "Nature" then
+		return "PlayerNature"
+	end
+	return nil
 end
 
 function utilMod.FindClearSpawnPoint(player: Player, distance: number): Vector3?

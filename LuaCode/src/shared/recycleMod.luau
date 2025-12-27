@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
-
+local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 
 local recycleMod = {}
@@ -146,11 +146,18 @@ function recycleMod.SpawnSoul(npc: Model): ()
         return
     end
 
+    -- Dont spawn soul if model is reclaimed
+
+    local reclaimed = utilMod.GetAttribute(npc,"Reclaimed")
+    if reclaimed then return end
+
     local ownedBy = utilMod.GetAttribute(npc, "OwnedBy")
     if typeof(ownedBy) ~= "number" then
         -- Feral NPCs do not spawn souls
         return
     end
+
+
 
     local rootPart = utilMod.GetRootPart(npc)
     if not rootPart then
@@ -199,6 +206,8 @@ function recycleMod.SpawnSoul(npc: Model): ()
                         maxSouls
                     )
                     if con then con:Disconnect() end
+                    
+                    effectMod.SoulGrabbedEffect(newLoc)
                     soulClone.Parent = nil
                 end
             else

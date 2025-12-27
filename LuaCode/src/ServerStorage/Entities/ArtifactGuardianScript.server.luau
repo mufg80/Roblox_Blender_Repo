@@ -91,15 +91,13 @@ if animator then
 	animTracks.favoredAttack = 1
 
 	-- Get minAttackDelay (longest animation length)
-	for _, attack: AnimationTrack? in animTracks.attacks do
+	for i, attack: AnimationTrack? in animTracks.attacks do
 		if attack then
-			-- Wait until the length is loaded (it's async)
 			while attack.Length <= 0 do
 				task.wait()
 			end
-
-			if MINATTACKDELAY < attack.Length then
-				MINATTACKDELAY = attack.Length
+			if MINATTACKDELAY < attack.Length / (animTracks.attackSpeeds[i] or 1) then
+				MINATTACKDELAY = attack.Length / (animTracks.attackSpeeds[i] or 1)
 			end
 		end
 	end
@@ -115,7 +113,7 @@ task.spawn(function()
 		while task.wait(random:NextInteger(10, 20)) do
 			if animTracks.blink and not utilMod.GetAttribute(model, "HasFallen") then
 				animTracks.blink:Play()
-				if random:NextInteger(1, 100) > 30 then
+				if random:NextInteger(1, 100) > 10 then
 					lithTakeRandomLoc = nil
 					lithDefendRandomLoc = nil
 				end

@@ -336,13 +336,25 @@ function buffMod.ReclaimPet(char: Model, spellname: string, mypets: { Model }): 
 	local maxSouls: number? = utilMod.GetAttribute(char, "MaxSouls")
 	local currentSouls: number = utilMod.GetAttribute(char, "Souls") or 0
 	utilMod.SetAttribute(char, "Souls", math.min(currentSouls + 1, maxSouls or currentSouls + 1))
-	repstore.Events.GainedSoulEvent:FireClient(char, utilMod.GetAttribute(char, "Souls"), maxSouls)
+	utilMod.SetAttribute(mypet, "Reclaimed", true)
+	local plr = utilMod.GetPlayerFromCharacter(char)
+	if not plr then
+		warn("should not reach me")
+		return false
+	end
+	repstore.Events.GainedSoulEvent:FireClient(plr, utilMod.GetAttribute(char, "Souls"), maxSouls)
 	return true
 end
 
 local function ApplyStatChanges(model: Model, spellname: string, multiplier: number): boolean
-    if not model or not model:IsA("Model") then warn("Should not reach me.") return false end
-    if not spellname or not multiplier then warn("Should not reach me.") return false end
+	if not model or not model:IsA("Model") then
+		warn("Should not reach me.")
+		return false
+	end
+	if not spellname or not multiplier then
+		warn("Should not reach me.")
+		return false
+	end
 
 	local buffInfo: any = statsMod.BuffInfo[spellname]
 	if not buffInfo then
@@ -356,7 +368,9 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 	for statName: string, changeValue: number in pairs(buffInfo) do
 		local valueObj: ValueBase? = dataFolder:FindFirstChild(statName)
 		if valueObj and valueObj:IsA("ValueBase") and typeof(valueObj.Value) == "number" then
+			print("before: " .. valueObj.Name .. " " .. valueObj.Value)
 			valueObj.Value += changeValue * multiplier
+			print("after: " .. valueObj.Name .. " " .. valueObj.Value)
 		end
 	end
 
@@ -364,13 +378,27 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 end
 
 local function FireBuffNotificationEvent(modelInstance: Model, spellname: string): ()
-    if not modelInstance or not spellname then warn("Should not reach me.") return end
+	if not modelInstance or not spellname then
+		warn("Should not reach me.")
+		return
+	end
 
-	local owner: any = utilMod.GetAttribute(modelInstance :: Model, "OwnedBy")
-	if owner and owner ~= "None" and owner ~= "none" and owner ~= "" then
-		local plr: Player? = game.Players:GetPlayerByUserId(owner)
+	if utilMod.IsPlayerCharacter(modelInstance) then
+		local plr = utilMod.GetPlayerFromCharacter(modelInstance)
 		if plr then
-			repstore.Events.BuffDebuffHealEvent:FireClient(plr, (modelInstance :: Model).Name, spellname)
+			repstore.Events.BuffDebuffHealEvent:FireClient(plr, plr.UserId, spellname)
+		else
+			warn("should not reach me.")
+		end
+	else
+		local owner: any = utilMod.GetAttribute(modelInstance :: Model, "OwnedBy")
+		if owner and owner ~= "None" and owner ~= "none" and owner ~= "" then
+			local plr: Player? = game.Players:GetPlayerByUserId(owner)
+			if plr then
+				repstore.Events.BuffDebuffHealEvent:FireClient(plr, (modelInstance :: Model).Name, spellname)
+			end
+		else
+			warn("should not reach me")
 		end
 	end
 end
