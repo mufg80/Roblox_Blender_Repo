@@ -27,8 +27,8 @@ if not humanoid or not hrp then
 end
 
 local dervishmodel: Model = serverstorage:FindFirstChild("Entities").Dervish:Clone()
-local dervhumanoid = dervishmodel:FindFirstChild("DHumanoid")
-local dervAnimator = dervhumanoid:FindFirstChild("DAnimator")
+local dervhumanoid = dervishmodel:FindFirstChild("Humanoid")
+local dervAnimator = dervhumanoid:FindFirstChild("Animator")
 local dervhrp: BasePart = dervishmodel:FindFirstChild("HumanoidRootPart") :: BasePart
 if not dervishmodel or not dervhumanoid or not dervAnimator or not dervhrp then
 	warn("Should not reach me")
@@ -93,12 +93,16 @@ local dervanimTracks: AnimTrackDict = {
 	favoredAttack = nil,
 	moveSpeed = nil,
 	idleSpeed = nil,
-	deathSpeed = nil,
+	deathSpeed = 2,
 	castSpeed = nil,
 	attackSpeeds = { 1, 1, 1, 1 },
 }
 
 if animator then
+	if not dervAnimator then
+		warn("should not reach me.")
+		return
+	end
 	local function load(name: string, looped: boolean?): AnimationTrack?
 		local anim: Animation? = model:WaitForChild(name, 5)
 		if anim then
@@ -123,10 +127,13 @@ if animator then
 		return nil
 	end
 
-	table.insert(animTracks.idle, load("WindIdleAnim", true))
-	animTracks.move = load("WindMoveAnim", true)
-	animTracks.death = load("WindFallAnim", false)
-	table.insert(animTracks.attacks, load("WindCastAnim", false))
+	table.insert(animTracks.idle, load("WSIdle", true))
+	animTracks.move = load("WSRun", true)
+	animTracks.death = load("WSFall", false)
+	table.insert(animTracks.attacks, load("WSPunch1", false))
+	table.insert(animTracks.attacks, load("WSPunch2", false))
+	table.insert(animTracks.attacks, load("WSKick1", false))
+	table.insert(animTracks.attacks, load("WSKick2", false))
 	animTracks.favoredAttack = 1
 
 	dervanimTracks.death = loadDervish("FallAnim", false)
@@ -137,7 +144,7 @@ if animator then
 		idleTrack:Play(0, 1, dervanimTracks.idleSpeed or 1) -- fadeTime 0, weight 1 for instant/full
 	end
 	-- Get minAttackDelay (longest animation length)
-	for i, attack: AnimationTrack? in dervanimTracks.attacks do
+	for i, attack: AnimationTrack? in animTracks.attacks do
 		if attack then
 			while attack.Length <= 0 do
 				task.wait()
@@ -299,22 +306,25 @@ task.spawn(function()
 						local length = deathanim.Length - 0.01
 						deathanim:AdjustSpeed(0)
 						deathanim.TimePosition = length
-						task.wait(2)
+						task.wait(5)
 						utilMod.SetAttribute(model, "RecycleMe", true)
 					end)
 
 					local deathdervanim: AnimationTrack = dervanimTracks.death
 					if deathdervanim then
-						local idlean:AnimationTrack = dervanimTracks.idle
-						if idlean.IsPlaying then
-							idlean:Stop(.5)
+						local idlean = dervanimTracks.idle
+						for _, track in ipairs(idlean) do
+							if track and track.IsPlaying then
+								track:Stop(0.3)
+							end
 						end
-						deathdervanim:Play(.2, 1, (dervanimTracks.deathSpeed or 1))
-						print("Playingdervishdeath")
+
+						deathdervanim:Play(0.3, 1, (dervanimTracks.deathSpeed or 1))
 						deathdervanim.Stopped:Connect(function()
 							local length = deathanim.Length - 0.01
 							deathanim:AdjustSpeed(0)
 							deathanim.TimePosition = length
+							dervishmodel.Parent = nil
 						end)
 					end
 				end
