@@ -63,7 +63,7 @@ local animTracks: AnimTrackDict = {
 	attacks = {},
 	cast = nil,
 	favoredAttack = nil,
-	moveSpeed = 3,
+	moveSpeed = 2,
 	idleSpeed = nil,
 	deathSpeed = nil,
 	castSpeed = nil,
@@ -86,9 +86,9 @@ if animator then
 	table.insert(animTracks.idle, load("LithIdle", false))
 	animTracks.move = load("LithMove", true)
 	animTracks.death = load("LithFall", false)
-	table.insert(animTracks.attacks, load("LithAtt1", false))
-	table.insert(animTracks.attacks, load("LithAtt2", false))
-	--table.insert(animTracks.attacks, load("LithAtt3Throw", false))
+	table.insert(animTracks.attacks, load("LithAttack1", false))
+	table.insert(animTracks.attacks, load("LithAttack2", false))
+	table.insert(animTracks.attacks, load("LithAttack3", false))
 	animTracks.favoredAttack = 1
 
 	-- Get minAttackDelay (longest animation length)
