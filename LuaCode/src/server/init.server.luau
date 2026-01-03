@@ -543,7 +543,7 @@ task.spawn(function()
 		if pets then
 			for _, pet in pets:GetChildren() do
 				local name = utilMod.customTrim(pet.Name)
-				if name == "Druid" or name == "StoneManaPriest" or name == "MudPriest" then
+				if name == "UnkemptDruid" or name == "StoneManaPriest" or name == "MudPriest" then
 					if not utilMod.GetAttribute(pet, "HasFallen") and not utilMod.GetAttribute(pet, "InCombat") then
 						local mana = utilMod.GetAttribute(pet, "Mana") or 0
 						local max = utilMod.GetAttribute(pet, "MaxMana") or 1

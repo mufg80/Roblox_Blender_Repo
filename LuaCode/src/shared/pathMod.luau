@@ -21,7 +21,7 @@ export type PathMod = {
 	ShortCircuitTravel: (model: Model) -> (),
 	GetTargetPet: (model: Model, targetIdOrName: number | string, random: Random) -> Vector3?,
 	GetTargetLith: (pos: Vector3) -> Vector3?,
-    CanIPathFindtoPosition:(model: Model, targetPosition: Vector3) -> boolean,
+	CanIPathFindtoPosition: (model: Model, targetPosition: Vector3) -> boolean,
 }
 
 local pathMod: PathMod = {} :: any
@@ -235,12 +235,14 @@ function pathMod.CanIPathFindtoPosition(model: Model, targetPosition: Vector3): 
 			utilMod.DistancetoGround(targetPosition) or targetPosition.Y,
 			targetPosition.Z
 		)
-    local issafe = utilMod.IsGroundSafe(targetPosOnFloor)
-    if not issafe then return false end
+	local issafe = utilMod.IsGroundSafe(targetPosOnFloor)
+	if not issafe then
+		return false
+	end
 	local success, err = pcall(function()
 		path:ComputeAsync(rootPart.Position, targetPosOnFloor)
 	end)
-    return success
+	return success
 end
 
 function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targetIdOrName: TargetIdentifier): boolean
@@ -285,7 +287,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 	connection = RunService.Heartbeat:Connect(function()
 		if not activePaths[model] then
 			if connection then
-                --print("Killing path 1")
+				--print("Killing path 1")
 				connection:Disconnect()
 			end
 			return
@@ -293,7 +295,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 
 		if not model.Parent then
 			if connection then
-               -- print("Killing path 2")
+				-- print("Killing path 2")
 				connection:Disconnect()
 			end
 			activePaths[model] = nil
@@ -302,7 +304,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 
 		if currentWaypointIndex > #waypoints then
 			if connection then
-               --print("Killing path 3")
+				--print("Killing path 3")
 				connection:Disconnect()
 			end
 			activePaths[model] = nil
@@ -314,7 +316,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			startTick = time()
 			if utilMod.GetDistance(lastpos, rootPart.Position) < 1 then
 				if connection then
-                    --print("Killing path 4")
+					--print("Killing path 4")
 					connection:Disconnect()
 				end
 				activePaths[model] = nil
@@ -333,7 +335,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			local dis = newPos and utilMod.GetDistance(newPos, targetPosition)
 			if dis and dis > 2 then
 				if connection then
-                    --print("Killing path 5 and recursioning a new path")
+					--print("Killing path 5 and recursioning a new path")
 					connection:Disconnect()
 				end
 				activePaths[model] = nil
@@ -386,6 +388,11 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 end
 
 function pathMod.IsPathActive(model: Model): boolean
+	-- if model and model.Name and "UnkemptDruid" == utilMod.customTrim(model.Name) then
+	-- 	local result = activePaths[model] ~= nil
+	-- 	print(model.Name .. " " ..tostring(result))
+	-- end
+
 	return activePaths[model] ~= nil
 end
 
@@ -454,13 +461,12 @@ function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string, ran
 				+ (direction * (petOffset[model.Name] and petOffset[model.Name].Z or 10))
 				+ (direction1 * (petOffset[model.Name] and petOffset[model.Name].X or 0))
 
-            local issafe = utilMod.IsGroundSafe(targetPosition)
-            if issafe then
-                return targetPosition
-            else
-                return nil
-            end
-			
+			local issafe = utilMod.IsGroundSafe(targetPosition)
+			if issafe then
+				return targetPosition
+			else
+				return nil
+			end
 		end
 		return nil
 	end

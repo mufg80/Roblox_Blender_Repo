@@ -151,7 +151,7 @@ statsMod.MagicLevels = {
 		Level7 = { Abilities = "FlyingEnergyField", Spells = "InhostpitableAtmosphere" },
 	},
 	Nature = {
-		Level1 = { Abilities = "Druid", Spells = "ConvertSpout" },
+		Level1 = { Abilities = "UnkemptDruid", Spells = "ConvertSpout" },
 		Level2 = { Abilities = "Pog", Spells = "StingingSwarm" },
 		Level3 = { Abilities = "WindSpirit", Spells = "AgilityoftheSquirrell" },
 		Level4 = { Abilities = "Silverback", Spells = "Regenerate" },
@@ -1117,7 +1117,7 @@ statsMod.creatureStats = {
 		width = 3,
 		printedName = "Player Nature"
 	},
-	["Druid"] = {
+	["UnkemptDruid"] = {
 		magicType = "Nature",
 		hitPoints = 50,
 		attack = 0.20,
@@ -1134,7 +1134,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
-		printedName = "Druid"
+		printedName = "Unkempt Druid"
 	},
 	["Pog"] = {
 		magicType = "Nature",
@@ -1400,7 +1400,7 @@ statsMod.Pathing = {
 			["Danger"] = math.huge,
 		},
 	},
-	Druid = {
+	UnkemptDruid = {
 		AgentRadius = 2,
 		AgentHeight = 5,
 		AgentCanJump = true,
@@ -1489,7 +1489,7 @@ statsMod.Pics = {
 	["GemEncrustedDybb"] = "",
 	["GiantAmoeba"] = "",
 	["FlyingEnergyField"] = "",
-	["Druid"] = "",
+	["UnkemptDruid"] = "rbxassetid://118083674785103",
 	["Pog"] = "rbxassetid://113162374464122",
 	["WindSpirit"] = "rbxassetid://82691589949596",
 	["Silverback"] = "",

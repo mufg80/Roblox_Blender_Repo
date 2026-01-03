@@ -336,7 +336,7 @@ end
 
 function utilMod.IsMobHealer(model: Model): boolean
 	local thisMob = utilMod.customTrim(model.Name)
-	if thisMob == "Druid" or thisMob == "StoneManaPriest" or thisMob == "MudPriest" then
+	if thisMob == "UnkemptDruid" or thisMob == "StoneManaPriest" or thisMob == "MudPriest" then
 		return true
 	end
 	return false

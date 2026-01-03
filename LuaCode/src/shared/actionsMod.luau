@@ -391,7 +391,7 @@ local function GetHealerType(name: string): string
 		return
 	end
 	local trimmed = utilMod.customTrim(name)
-	if trimmed == "Druid" then
+	if trimmed == "UnkemptDruid" then
 		return "Nature"
 	elseif trimmed == "StoneManaPriest" then
 		return "Artificer"

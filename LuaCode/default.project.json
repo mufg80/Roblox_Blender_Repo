@@ -97,6 +97,12 @@
           "WindSpiritScript": {
             "$path": "src/ServerStorage/Entities/WindSpiritScript.server.luau"
           }
+        },
+        "UnkemptDruid": {
+          "$className": "Model",
+          "WindSpiritScript": {
+            "$path": "src/ServerStorage/Entities/UnkemptDruidScript.server.luau"
+          }
         }
       },
       "Staffs": {
