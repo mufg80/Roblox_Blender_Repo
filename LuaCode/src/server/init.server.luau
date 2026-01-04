@@ -15,7 +15,7 @@ local lithMod = require(ReplicatedStorage.Shared.lithMod)
 
 local dataStoreEnabled: boolean = false
 
-local function setCollisionGroup(plrId: number, model:Model)
+local function setCollisionGroup(plrId: number, model: Model)
 	if not plrId or not model then
 		warn("should not reach me")
 		return
@@ -41,31 +41,61 @@ local function setCollisionGroup(plrId: number, model:Model)
 		PhysicsService:RegisterCollisionGroup(groupName)
 		PhysicsService:CollisionGroupSetCollidable(groupName, groupName, false)
 	end
-	for _,part in model:GetDescendants() do
+	for _, part in model:GetDescendants() do
 		if part:IsA("MeshPart") or part:IsA("BasePart") then
 			part.CollisionGroup = groupName
 		end
 	end
 end
 
-local function setStaffandPets(player:Player, char: Model): ()
-	if not player then warn("Should not reach me.") return end
-	if not char then warn("Should not reach me.") return end
-	
-
-	-- Remove old staffs from character and backpack
-	for _, item in char:GetChildren() do
-		if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
-			item:Destroy()
-		end
+local function setStaffandPets(player: Player, char: Model): ()
+	if not player then
+		warn("Should not reach me.")
+		return
+	end
+	if not char then
+		warn("Should not reach me.")
+		return
+	end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hum then
+		warn("Should not reach me.")
+		return
 	end
 
 	local backpack = player:FindFirstChildOfClass("Backpack")
-	if backpack then
-		for _, item in backpack:GetChildren() do
-			if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
-				item:Destroy()
+	local hidden = player:FindFirstChild("BackpackHidden")
+	if not hidden then
+		-- create if missing
+		hidden = Instance.new("Folder")
+		hidden.Name = "BackpackHidden"
+		hidden.Parent = player
+	end
+
+	if not backpack or not hidden then
+		warn("Should not reach me.")
+		return
+	end
+
+	-- Remove old staffs from character and backpack
+	hum:UnequipTools()
+
+	local timeout = tick() + 1.0 -- safety timeout
+	local allUnequipped = false
+
+	repeat
+		task.wait(0.05) -- check every ~50 ms
+		allUnequipped = true
+		for _, child in char:GetChildren() do
+			if child:IsA("Tool") and utilMod.GetAttribute(child, "StaffType") then
+				allUnequipped = false
+				break
 			end
+		end
+	until allUnequipped or tick() > timeout
+	for _, item in backpack:GetChildren() do
+		if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
+			item.Parent = hidden
 		end
 	end
 
@@ -75,27 +105,37 @@ local function setStaffandPets(player:Player, char: Model): ()
 	for _, pet in pets do
 		local petType = statsMod.creatureStats[pet.Name] and statsMod.creatureStats[pet.Name].magicType
 		if petType and petType ~= currentType then
-			pet:Destroy()
+			utilMod.SetAttribute(pet, "Reclaimed", true)
+			utilMod.SetAttribute(pet, "RecycleMe", true)
 			local souls = utilMod.GetAttribute(player, "Souls") or 0
-			utilMod.SetAttribute(player, "Souls", souls + 1)
+			local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0
+			if souls < maxSouls then
+				utilMod.SetAttribute(player, "Souls", souls + 1)
+			end
 		end
 	end
-
 	-- Give correct starter staff
-	local staffName
-	if currentType == statsMod.MagicType.Artificer then
-		staffName = "StarterStaffArtificer"
-	elseif currentType == statsMod.MagicType.Primordial then
-		staffName = "StarterStaffPrimordial"
-	elseif currentType == statsMod.MagicType.Nature then
-		staffName = "StarterStaffNature"
-	end
+	local NotDead = player and not utilMod.GetAttribute(player, "HasFallen")
+	if NotDead then
+		if currentType == statsMod.MagicType.Artificer then
+			staffName = "StarterStaffArtificer"
+		elseif currentType == statsMod.MagicType.Primordial then
+			staffName = "StarterStaffPrimordial"
+		elseif currentType == statsMod.MagicType.Nature then
+			staffName = "StarterStaffNature"
+		end
 
-	if staffName and backpack then
-		local template = ServerStorage.Staffs:FindFirstChild(staffName)
-		if template then
-			local clone = template:Clone()
-			clone.Parent = backpack
+		if staffName and backpack then
+			local staff = hidden:FindFirstChild(staffName)
+			if staff and staff:IsA("Tool") then
+				staff.Parent = backpack
+			else
+				local template = ServerStorage.Staffs:FindFirstChild(staffName)
+				if template and template:IsA("Tool") then
+					local clone = template:Clone()
+					clone.Parent = backpack
+				end
+			end
 		end
 	end
 end
@@ -184,7 +224,7 @@ local function CharacterAdded(character: Model)
 			humanoid.Health = 1
 			utilMod.SetAttribute(player, "HasFallen", true)
 			utilMod.SetAttribute(player, "Mana", 1)
-
+			setStaffandPets(player, character)
 			for _, part in character:GetDescendants() do
 				if part:IsA("MeshPart") then
 					part.Transparency = 0.75
@@ -302,6 +342,7 @@ local function CharacterAdded(character: Model)
 			utilMod.SetAttribute(player, "HasFallen", false)
 			local char = player.Character
 			if char then
+				setStaffandPets(player, char)
 				for _, part in char:GetDescendants() do
 					if part:IsA("MeshPart") then
 						part.Transparency = 0
@@ -383,7 +424,7 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 		return
 	end
 
-	local castTime =utilMod.CreatureCastTime(creatureName)
+	local castTime = utilMod.CreatureCastTime(creatureName)
 	task.delay(castTime, function()
 		if utilMod.GetAttribute(player, "HasFallen") then
 			return
@@ -525,7 +566,7 @@ task.spawn(function()
 			local mana = utilMod.GetAttribute(player, "Mana")
 			local maxMana = utilMod.GetAttribute(player, "MaxMana")
 			if mana and maxMana then
-				utilMod.SetAttribute(player, "Mana", math.min(mana + 6, maxMana))
+				utilMod.SetAttribute(player, "Mana", math.min(mana + 20, maxMana))
 			end
 
 			if not utilMod.GetAttribute(player, "HasFallen") and not utilMod.GetAttribute(player, "InCombat") then

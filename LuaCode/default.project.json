@@ -100,7 +100,7 @@
         },
         "UnkemptDruid": {
           "$className": "Model",
-          "WindSpiritScript": {
+          "UnkemptDruidScript": {
             "$path": "src/ServerStorage/Entities/UnkemptDruidScript.server.luau"
           }
         }

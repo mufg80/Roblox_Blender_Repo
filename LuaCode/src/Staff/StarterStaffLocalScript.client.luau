@@ -1,5 +1,4 @@
--- --!strict
-
+--!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -41,7 +40,6 @@ local staffType: string? = tool:GetAttribute("StaffType")
 if not staffType or staffType == "" then
 	warn("Tool", tool.Name, "missing 'StaffType' attribute! Set it to e.g. 'StarterStaffArtificer'")
 end
-
 -- Equip: Play hold animation
 tool.Equipped:Connect(function()
 	holdTrack:Play()
@@ -80,4 +78,10 @@ end)
 -- Deactivate: Allow re-interrupt
 tool.Deactivated:Connect(function()
 	canPlayAnim = true
+end)
+
+tool.AncestryChanged:Connect(function()
+	-- Cleanup on tool removal
+	holdTrack:Stop()
+	fireTrack:Stop()
 end)

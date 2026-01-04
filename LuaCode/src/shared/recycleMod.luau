@@ -28,7 +28,7 @@ function recycleMod.resetNPC(npc: Model): ()
     utilMod.SetAttribute(npc, "IsMoving", false)
     utilMod.SetAttribute(npc, "OwnedBy", "None")
     utilMod.SetAttribute(npc, "RecycleMe", false)
-
+    utilMod.SetAttribute(npc, "Reclaimed", false)
     -- Reset humanoid
     local hum = npc:FindFirstChildOfClass("Humanoid")
     if hum then
