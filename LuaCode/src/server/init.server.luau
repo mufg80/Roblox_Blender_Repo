@@ -103,7 +103,7 @@ local function setStaffandPets(player: Player, char: Model): ()
 	local currentType = utilMod.GetAttribute(player, "Magic")
 	local pets = utilMod.MyPets(char)
 	for _, pet in pets do
-		local petType = statsMod.creatureStats[pet.Name] and statsMod.creatureStats[pet.Name].magicType
+		local petType = statsMod.creatureStats[utilMod.customTrim(pet.Name)] and statsMod.creatureStats[utilMod.customTrim(pet.Name)].magicType
 		if petType and petType ~= currentType then
 			utilMod.SetAttribute(pet, "Reclaimed", true)
 			utilMod.SetAttribute(pet, "RecycleMe", true)
@@ -111,6 +111,7 @@ local function setStaffandPets(player: Player, char: Model): ()
 			local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0
 			if souls < maxSouls then
 				utilMod.SetAttribute(player, "Souls", souls + 1)
+				ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, souls + 1, maxSouls)
 			end
 		end
 	end

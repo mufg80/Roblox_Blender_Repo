@@ -66,6 +66,34 @@ export type PathfindingParams = {
 	Costs: { [string]: number }?,
 }
 
+-- First, define the type (you can list all keys explicitly for better autocomplete)
+export type AdorneeOffset = {
+	StoneManaPriest: Vector3,
+	ArtifactGuardian: Vector3,
+	GrandPo: Vector3,
+	CoatArms: Vector3,
+	ArtifactProtector: Vector3,
+	SuitArms: Vector3,
+	FlyingGolem: Vector3,
+
+	MudPriest: Vector3,
+	Dybb: Vector3,
+	Blob: Vector3,
+	LithEater: Vector3,
+	GemEncrustedDybb: Vector3,
+	GiantAmoeba: Vector3,
+	FlyingEnergyField: Vector3,
+
+	UnkemptDruid: Vector3,
+	Pog: Vector3,
+	WindSpirit: Vector3,
+	Silverback: Vector3,
+	GreatTuskedPog: Vector3,
+	Carnosaur: Vector3,
+	Griffin: Vector3,
+}
+
+
 export type StatsMod = {
 	-- Core constants
 	MaxSpellDamage: number,
@@ -160,6 +188,37 @@ statsMod.MagicLevels = {
 		Level7 = { Abilities = "Griffin", Spells = "NaturesDefenders" },
 	},
 }
+
+statsMod.AdorneeOffset = {
+	StoneManaPriest = Vector3.new(0, 1, 0),
+	ArtifactGuardian = Vector3.new(0, 1, 0),
+	GrandPo = Vector3.new(0, 1, 0),
+	CoatArms = Vector3.new(0, 1, 0),
+	ArtifactProtector = Vector3.new(0, 1, 0),
+	SuitArms = Vector3.new(0, 1, 0),
+	FlyingGolem = Vector3.new(0, 1, 0),
+	
+	MudPriest = Vector3.new(0, 1, 0),
+	Dybb = Vector3.new(0, 1, 0),
+	Blob = Vector3.new(0, 1, 0),
+	LithEater = Vector3.new(0, 1, 0),
+	GemEncrustedDybb = Vector3.new(0, 1, 0),
+	GiantAmoeba = Vector3.new(0, 1, 0),
+	FlyingEnergyField = Vector3.new(0, 1, 0),
+	
+	UnkemptDruid = Vector3.new(0, 1, 0),
+	Pog = Vector3.new(0, 1, 0),
+	WindSpirit = Vector3.new(0, 1, 0),
+	Silverback = Vector3.new(0, 1, 0),
+	GreatTuskedPog = Vector3.new(0, 1, 0),
+	Carnosaur = Vector3.new(0, 1, 0),
+	Griffin = Vector3.new(0, 1, 0),
+
+	FeralArtifactGuardian = Vector3.new(0, 1, 0),
+}
+
+-- Example usage
+local offset = statsMod.AdorneeOffset["Pog"]  -- Vector3.new(0, 1, 0)
 
 -- Spell configuration
 statsMod.SpellInfo = {

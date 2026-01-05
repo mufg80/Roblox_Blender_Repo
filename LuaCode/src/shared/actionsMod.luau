@@ -30,7 +30,7 @@ local function CastPriestSpell(
 		warn("Should not reach me.")
 		return
 	end
-	trackToPlay:Play(0.3, 0.9, animTracks.castSpeed or 1)
+	trackToPlay:Play(0.3, 1, animTracks.castSpeed or 1)
 
 	print("Cast " .. spellname .. " - Pet")
 
@@ -349,7 +349,7 @@ local function PlayIdles(animTracks: any)
 				tracktoplay2:Stop(0.5)
 				tracktoplay1:Play(0.5, 1, animTracks.idleSpeed or 1)
 				animTracks.delayConnection = tracktoplay1.Stopped:Connect(function()
-					tracktoplay2:Play(0.5, 0.9, animTracks.idleSpeed or 1)
+					tracktoplay2:Play(0.5, 1, animTracks.idleSpeed or 1)
 				end)
 			end
 		end)
@@ -509,7 +509,7 @@ function actionsMod.PerformActions(context: table)
 			StopIdle(animTracks)
 			if animTracks.move and not animTracks.move.IsPlaying then
 				local tracktoplay: AnimationTrack = animTracks.move
-				tracktoplay:Play(0.3, 0.9, animTracks.moveSpeed or 1)
+				tracktoplay:Play(0.3, 1, animTracks.moveSpeed or 1)
 			end
         else
             PlayIdles(animTracks)
