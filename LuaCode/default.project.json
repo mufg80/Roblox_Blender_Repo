@@ -104,6 +104,13 @@
             "$path": "src/ServerStorage/Entities/UnkemptDruidScript.server.luau"
           }
         }
+        ,
+        "ArtifactProtector": {
+          "$className": "Model",
+          "ArtifactProtectorScript": {
+            "$path": "src/ServerStorage/Entities/ArtifactProtectorScript.server.luau"
+          }
+        }
       },
       "Staffs": {
       "$className": "Folder",

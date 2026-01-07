@@ -924,7 +924,7 @@ statsMod.creatureStats = {
 		level = 3,
 		width = 3,
 		printedName = "Grand Po"
-	},	
+	},
 	["CoatArms"] = {
 		magicType = "Artificer",
 		hitPoints = 80,
@@ -1538,7 +1538,7 @@ statsMod.Pics = {
 	["ArtifactGuardian"] = "rbxassetid://79644937238265",
 	["GrandPo"] = "rbxassetid://118645136474581",
 	["CoatArms"] = "rbxassetid://104654864059490",
-	["ArtifactProtector"] = "",
+	["ArtifactProtector"] = "rbxassetid://127588499067325",
 	["SuitArms"] = "",
 	["FlyingGolem"] = "",
 	["MudPriest"] = "rbxassetid://124675046258412",
