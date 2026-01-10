@@ -103,12 +103,17 @@
           "UnkemptDruidScript": {
             "$path": "src/ServerStorage/Entities/UnkemptDruidScript.server.luau"
           }
-        }
-        ,
+        },
         "ArtifactProtector": {
           "$className": "Model",
           "ArtifactProtectorScript": {
             "$path": "src/ServerStorage/Entities/ArtifactProtectorScript.server.luau"
+          }
+        },
+        "SuitArms": {
+          "$className": "Model",
+          "SuitArmsScript": {
+            "$path": "src/ServerStorage/Entities/SuitArmsScript.server.luau"
           }
         }
       },
