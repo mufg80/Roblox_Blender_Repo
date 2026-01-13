@@ -140,7 +140,7 @@ local statsMod: StatsMod = {} :: any
 -- Global gameplay constants
 statsMod.MaxSpellDamage = 100
 statsMod.MaxSpellCost = 25
-statsMod.DELAY = 5.0
+statsMod.DELAY = 6.0
 statsMod.MaxDamageConstant = 50
 
 -- Magic type enum

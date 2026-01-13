@@ -335,7 +335,7 @@ local function PlayIdles(animTracks: any)
 		local idleToPlay: AnimationTrack = animTracks.idle[1]
 		idleToPlay.Looped = true
 		if idleToPlay then
-			idleToPlay:Play(0.3, 1, animTracks.idleSpeed or 1)
+			idleToPlay:Play(0.2, 1, animTracks.idleSpeed or 1)
 		end
 	elseif #animTracks.idle == 2 then
 		local tracktoplay1: AnimationTrack = animTracks.idle[1]
@@ -346,10 +346,10 @@ local function PlayIdles(animTracks: any)
 		tracktoplay2:Play(1, 1, animTracks.idleSpeed or 1)
 		animTracks.idleConnection = task.delay(total, function()
 			if tracktoplay2 and tracktoplay2.IsPlaying then
-				tracktoplay2:Stop(0.5)
-				tracktoplay1:Play(0.5, 1, animTracks.idleSpeed or 1)
+				tracktoplay2:Stop(0.2)
+				tracktoplay1:Play(0.2, 1, animTracks.idleSpeed or 1)
 				animTracks.delayConnection = tracktoplay1.Stopped:Connect(function()
-					tracktoplay2:Play(0.5, 1, animTracks.idleSpeed or 1)
+					tracktoplay2:Play(0.2, 1, animTracks.idleSpeed or 1)
 				end)
 			end
 		end)
@@ -458,6 +458,7 @@ function actionsMod.PerformActions(context: table)
 				if time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
 					local track = GetRandomAttack(animTracks, random)
 					if track and track.anim and not track.anim.IsPlaying then
+						print("Attack "..track.index)
 						track.anim:Play(0.2, 1, animTracks.attackSpeeds[track.index])
 						lastAttackWrapper.value = time()
 

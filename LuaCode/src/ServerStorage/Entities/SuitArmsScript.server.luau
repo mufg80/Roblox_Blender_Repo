@@ -91,7 +91,7 @@ if animator then
 	table.insert(animTracks.attacks, load("SuitArmsAttack2", false))
 	table.insert(animTracks.attacks, load("SuitArmsAttack3", false))
 	table.insert(animTracks.attacks, load("SuitArmsAttack4", false))
-	animTracks.favoredAttack = 1
+	animTracks.favoredAttack = 2
 
 	-- Get minAttackDelay (longest animation length)
 	for i, attack: AnimationTrack? in animTracks.attacks do
@@ -132,6 +132,7 @@ task.spawn(function()
 		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
 		if ATTACK_COOLDOWN < MINATTACKDELAY then
 			ATTACK_COOLDOWN = MINATTACKDELAY
+			--print("Animataions slowing attack speed")
 		end
 
 		local ownerInstance: Model? = pet.GetOwnerModel()
