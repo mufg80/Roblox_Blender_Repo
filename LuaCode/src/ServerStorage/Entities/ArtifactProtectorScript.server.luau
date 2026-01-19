@@ -84,6 +84,7 @@ if animator then
 	table.insert(animTracks.idle, load("APIdle", true))
 	animTracks.move = load("APMove", true)
 	animTracks.blink = load("APBlink", false)
+	animTracks.blink.Priority = Enum.AnimationPriority.Core
 	animTracks.death = load("APFall", false)
 	table.insert(animTracks.attacks, load("APAttack1", false))
 	table.insert(animTracks.attacks, load("APAttack2", false))
