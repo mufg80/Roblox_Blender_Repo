@@ -121,6 +121,12 @@
           "FlyingGolemScript": {
             "$path": "src/ServerStorage/Entities/FlyingGolemScript.server.luau"
           }
+        },
+        "FossilizedDybb": {
+          "$className": "Model",
+          "FossilizedDybbScript": {
+            "$path": "src/ServerStorage/Entities/FossilizedDybbScript.server.luau"
+          }
         }
       },
       "Staffs": {
