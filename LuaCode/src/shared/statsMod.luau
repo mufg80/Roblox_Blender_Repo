@@ -80,7 +80,7 @@ export type AdorneeOffset = {
 	Dybb: Vector3,
 	Blob: Vector3,
 	LithEater: Vector3,
-	GemEncrustedDybb: Vector3,
+	FossilizedDybb: Vector3,
 	GiantAmoeba: Vector3,
 	FlyingEnergyField: Vector3,
 
@@ -174,7 +174,7 @@ statsMod.MagicLevels = {
 		Level2 = { Abilities = "Dybb", Spells = "DormantVirus" },
 		Level3 = { Abilities = "Blob", Spells = "AnimatedAttacks" },
 		Level4 = { Abilities = "LithEater", Spells = "HalfLife" },
-		Level5 = { Abilities = "GemEncrustedDybb", Spells = "ReclaimPet" },
+		Level5 = { Abilities = "FossilizedDybb", Spells = "ReclaimPet" },
 		Level6 = { Abilities = "GiantAmoeba", Spells = "GooSwamp" },
 		Level7 = { Abilities = "FlyingEnergyField", Spells = "InhostpitableAtmosphere" },
 	},
@@ -202,7 +202,7 @@ statsMod.AdorneeOffset = {
 	Dybb = Vector3.new(0, 1, 0),
 	Blob = Vector3.new(0, 1, 0),
 	LithEater = Vector3.new(0, 1, 0),
-	GemEncrustedDybb = Vector3.new(0, 1, 0),
+	FossilizedDybb = Vector3.new(0, 1, 0),
 	GiantAmoeba = Vector3.new(0, 1, 0),
 	FlyingEnergyField = Vector3.new(0, 1, 0),
 	
@@ -1098,7 +1098,7 @@ statsMod.creatureStats = {
 		width = 5,
 		printedName = "Lith Eater"
 	},
-	["GemEncrustedDybb"] = {
+	["FossilizedDybb"] = {
 		magicType = "Primordial",
 		hitPoints = 90,
 		attack = 0.58,
@@ -1115,7 +1115,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
-		printedName = "Gem Encrusted Dybb"
+		printedName = "Fossilized Dybb"
 	},
 	["GiantAmoeba"] = {
 		magicType = "Primordial",
@@ -1432,7 +1432,7 @@ statsMod.Pathing = {
 			["Danger"] = math.huge,
 		},
 	},
-	GemEncrustedDybb = {
+	FossilizedDybb = {
 		AgentRadius = 2,
 		AgentHeight = 5,
 		AgentCanJump = true,
@@ -1545,7 +1545,7 @@ statsMod.Pics = {
 	["Dybb"] = "rbxassetid://70748906049099",
 	["Blob"] = "rbxassetid://132818464019329",
 	["LithEater"] = "rbxassetid://128464586147484",
-	["GemEncrustedDybb"] = "",
+	["FossilizedDybb"] = "",
 	["GiantAmoeba"] = "",
 	["FlyingEnergyField"] = "",
 	["UnkemptDruid"] = "rbxassetid://118083674785103",
