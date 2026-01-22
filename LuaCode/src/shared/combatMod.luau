@@ -332,7 +332,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		summonedCreature.Parent = workspace:WaitForChild("Pets")
 		utilMod.SetAttribute(player, "Mana", mana - cost)
 	end
-	if utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("WindSpirit") then
+	if utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("WindSpirit") and utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("GiantAmoeba")  then
 		for _, part in pairs(summonedCreature:GetDescendants()) do
 			if part:IsA("MeshPart") then
 				part.Transparency = 1

@@ -127,6 +127,12 @@
           "FossilizedDybbScript": {
             "$path": "src/ServerStorage/Entities/FossilizedDybbScript.server.luau"
           }
+        },
+        "GiantAmoeba": {
+          "$className": "Model",
+          "GiantAmoebaScript": {
+            "$path": "src/ServerStorage/Entities/GiantAmoebaScript.server.luau"
+          }
         }
       },
       "Staffs": {
