@@ -133,6 +133,12 @@
           "GiantAmoebaScript": {
             "$path": "src/ServerStorage/Entities/GiantAmoebaScript.server.luau"
           }
+        },
+        "WingedLith": {
+          "$className": "Model",
+          "WingedLithScript": {
+            "$path": "src/ServerStorage/Entities/WingedLithScript.server.luau"
+          }
         }
       },
       "Staffs": {

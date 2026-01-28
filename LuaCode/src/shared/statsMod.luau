@@ -82,7 +82,7 @@ export type AdorneeOffset = {
 	LithEater: Vector3,
 	FossilizedDybb: Vector3,
 	GiantAmoeba: Vector3,
-	FlyingEnergyField: Vector3,
+	WingedLith: Vector3,
 
 	UnkemptDruid: Vector3,
 	Pog: Vector3,
@@ -176,7 +176,7 @@ statsMod.MagicLevels = {
 		Level4 = { Abilities = "LithEater", Spells = "HalfLife" },
 		Level5 = { Abilities = "FossilizedDybb", Spells = "ReclaimPet" },
 		Level6 = { Abilities = "GiantAmoeba", Spells = "GooSwamp" },
-		Level7 = { Abilities = "FlyingEnergyField", Spells = "InhostpitableAtmosphere" },
+		Level7 = { Abilities = "WingedLith", Spells = "InhostpitableAtmosphere" },
 	},
 	Nature = {
 		Level1 = { Abilities = "UnkemptDruid", Spells = "ConvertSpout" },
@@ -204,7 +204,7 @@ statsMod.AdorneeOffset = {
 	LithEater = Vector3.new(0, 1, 0),
 	FossilizedDybb = Vector3.new(0, 1, 0),
 	GiantAmoeba = Vector3.new(0, 1, 0),
-	FlyingEnergyField = Vector3.new(0, 1, 0),
+	WingedLith = Vector3.new(0, 1, 0),
 	
 	UnkemptDruid = Vector3.new(0, 1, 0),
 	Pog = Vector3.new(0, 1, 0),
@@ -1136,7 +1136,7 @@ statsMod.creatureStats = {
 		width = 5,
 		printedName = "Giant Amoeba"
 	},
-	["FlyingEnergyField"] = {
+	["WingedLith"] = {
 		magicType = "Primordial",
 		hitPoints = 110,
 		attack = 0.78,
@@ -1153,7 +1153,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
-		printedName = "Flying Energy Field"
+		printedName = "Winged Lith"
 	},
 
 	-- NATURE LINE
@@ -1450,7 +1450,7 @@ statsMod.Pathing = {
 			["Danger"] = math.huge,
 		},
 	},
-	FlyingEnergyField = {
+	WingedLith = {
 		AgentRadius = 2,
 		AgentHeight = 5,
 		AgentCanJump = true,
@@ -1547,7 +1547,7 @@ statsMod.Pics = {
 	["LithEater"] = "rbxassetid://128464586147484",
 	["FossilizedDybb"] = "rbxassetid://131508410936739",
 	["GiantAmoeba"] = "rbxassetid://90762357112293",
-	["FlyingEnergyField"] = "",
+	["WingedLith"] = "rbxassetid://122110003063964",
 	["UnkemptDruid"] = "rbxassetid://118083674785103",
 	["Pog"] = "rbxassetid://113162374464122",
 	["WindSpirit"] = "rbxassetid://82691589949596",

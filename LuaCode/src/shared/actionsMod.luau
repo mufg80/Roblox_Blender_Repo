@@ -367,7 +367,7 @@ local function StopMove(animTracks: any)
 	end
 end
 
-local function GetRandomAttack(animTracks: any, random: Random): { anim: AnimationTrack?, index: number? }
+local function GetRandomAttack(animTracks: any, random: Random): { anim: AnimationTrack, index: number }
 	if not animTracks or not random then
 		warn("Should not reach me.")
 		return
@@ -377,12 +377,21 @@ local function GetRandomAttack(animTracks: any, random: Random): { anim: Animati
 	end
 	local doPrimary = random:NextInteger(1, 3) == 1
 	if doPrimary then
-		local ind = animTracks.favoredAttack
-		return { animTracks.attacks[ind], ind }
+		local ind = animTracks.favoredAttack or 1
+		return { anim = animTracks.attacks[ind] or animTracks.attacks[1], index = ind }
 	else
-		local ind = random:NextInteger(1, #animTracks.attacks)
-		return { anim = animTracks.attacks[ind], index = ind }
+		local ind = random:NextInteger(1, #animTracks.attacks) or 1
+		return { anim = animTracks.attacks[ind] or animTracks.attacks[1], index = ind }
 	end
+end
+
+local function NoAttacksPlaying(animTracks:any):boolean
+	for _,anim in ipairs(animTracks.attacks)do
+		if anim.IsPlaying then
+			return false
+		end
+	end
+	return true
 end
 
 local function GetHealerType(name: string): string
@@ -457,8 +466,11 @@ function actionsMod.PerformActions(context: table)
 				utilMod.SpinToOwner(model, hrp, combatTargetModel, random)
 				if time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
 					local track = GetRandomAttack(animTracks, random)
-					if track and track.anim and not track.anim.IsPlaying then
-						print("Attack "..track.index)
+					if not track or not track.anim or not track.index then
+						print("should not reach me.")
+					end
+					if NoAttacksPlaying(animTracks) then
+						print(model.Name.. " is attacking with attack "..track.index or 1)
 						track.anim:Play(0.2, 1, animTracks.attackSpeeds[track.index])
 						lastAttackWrapper.value = time()
 
