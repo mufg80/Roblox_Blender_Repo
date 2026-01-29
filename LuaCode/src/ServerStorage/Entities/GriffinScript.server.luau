@@ -84,7 +84,7 @@ if animator then
 	end
 
 	
-	table.insert(animTracks.idle, load("GriffinShortIdle", false))
+	table.insert(animTracks.idle, load("GriffinShortIdle", true))
 	table.insert(animTracks.idle, load("GriffinLongIdle", false))
 	animTracks.move = load("GriffinMove", true)
 	animTracks.death = load("GriffinFall", false)

@@ -320,8 +320,8 @@ local function StopIdle(animTracks: any)
 end
 
 -- Simplified: only starts the long idle (or single idle). Transition handled externally.
-local function PlayIdles(animTracks: any)
-	if not animTracks then
+local function PlayIdles(animTracks: any, model: Model)
+	if not animTracks or not model then
 		warn("Should not reach me.")
 		return
 	end
@@ -330,26 +330,30 @@ local function PlayIdles(animTracks: any)
 			return
 		end
 	end
+	local inCombat = utilMod.GetAttribute(model, "InCombat") or false
 
-	if #animTracks.idle == 1 then
+	if #animTracks.idle == 1 or inCombat then
 		local idleToPlay: AnimationTrack = animTracks.idle[1]
 		idleToPlay.Looped = true
 		if idleToPlay then
 			idleToPlay:Play(0.2, 1, animTracks.idleSpeed or 1)
 		end
 	elseif #animTracks.idle == 2 then
+		-- Check if appriate to play longidle
+		local inCombat = utilMod.GetAttribute(model, "InCombat")
+
 		local tracktoplay1: AnimationTrack = animTracks.idle[1]
 		local tracktoplay2: AnimationTrack = animTracks.idle[2]
-		tracktoplay2.Looped = true
-		tracktoplay1.Looped = false
+		tracktoplay2.Looped = false
+		tracktoplay1.Looped = true
 		local total = math.random(15, 30)
-		tracktoplay2:Play(1, 1, animTracks.idleSpeed or 1)
+		tracktoplay1:Play(1, 1, animTracks.idleSpeed or 1)
 		animTracks.idleConnection = task.delay(total, function()
-			if tracktoplay2 and tracktoplay2.IsPlaying then
-				tracktoplay2:Stop(0.2)
-				tracktoplay1:Play(0.2, 1, animTracks.idleSpeed or 1)
-				animTracks.delayConnection = tracktoplay1.Stopped:Connect(function()
-					tracktoplay2:Play(0.2, 1, animTracks.idleSpeed or 1)
+			if tracktoplay1 and tracktoplay1.IsPlaying then
+				tracktoplay1:Stop(0.2)
+				tracktoplay2:Play(0.2, 1, animTracks.idleSpeed or 1)
+				animTracks.delayConnection = tracktoplay2.Stopped:Connect(function()
+					tracktoplay1:Play(0.2, 1, animTracks.idleSpeed or 1)
 				end)
 			end
 		end)
@@ -385,8 +389,8 @@ local function GetRandomAttack(animTracks: any, random: Random): { anim: Animati
 	end
 end
 
-local function NoAttacksPlaying(animTracks:any):boolean
-	for _,anim in ipairs(animTracks.attacks)do
+local function NoAttacksPlaying(animTracks: any): boolean
+	for _, anim in ipairs(animTracks.attacks) do
 		if anim.IsPlaying then
 			return false
 		end
@@ -454,7 +458,7 @@ function actionsMod.PerformActions(context: table)
 	----------------------------------------------------------------
 	if utilMod.GetAttribute(model, "InCombat") and not healerCache[model.Name] then
 		StopMove(animTracks)
-		PlayIdles(animTracks)
+		PlayIdles(animTracks, model)
 		if combatTargetModel then
 			if pathMod.IsPathActive(model) then
 				if combatMod.AcceptableDistanceToOpponent(model, combatTargetModel) then
@@ -470,7 +474,7 @@ function actionsMod.PerformActions(context: table)
 						print("should not reach me.")
 					end
 					if NoAttacksPlaying(animTracks) then
-						print(model.Name.. " is attacking with attack "..track.index or 1)
+						print(model.Name .. " is attacking with attack " .. track.index or 1)
 						track.anim:Play(0.2, 1, animTracks.attackSpeeds[track.index])
 						lastAttackWrapper.value = time()
 
@@ -483,7 +487,7 @@ function actionsMod.PerformActions(context: table)
 		end
 	elseif utilMod.GetAttribute(model, "InCombat") and healerCache[model.Name] then
 		StopMove(animTracks)
-		PlayIdles(animTracks)
+		PlayIdles(animTracks, model)
 		if combatTargetModel then
 			if pathMod.IsPathActive(model) then
 				if utilMod.GetAcceptableDistanceForCaster(model, combatTargetModel) then
@@ -524,8 +528,8 @@ function actionsMod.PerformActions(context: table)
 				local tracktoplay: AnimationTrack = animTracks.move
 				tracktoplay:Play(0.3, 1, animTracks.moveSpeed or 1)
 			end
-        else
-            PlayIdles(animTracks)
+		else
+			PlayIdles(animTracks, model)
 		end
 
 		if movingDirection == "MovingToCombatTarget" and not healerCache[model.Name] then
@@ -628,7 +632,7 @@ function actionsMod.PerformActions(context: table)
 	----------------------------------------------------------------
 	if utilMod.GetAttribute(model, "IsIdle") then
 		StopMove(animTracks)
-		PlayIdles(animTracks)
+		PlayIdles(animTracks, model)
 
 		if pathMod.IsPathActive(model) then
 			pathMod.ShortCircuitTravel(model)

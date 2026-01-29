@@ -82,9 +82,9 @@ if animator then
 		end
 		return nil
 	end
-
-	table.insert(animTracks.idle, load("IdleAnim", false))
 	table.insert(animTracks.idle, load("IdleAnimPause", true))
+	table.insert(animTracks.idle, load("IdleAnim", false))
+
 	animTracks.move = load("MoveAnim", true)
 	animTracks.death = load("FallAnim", false)
 	animTracks.cast = load("SpellAnim", false)

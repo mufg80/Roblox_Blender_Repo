@@ -1552,7 +1552,7 @@ statsMod.Pics = {
 	["Pog"] = "rbxassetid://113162374464122",
 	["WindSpirit"] = "rbxassetid://82691589949596",
 	["Silverback"] = "",
-	["GreatTuskedPog"] = "",
+	["GreatTuskedPog"] = "rbxassetid://110261468534275",
 	["Carnosaur"] = "",
 	["Griffin"] = "rbxassetid://128046516080244",
 }

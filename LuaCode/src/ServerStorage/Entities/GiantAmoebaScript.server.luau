@@ -82,8 +82,9 @@ if animator then
 	end
 
 	
-	table.insert(animTracks.idle, load("AmoebaIdleLong", false))
+	
 	table.insert(animTracks.idle, load("AmoebaIdle", true))
+	table.insert(animTracks.idle, load("AmoebaIdleLong", false))
 	animTracks.move = load("AmoebaMove", true)
 	animTracks.death = load("AmoebaFall", false)
 	animTracks.blink = load("AmoebaBlink", false)

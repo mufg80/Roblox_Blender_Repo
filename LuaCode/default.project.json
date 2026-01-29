@@ -139,6 +139,12 @@
           "WingedLithScript": {
             "$path": "src/ServerStorage/Entities/WingedLithScript.server.luau"
           }
+        },
+        "GreatTuskedPog": {
+          "$className": "Model",
+          "GreatTuskedPogScript": {
+            "$path": "src/ServerStorage/Entities/GreatTuskedPogScript.server.luau"
+          }
         }
       },
       "Staffs": {
