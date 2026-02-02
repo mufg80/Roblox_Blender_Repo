@@ -87,9 +87,9 @@ export type AdorneeOffset = {
 	UnkemptDruid: Vector3,
 	Pog: Vector3,
 	WindSpirit: Vector3,
-	Silverback: Vector3,
+	VenusDybbTrap: Vector3,
 	GreatTuskedPog: Vector3,
-	Carnosaur: Vector3,
+	AwakenedTreant: Vector3,
 	Griffin: Vector3,
 }
 
@@ -182,9 +182,9 @@ statsMod.MagicLevels = {
 		Level1 = { Abilities = "UnkemptDruid", Spells = "ConvertSpout" },
 		Level2 = { Abilities = "Pog", Spells = "StingingSwarm" },
 		Level3 = { Abilities = "WindSpirit", Spells = "AgilityoftheSquirrell" },
-		Level4 = { Abilities = "Silverback", Spells = "Regenerate" },
-		Level5 = { Abilities = "GreatTuskedPog", Spells = "ReclaimPet" },
-		Level6 = { Abilities = "Carnosaur", Spells = "Root" },
+		Level4 = { Abilities = "GreatTuskedPog", Spells = "Regenerate" },
+		Level5 = { Abilities = "VenusDybbTrap", Spells = "ReclaimPet" },
+		Level6 = { Abilities = "AwakenedTreant", Spells = "Root" },
 		Level7 = { Abilities = "Griffin", Spells = "NaturesDefenders" },
 	},
 }
@@ -209,9 +209,9 @@ statsMod.AdorneeOffset = {
 	UnkemptDruid = Vector3.new(0, 1, 0),
 	Pog = Vector3.new(0, 1, 0),
 	WindSpirit = Vector3.new(0, 1, 0),
-	Silverback = Vector3.new(0, 1, 0),
+	VenusDybbTrap = Vector3.new(0, 1, 0),
 	GreatTuskedPog = Vector3.new(0, 1, 0),
-	Carnosaur = Vector3.new(0, 1, 0),
+	AwakenedTreant = Vector3.new(0, 1, 0),
 	Griffin = Vector3.new(0, 1, 0),
 
 	FeralArtifactGuardian = Vector3.new(0, 1, 0),
@@ -1233,7 +1233,7 @@ statsMod.creatureStats = {
 		width = 5,
 		printedName = "Wind Spirit"
 	},
-	["Silverback"] = {
+	["VenusDybbTrap"] = {
 		magicType = "Nature",
 		hitPoints = 80,
 		attack = 0.48,
@@ -1250,7 +1250,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 5,
-		printedName = "Silverback"
+		printedName = "Venus Dybb Trap"
 	},
 	["GreatTuskedPog"] = {
 		magicType = "Nature",
@@ -1271,7 +1271,7 @@ statsMod.creatureStats = {
 		width = 5,
 		printedName = "Great Tusked Pog"
 	},
-	["Carnosaur"] = {
+	["AwakenedTreant"] = {
 		magicType = "Nature",
 		hitPoints = 100,
 		attack = 0.70,
@@ -1288,7 +1288,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
-		printedName = "Carnosaur"
+		printedName = "Awakened Treant"
 	},
 	["Griffin"] = {
 		magicType = "Nature",
@@ -1486,7 +1486,7 @@ statsMod.Pathing = {
 			["Danger"] = math.huge,
 		},
 	},
-	Silverback = {
+	VenusDybbTrap = {
 		AgentRadius = 2,
 		AgentHeight = 5,
 		AgentCanJump = true,
@@ -1504,7 +1504,7 @@ statsMod.Pathing = {
 			["Danger"] = math.huge,
 		},
 	},
-	Carnosaur = {
+	AwakenedTreant = {
 		AgentRadius = 2,
 		AgentHeight = 5,
 		AgentCanJump = true,
@@ -1551,9 +1551,9 @@ statsMod.Pics = {
 	["UnkemptDruid"] = "rbxassetid://118083674785103",
 	["Pog"] = "rbxassetid://113162374464122",
 	["WindSpirit"] = "rbxassetid://82691589949596",
-	["Silverback"] = "",
+	["VenusDybbTrap"] = "",
 	["GreatTuskedPog"] = "rbxassetid://110261468534275",
-	["Carnosaur"] = "",
+	["AwakenedTreant"] = "rbxassetid://109870119379628",
 	["Griffin"] = "rbxassetid://128046516080244",
 }
 

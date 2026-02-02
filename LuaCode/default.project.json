@@ -145,6 +145,12 @@
           "GreatTuskedPogScript": {
             "$path": "src/ServerStorage/Entities/GreatTuskedPogScript.server.luau"
           }
+        },
+        "AwakenedTreant": {
+          "$className": "Model",
+          "AwakenedTreantScript": {
+            "$path": "src/ServerStorage/Entities/AwakenedTreantScript.server.luau"
+          }
         }
       },
       "Staffs": {

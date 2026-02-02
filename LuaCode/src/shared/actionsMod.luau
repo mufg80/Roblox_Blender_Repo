@@ -380,7 +380,8 @@ local function GetRandomAttack(animTracks: any, random: Random): { anim: Animati
 		return nil
 	end
 	local doPrimary = random:NextInteger(1, 3) == 1
-	if doPrimary then
+	if doPrimary and animTracks.favoredAttack ~= 0 then
+		print("Doing favoredattack")
 		local ind = animTracks.favoredAttack or 1
 		return { anim = animTracks.attacks[ind] or animTracks.attacks[1], index = ind }
 	else
