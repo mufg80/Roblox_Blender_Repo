@@ -151,6 +151,12 @@
           "AwakenedTreantScript": {
             "$path": "src/ServerStorage/Entities/AwakenedTreantScript.server.luau"
           }
+        },
+        "VenusDybbTrap": {
+          "$className": "Model",
+          "VenusDybbTrapScript": {
+            "$path": "src/ServerStorage/Entities/VenusDybbTrapScript.server.luau"
+          }
         }
       },
       "Staffs": {

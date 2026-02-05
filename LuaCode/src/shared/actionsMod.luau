@@ -32,7 +32,7 @@ local function CastPriestSpell(
 	end
 	trackToPlay:Play(0.3, 1, animTracks.castSpeed or 1)
 
-	print("Cast " .. spellname .. " - Pet")
+	--print("Cast " .. spellname .. " - Pet")
 
 	-- Delay the actual spell application (simulates cast time / impact)
 	task.delay(0.5, function()
@@ -289,12 +289,15 @@ local function StopIdle(animTracks: any)
 		warn("Should not reach me.")
 		return
 	end
+	local canceled = false
 	-- Handle idleConnection (could be thread or connection)
 	if animTracks.idleConnection then
 		if typeof(animTracks.idleConnection) == "thread" then
 			task.cancel(animTracks.idleConnection)
+			canceled = true
 		elseif typeof(animTracks.idleConnection) == "RBXScriptConnection" then
 			animTracks.idleConnection:Disconnect()
+			canceled = true
 		end
 		animTracks.idleConnection = nil
 	end
@@ -303,10 +306,15 @@ local function StopIdle(animTracks: any)
 	if animTracks.delayConnection then
 		if typeof(animTracks.delayConnection) == "thread" then
 			task.cancel(animTracks.delayConnection)
+			canceled = true
 		elseif typeof(animTracks.delayConnection) == "RBXScriptConnection" then
 			animTracks.delayConnection:Disconnect()
+			canceled = true
 		end
 		animTracks.delayConnection = nil
+	end
+	if canceled then
+		print("long tasks for idle canceled.")
 	end
 
 	-- Stop all idle animation tracks
@@ -331,8 +339,9 @@ local function PlayIdles(animTracks: any, model: Model)
 		end
 	end
 	local inCombat = utilMod.GetAttribute(model, "InCombat") or false
-
+	
 	if #animTracks.idle == 1 or inCombat then
+		
 		local idleToPlay: AnimationTrack = animTracks.idle[1]
 		idleToPlay.Looped = true
 		if idleToPlay then
@@ -340,7 +349,7 @@ local function PlayIdles(animTracks: any, model: Model)
 		end
 	elseif #animTracks.idle == 2 then
 		-- Check if appriate to play longidle
-		local inCombat = utilMod.GetAttribute(model, "InCombat")
+		
 
 		local tracktoplay1: AnimationTrack = animTracks.idle[1]
 		local tracktoplay2: AnimationTrack = animTracks.idle[2]
@@ -381,7 +390,7 @@ local function GetRandomAttack(animTracks: any, random: Random): { anim: Animati
 	end
 	local doPrimary = random:NextInteger(1, 3) == 1
 	if doPrimary and animTracks.favoredAttack ~= 0 then
-		print("Doing favoredattack")
+		--print("Doing favoredattack")
 		local ind = animTracks.favoredAttack or 1
 		return { anim = animTracks.attacks[ind] or animTracks.attacks[1], index = ind }
 	else
@@ -475,7 +484,7 @@ function actionsMod.PerformActions(context: table)
 						print("should not reach me.")
 					end
 					if NoAttacksPlaying(animTracks) then
-						print(model.Name .. " is attacking with attack " .. track.index or 1)
+						--print(model.Name .. " is attacking with attack " .. track.index or 1)
 						track.anim:Play(0.2, 1, animTracks.attackSpeeds[track.index])
 						lastAttackWrapper.value = time()
 
@@ -552,14 +561,14 @@ function actionsMod.PerformActions(context: table)
 					if lithDefendRandomLoc and not pathMod.IsPathActive(model) then
 						local pathset = pathMod.PathfindToPosition(model, lithDefendRandomLoc, "Lith")
 						if not pathset then
-							print("loc no good for defend pos, resetting")
+							--print("loc no good for defend pos, resetting")
 							lithDefendRandomLoc = nil
 						end
 					elseif pathMod.GetCurrentTarget(model) ~= "Lith" then
 						pathMod.ShortCircuitTravel(model)
 						local pathset = pathMod.PathfindToPosition(model, lithDefendRandomLoc, "Lith")
 						if not pathset then
-							print("loc no good for defend pos, resetting")
+							--print("loc no good for defend pos, resetting")
 							lithDefendRandomLoc = nil
 						end
 					end
@@ -572,14 +581,14 @@ function actionsMod.PerformActions(context: table)
 					if lithTakeRandomLoc and not pathMod.IsPathActive(model) then
 						local pathset = pathMod.PathfindToPosition(model, lithTakeRandomLoc, "Lith")
 						if not pathset then
-							print("loc no good for take pos, resetting")
+							--print("loc no good for take pos, resetting")
 							lithTakeRandomLoc = nil
 						end
 					elseif pathMod.GetCurrentTarget(model) ~= "Lith" then
 						pathMod.ShortCircuitTravel(model)
 						local pathset = pathMod.PathfindToPosition(model, lithTakeRandomLoc, "Lith")
 						if not pathset then
-							print("loc no good for take pos, resetting")
+							--print("loc no good for take pos, resetting")
 							lithTakeRandomLoc = nil
 						end
 					end
@@ -637,7 +646,7 @@ function actionsMod.PerformActions(context: table)
 
 		if pathMod.IsPathActive(model) then
 			pathMod.ShortCircuitTravel(model)
-			print("shorting travel10")
+			--print("shorting travel10")
 		end
 
 		local timeNumber = time() - (utilMod.GetAttribute(model, "IdleStartTime") or 0)
