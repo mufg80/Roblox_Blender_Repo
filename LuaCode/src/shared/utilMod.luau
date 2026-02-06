@@ -61,6 +61,9 @@ export type UtilMod = {
 	GetCharactersModelsWithinRange: (pos: Vector3, range: number) -> { Model },
 
 	customTrim: (input: string?) -> string,
+	InitNPC: (model: Model) -> (),
+	RemoveFeralPrefix: (name: string) -> string,
+	ReassignSpawn: (model:Model, spawnPosition:Vector3) -> Vector3,
 }
 
 -- ────────────────────────────────────────────────────────────────
@@ -1213,6 +1216,92 @@ function utilMod.customTrim(input: string?): string
 		return ""
 	end
 	return input:gsub("_[%w]*$", "")
+end
+
+--- Initializes an NPC model by setting all attributes from statsMod.InitStats[model.Name]
+-- @param model The Model to initialize (must have a Name that exists in InitStats)
+-- @return void
+function utilMod.InitNPC(model: Model)
+	if not model:IsA("Model") then
+		warn("InitNPC: Argument is not a Model")
+		return
+	end
+
+	local npcName = utilMod.RemoveFeralPrefix(utilMod.customTrim(model.Name))
+	local stats = statsMod.InitStats[npcName]
+
+	if not stats then
+		warn("InitNPC: No stats found for NPC named: " .. npcName)
+		return
+	end
+
+	-- Apply every key-value pair as an attribute
+	for key, value in pairs(stats) do
+		utilMod.SetAttribute(model, key, value)
+	end
+	if npcName == "StoneManaPriest" then
+		utilMod.SetAttribute(model, "Mana", statsMod.creatureMana["StoneManaPriest"].Mana)
+		utilMod.SetAttribute(model, "MaxMana", statsMod.creatureMana["StoneManaPriest"].MaxMana)
+	elseif npcName == "MudPriest" then
+		utilMod.SetAttribute(model, "Mana", statsMod.creatureMana["MudPriest"].Mana)
+		utilMod.SetAttribute(model, "MaxMana", statsMod.creatureMana["MudPriest"].MaxMana)
+	elseif npcName == "UnkemptDruid" then
+		utilMod.SetAttribute(model, "Mana", statsMod.creatureMana["UnkemptDruid"].Mana)
+		utilMod.SetAttribute(model, "MaxMana", statsMod.creatureMana["UnkemptDruid"].MaxMana)
+	end
+
+	-- Optional: You can add debug print if needed during development
+	-- print("Initialized NPC:", npcName, "with", #stats, "attributes")
+end
+
+function utilMod.RemoveFeralPrefix(name: string): string
+	if typeof(name) ~= "string" or name == "" then
+		return name
+	end
+
+	-- Pattern to match "Feral" (case-insensitive) at the start,
+	-- optionally followed by whitespace
+	local prefixPattern = "^[fF][eE][rR][aA][lL]%s*"
+
+	-- Remove the matching prefix if it exists
+	local cleaned = name:gsub(prefixPattern, "")
+
+	-- If nothing was removed, return original
+	-- (this also handles cases where "feral" appears later in the name)
+	return cleaned
+end
+
+
+function utilMod.ReassignSpawn(model: Model, spawnPosition: Vector3): Vector3
+	-- Collect all possible spawn choices from attributes that start with "SpawnChoice_"
+	local possibleSpawns: {Vector3} = {}
+	local attrtable = model:GetAttributes()
+	for key, val in pairs(model:GetAttributes()) do
+		if typeof(key) == "string" and string.match(key, "SpawnChoice_") then
+			local value = val
+			if typeof(value) == "Vector3" then
+				-- Skip the current spawn position to avoid immediately picking the same spot
+				if not value:FuzzyEq(spawnPosition, 0.1) and not value:FuzzyEq(Vector3.new(0,0,0),0.1) then  -- small tolerance for floating-point
+					table.insert(possibleSpawns, value)
+				end
+			end
+		end
+	end
+	
+	-- If we have no other choices, fall back to current position (or could error/warn)
+	if #possibleSpawns == 0 then
+		warn("[ReassignSpawn] No other SpawnChoice_ attributes found on " .. model.Name .. " — staying at current position")
+		return spawnPosition
+	end
+	
+	-- Pick one at random
+	local randomIndex = math.random(1, #possibleSpawns)
+	local chosen = possibleSpawns[randomIndex]
+	
+	-- Optional: debug print (comment out in production)
+	-- print("[ReassignSpawn] " .. model.Name .. " moving from " .. tostring(spawnPosition) .. " → " .. tostring(chosen))
+	
+	return chosen
 end
 
 return utilMod :: UtilMod

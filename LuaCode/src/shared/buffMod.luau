@@ -70,8 +70,8 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any })
 		end
 
 		-- Update attributes used in AI
-		utilMod.SetAttribute(model, "IsStationary", utilMod.GetAttribute(model, "IsStationary") ~= false)
-		utilMod.SetAttribute(model, "IdleReset", utilMod.GetAttribute(model, "IdleReset") or 15)
+		--utilMod.SetAttribute(model, "StationaryStatus", utilMod.GetAttribute(model, "StationaryStatus") ~= false)
+		--utilMod.SetAttribute(model, "IdleReset", utilMod.GetAttribute(model, "IdleReset") or 15)
 	end
 
 	-- On buff/debuff apply → just refresh

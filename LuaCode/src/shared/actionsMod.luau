@@ -339,9 +339,8 @@ local function PlayIdles(animTracks: any, model: Model)
 		end
 	end
 	local inCombat = utilMod.GetAttribute(model, "InCombat") or false
-	
+
 	if #animTracks.idle == 1 or inCombat then
-		
 		local idleToPlay: AnimationTrack = animTracks.idle[1]
 		idleToPlay.Looped = true
 		if idleToPlay then
@@ -349,7 +348,6 @@ local function PlayIdles(animTracks: any, model: Model)
 		end
 	elseif #animTracks.idle == 2 then
 		-- Check if appriate to play longidle
-		
 
 		local tracktoplay1: AnimationTrack = animTracks.idle[1]
 		local tracktoplay2: AnimationTrack = animTracks.idle[2]
@@ -612,10 +610,27 @@ function actionsMod.PerformActions(context: table)
 			end
 		elseif movingDirection == "MovingToRandom" then
 			local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
+
 			if random:NextInteger(1, 10) < 5 then
-				local xpos = random:NextInteger(-10, 10)
-				local zpos = random:NextInteger(-10, 10)
-				vec = vec + Vector3.new(xpos, 0, zpos)
+				local limit = utilMod.GetAttribute(model, "RangeLimit") or 50
+				if limit > 11 then
+					limit = limit - 5
+				end
+
+				local maxDistance = math.max(1, limit - 1) -- avoid invalid range
+				local distance = random:NextInteger(5, maxDistance)
+
+				local directionDeg = random:NextInteger(0, 359) -- 0 to 359 is cleaner than 1-359
+
+				-- Convert degrees to radians for math functions
+				local angleRad = math.rad(directionDeg)
+
+				-- Calculate offset using polar → cartesian coordinates
+				local offsetX = math.cos(angleRad) * distance
+				local offsetZ = math.sin(angleRad) * distance
+
+				-- Apply the offset to the base position
+				vec = vec + Vector3.new(offsetX, 0, offsetZ)
 			end
 
 			if not pathMod.IsPathActive(model) then

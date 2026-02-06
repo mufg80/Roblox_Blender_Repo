@@ -18,6 +18,7 @@ local random = Random.new(utilMod.GetSeedFromName(thisMob))
 local MINATTACKDELAY = 0
 local humanoid: Humanoid = model:FindFirstChildOfClass("Humanoid")
 local hrp: BasePart = model:FindFirstChild("HumanoidRootPart")
+local travelerLocations = {}
 
 if not humanoid or not hrp then
 	return

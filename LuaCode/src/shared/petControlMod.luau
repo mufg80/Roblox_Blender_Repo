@@ -329,6 +329,15 @@ function petControlMod.Setup(model: Model): table
 			return spawnPoint
 		end,
 
+		-- NEW: Public function to set a new spawn point
+		SetSpawnPoint = function(newPosition: Vector3)
+			if typeof(newPosition) == "Vector3" then
+				spawnPoint = newPosition
+			else
+				warn("[petControlMod] SetSpawnPoint called with invalid value (expected Vector3, got " .. typeof(newPosition) .. ") on model " .. model.Name)
+			end
+		end,
+
 		Refresh = onOwnerChanged,
 
 		GetOwnerModel = function()

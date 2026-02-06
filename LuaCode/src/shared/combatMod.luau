@@ -327,6 +327,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		utilMod.SetAttribute(player, "Mana", mana - cost)
 	else
 		summonedCreature = creature:Clone()
+		utilMod.InitNPC(summonedCreature)
 		summonedCreature.Name = utilMod.uniqueName(creatureName)
 		utilMod.SetAttribute(summonedCreature, "OwnedBy", player.UserId)
 		summonedCreature.Parent = workspace:WaitForChild("Pets")

@@ -93,7 +93,6 @@ export type AdorneeOffset = {
 	Griffin: Vector3,
 }
 
-
 export type StatsMod = {
 	-- Core constants
 	MaxSpellDamage: number,
@@ -152,10 +151,10 @@ statsMod.MagicType = {
 }
 
 statsMod.Colors = {
-    Artificer = "#c0cf16",
-    Primordial = "#819dce",
-    Nature = "#17c827",
-    None = "None",
+	Artificer = "#c0cf16",
+	Primordial = "#819dce",
+	Nature = "#17c827",
+	None = "None",
 }
 
 -- Progression per magic path
@@ -197,7 +196,7 @@ statsMod.AdorneeOffset = {
 	ArtifactProtector = Vector3.new(0, 1, 0),
 	SuitArms = Vector3.new(0, 1, 0),
 	FlyingGolem = Vector3.new(0, 1, 0),
-	
+
 	MudPriest = Vector3.new(0, 1, 0),
 	Dybb = Vector3.new(0, 1, 0),
 	Blob = Vector3.new(0, 1, 0),
@@ -205,7 +204,7 @@ statsMod.AdorneeOffset = {
 	FossilizedDybb = Vector3.new(0, 1, 0),
 	GiantAmoeba = Vector3.new(0, 1, 0),
 	WingedLith = Vector3.new(0, 1, 0),
-	
+
 	UnkemptDruid = Vector3.new(0, 1, 0),
 	Pog = Vector3.new(0, 1, 0),
 	WindSpirit = Vector3.new(0, 1, 0),
@@ -218,7 +217,7 @@ statsMod.AdorneeOffset = {
 }
 
 -- Example usage
-local offset = statsMod.AdorneeOffset["Pog"]  -- Vector3.new(0, 1, 0)
+local offset = statsMod.AdorneeOffset["Pog"] -- Vector3.new(0, 1, 0)
 
 -- Spell configuration
 statsMod.SpellInfo = {
@@ -232,10 +231,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 10,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Convert Spout"
+		printedName = "Convert Spout",
 	},
 	ReclaimPet = {
 		manaCost = 0.0,
@@ -247,10 +246,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 10,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Reclaim Pet"
+		printedName = "Reclaim Pet",
 	},
 
 	StarterStaffArtificer = {
@@ -263,10 +262,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 20,
 		effectMultiplier = 0.1,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Starter Staff Artificer"
+		printedName = "Starter Staff Artificer",
 	},
 	StoneFall = {
 		manaCost = 0.4,
@@ -278,10 +277,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 20,
 		effectMultiplier = 0.5,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 4,
 		effectOffsetXZ = 0,
-		printedName = "Stone Fall"
+		printedName = "Stone Fall",
 	},
 	HardSkin = {
 		manaCost = 0.6,
@@ -293,10 +292,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Hard Skin"
+		printedName = "Hard Skin",
 	},
 	ReviveSpirit = {
 		manaCost = 0.7,
@@ -308,10 +307,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Revive Spirit"
+		printedName = "Revive Spirit",
 	},
 	StoneonFoot = {
 		manaCost = 0.7,
@@ -323,10 +322,10 @@ statsMod.SpellInfo = {
 		numberTargets = 4,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Stone on Foot"
+		printedName = "Stone on Foot",
 	},
 	Avalanche = {
 		manaCost = 0.8,
@@ -338,10 +337,10 @@ statsMod.SpellInfo = {
 		numberTargets = 4,
 		aggro = 10,
 		effectMultiplier = 0.2,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Avalanche"
+		printedName = "Avalanche",
 	},
 
 	StarterStaffPrimordial = {
@@ -354,10 +353,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 20,
 		effectMultiplier = 0.1,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Starter Staff Primordial"
+		printedName = "Starter Staff Primordial",
 	},
 	DormantVirus = {
 		manaCost = 0.4,
@@ -369,10 +368,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 20,
 		effectMultiplier = 0.4,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Dormant Virus"
+		printedName = "Dormant Virus",
 	},
 	AnimatedAttacks = {
 		manaCost = 0.5,
@@ -384,10 +383,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Animated Attacks"
+		printedName = "Animated Attacks",
 	},
 	HalfLife = {
 		manaCost = 0.6,
@@ -399,10 +398,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Half Life"
+		printedName = "Half Life",
 	},
 	GooSwamp = {
 		manaCost = 0.7,
@@ -414,10 +413,10 @@ statsMod.SpellInfo = {
 		numberTargets = 4,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Goo Swamp"
+		printedName = "Goo Swamp",
 	},
 	InhostpitableAtmosphere = {
 		manaCost = 0.8,
@@ -429,10 +428,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 10,
 		effectMultiplier = 0.2,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Inhostpitable Atmosphere"
+		printedName = "Inhostpitable Atmosphere",
 	},
 
 	StarterStaffNature = {
@@ -445,10 +444,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 20,
 		effectMultiplier = 0.1,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Starter Staff Nature"
+		printedName = "Starter Staff Nature",
 	},
 	StingingSwarm = {
 		manaCost = 0.4,
@@ -460,10 +459,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 20,
 		effectMultiplier = 0.6,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Stinging Swarm"
+		printedName = "Stinging Swarm",
 	},
 	AgilityoftheSquirrell = {
 		manaCost = 0.6,
@@ -475,10 +474,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Agility of the Squirrell"
+		printedName = "Agility of the Squirrell",
 	},
 	Regenerate = {
 		manaCost = 0.6,
@@ -490,10 +489,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Regenerate"
+		printedName = "Regenerate",
 	},
 	Root = {
 		manaCost = 0.7,
@@ -505,10 +504,10 @@ statsMod.SpellInfo = {
 		numberTargets = 5,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Root"
+		printedName = "Root",
 	},
 	NaturesDefenders = {
 		manaCost = 0.8,
@@ -520,10 +519,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 10,
 		effectMultiplier = 0.3,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Natures Defenders"
+		printedName = "Natures Defenders",
 	},
 	ArtificerPriestHeal = {
 		manaCost = 0.3,
@@ -535,10 +534,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Heal"
+		printedName = "Priest Heal",
 	},
 	PrimordialPriestHeal = {
 		manaCost = 0.3,
@@ -550,10 +549,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Heal"
+		printedName = "Priest Heal",
 	},
 	NaturePriestHeal = {
 		manaCost = 0.3,
@@ -565,10 +564,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Heal"
+		printedName = "Priest Heal",
 	},
 	ArtificerPriestBuff = {
 		manaCost = 0.3,
@@ -580,10 +579,10 @@ statsMod.SpellInfo = {
 		numberTargets = 4,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Buff"
+		printedName = "Priest Buff",
 	},
 	PrimordialPriestBuff = {
 		manaCost = 0.3,
@@ -595,10 +594,10 @@ statsMod.SpellInfo = {
 		numberTargets = 4,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Buff"
+		printedName = "Priest Buff",
 	},
 	NaturePriestBuff = {
 		manaCost = 0.3,
@@ -610,10 +609,10 @@ statsMod.SpellInfo = {
 		numberTargets = 4,
 		aggro = 50,
 		effectMultiplier = 0,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Buff"
+		printedName = "Priest Buff",
 	},
 	ArtificerPriestNuke = {
 		manaCost = 0.4,
@@ -625,10 +624,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0.3,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Nuke"
+		printedName = "Priest Nuke",
 	},
 	PrimordialPriestNuke = {
 		manaCost = 0.2,
@@ -640,10 +639,10 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0.2,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Nuke"
+		printedName = "Priest Nuke",
 	},
 	NaturePriestNuke = {
 		manaCost = 0.1,
@@ -655,13 +654,12 @@ statsMod.SpellInfo = {
 		numberTargets = 1,
 		aggro = 50,
 		effectMultiplier = 0.1,
-        castTime = 3,
+		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Priest Nuke"
+		printedName = "Priest Nuke",
 	},
 }
-
 
 -- Buff/Debuff stat modifications
 statsMod.BuffInfo = {
@@ -800,7 +798,7 @@ statsMod.StaffStats = {
 		bulletTrail = "#d5d506",
 		visualSize = 0.5,
 		visualTime = 0.8,
-    	BulletTemplate = "StarterStaffBullet",
+		BulletTemplate = "StarterStaffBullet",
 	},
 	StarterStaffPrimordial = {
 		magicType = "Primordial",
@@ -808,10 +806,10 @@ statsMod.StaffStats = {
 		maxRange = 100,
 		bulletSpeed = 50,
 		arcHeight = 5,
-		bulletTrail = "#c814ff",-- "#1d1674",
+		bulletTrail = "#c814ff", -- "#1d1674",
 		visualSize = 0.5,
 		visualTime = 0.5,
-    	BulletTemplate = "StarterStaffBullet",
+		BulletTemplate = "StarterStaffBullet",
 	},
 	StarterStaffNature = {
 		magicType = "Nature",
@@ -822,8 +820,21 @@ statsMod.StaffStats = {
 		bulletTrail = "#217a22",
 		visualSize = 0.5,
 		visualTime = 0.5,
-    	BulletTemplate = "StarterStaffBullet",
+		BulletTemplate = "StarterStaffBullet",
 	},
+}
+
+statsMod.creatureMana = {
+	["UnkemptDruid"] = {
+		MaxMana = 50,
+		Mana = 25,
+	},["MudPriest"] = {
+		MaxMana = 50,
+		Mana = 25,
+	},["StoneManaPriest"] = {
+		MaxMana = 50,
+		Mana = 25,
+	}
 }
 
 statsMod.creatureStats = {
@@ -845,7 +856,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 3,
-		printedName = "Player None"
+		printedName = "Player None",
 	},
 
 	-- ARTIFICER LINE
@@ -866,7 +877,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 3,
-		printedName = "Player Artificer"
+		printedName = "Player Artificer",
 	},
 	["StoneManaPriest"] = {
 		magicType = "Artificer",
@@ -885,7 +896,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 3,
-		printedName = "Stone Mana Priest"
+		printedName = "Stone Mana Priest",
 	},
 	["ArtifactGuardian"] = {
 		magicType = "Artificer",
@@ -904,7 +915,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
-		printedName = "Artifact Guardian"
+		printedName = "Artifact Guardian",
 	},
 	["GrandPo"] = {
 		magicType = "Artificer",
@@ -923,7 +934,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 3,
 		width = 3,
-		printedName = "Grand Po"
+		printedName = "Grand Po",
 	},
 	["CoatArms"] = {
 		magicType = "Artificer",
@@ -942,7 +953,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 6,
-		printedName = "Coat Arms"
+		printedName = "Coat Arms",
 	},
 	["ArtifactProtector"] = {
 		magicType = "Artificer",
@@ -961,7 +972,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
-		printedName = "Artifact Protector"
+		printedName = "Artifact Protector",
 	},
 	["SuitArms"] = {
 		magicType = "Artificer",
@@ -980,7 +991,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
-		printedName = "Suit Arms"
+		printedName = "Suit Arms",
 	},
 	["FlyingGolem"] = {
 		magicType = "Artificer",
@@ -999,7 +1010,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
-		printedName = "Flying Golem"
+		printedName = "Flying Golem",
 	},
 
 	-- PRIMORDIAL LINE
@@ -1020,7 +1031,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 3,
-		printedName = "Player Primordial"
+		printedName = "Player Primordial",
 	},
 	["MudPriest"] = {
 		magicType = "Primordial",
@@ -1039,7 +1050,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
-		printedName = "Mud Priest"
+		printedName = "Mud Priest",
 	},
 	["Dybb"] = {
 		magicType = "Primordial",
@@ -1058,7 +1069,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
-		printedName = "Dybb"
+		printedName = "Dybb",
 	},
 	["Blob"] = {
 		magicType = "Primordial",
@@ -1077,7 +1088,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 3,
 		width = 5,
-		printedName = "Blob"
+		printedName = "Blob",
 	},
 	["LithEater"] = {
 		magicType = "Primordial",
@@ -1096,7 +1107,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 5,
-		printedName = "Lith Eater"
+		printedName = "Lith Eater",
 	},
 	["FossilizedDybb"] = {
 		magicType = "Primordial",
@@ -1115,7 +1126,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
-		printedName = "Fossilized Dybb"
+		printedName = "Fossilized Dybb",
 	},
 	["GiantAmoeba"] = {
 		magicType = "Primordial",
@@ -1134,7 +1145,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
-		printedName = "Giant Amoeba"
+		printedName = "Giant Amoeba",
 	},
 	["WingedLith"] = {
 		magicType = "Primordial",
@@ -1153,7 +1164,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
-		printedName = "Winged Lith"
+		printedName = "Winged Lith",
 	},
 
 	-- NATURE LINE
@@ -1174,7 +1185,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 3,
-		printedName = "Player Nature"
+		printedName = "Player Nature",
 	},
 	["UnkemptDruid"] = {
 		magicType = "Nature",
@@ -1193,7 +1204,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 1,
 		width = 5,
-		printedName = "Unkempt Druid"
+		printedName = "Unkempt Druid",
 	},
 	["Pog"] = {
 		magicType = "Nature",
@@ -1212,7 +1223,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
-		printedName = "Pog"
+		printedName = "Pog",
 	},
 	["WindSpirit"] = {
 		magicType = "Nature",
@@ -1231,7 +1242,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 3,
 		width = 5,
-		printedName = "Wind Spirit"
+		printedName = "Wind Spirit",
 	},
 	["VenusDybbTrap"] = {
 		magicType = "Nature",
@@ -1250,7 +1261,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 4,
 		width = 5,
-		printedName = "Venus Dybb Trap"
+		printedName = "Venus Dybb Trap",
 	},
 	["GreatTuskedPog"] = {
 		magicType = "Nature",
@@ -1269,7 +1280,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 5,
 		width = 5,
-		printedName = "Great Tusked Pog"
+		printedName = "Great Tusked Pog",
 	},
 	["AwakenedTreant"] = {
 		magicType = "Nature",
@@ -1288,7 +1299,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 6,
 		width = 5,
-		printedName = "Awakened Treant"
+		printedName = "Awakened Treant",
 	},
 	["Griffin"] = {
 		magicType = "Nature",
@@ -1307,7 +1318,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 7,
 		width = 5,
-		printedName = "Griffin"
+		printedName = "Griffin",
 	},
 
 	-- SPECIAL / FERAL
@@ -1328,7 +1339,7 @@ statsMod.creatureStats = {
 		aggroRadius = 50,
 		level = 2,
 		width = 5,
-		printedName = "Feral Artifact Guardian"
+		printedName = "Feral Artifact Guardian",
 	},
 }
 
@@ -1555,6 +1566,512 @@ statsMod.Pics = {
 	["GreatTuskedPog"] = "rbxassetid://110261468534275",
 	["AwakenedTreant"] = "rbxassetid://109870119379628",
 	["Griffin"] = "rbxassetid://128046516080244",
+}
+statsMod.InitStats = {
+	["StoneManaPriest"] = {
+		HasFallen = false,
+		IdleReset = 10,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 50,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["ArtifactGuardian"] = {
+		HasFallen = false,
+		IdleReset = 10,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Roaming",
+		OwnedBy = "None",
+		RangeLimit = 60,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["GrandPo"] = {
+		HasFallen = false,
+		IdleReset = 12,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 45,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["CoatArms"] = {
+		HasFallen = false,
+		IdleReset = 8,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 40,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["ArtifactProtector"] = {
+		HasFallen = false,
+		IdleReset = 10,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 55,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["SuitArms"] = {
+		HasFallen = false,
+		IdleReset = 8,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 40,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["FlyingGolem"] = {
+		HasFallen = false,
+		IdleReset = 6,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 70,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["MudPriest"] = {
+		HasFallen = false,
+		IdleReset = 12,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 50,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["Dybb"] = {
+		HasFallen = false,
+		IdleReset = 7,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 45,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["Blob"] = {
+		HasFallen = false,
+		IdleReset = 10,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 35,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["LithEater"] = {
+		HasFallen = false,
+		IdleReset = 9,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 50,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["FossilizedDybb"] = {
+		HasFallen = false,
+		IdleReset = 12,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 55,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["GiantAmoeba"] = {
+		HasFallen = false,
+		IdleReset = 10,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 40,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["WingedLith"] = {
+		HasFallen = false,
+		IdleReset = 6,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 65,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["UnkemptDruid"] = {
+		HasFallen = false,
+		IdleReset = 12,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 50,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["Pog"] = {
+		HasFallen = false,
+		IdleReset = 8,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 40,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["WindSpirit"] = {
+		HasFallen = false,
+		IdleReset = 5,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 70,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["VenusDybbTrap"] = {
+		HasFallen = false,
+		IdleReset = 15,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 30,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["GreatTuskedPog"] = {
+		HasFallen = false,
+		IdleReset = 10,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 55,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["AwakenedTreant"] = {
+		HasFallen = false,
+		IdleReset = 12,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 60,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
+	["Griffin"] = {
+		HasFallen = false,
+		IdleReset = 6,
+		IdleStartTime = 0,
+		InCombat = false,
+		IsIdle = true,
+		IsMoving = false,
+		StationaryStatus = "Stationary",
+		OwnedBy = "None",
+		RangeLimit = 80,
+		RecycleMe = false,
+		TargetDoorName = "None",
+		Mana = 0,
+		MaxMana = 0,
+		Reclaimed = false,
+		SpinCoolDown = 0,
+		IdleCastCoolDown = 0,
+		LastReassignTime = 0,
+		SpawnChoice_1 = Vector3.new(0,0,0),
+		SpawnChoice_2 = Vector3.new(0,0,0),
+		SpawnChoice_3 = Vector3.new(0,0,0),
+		SpawnChoice_4 = Vector3.new(0,0,0),
+		SpawnChoice_5 = Vector3.new(0,0,0),
+	},
 }
 
 return statsMod :: StatsMod

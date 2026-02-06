@@ -515,9 +515,16 @@ local function spawnFeral()
 			return
 		end
 		creature = template:Clone()
+		utilMod.InitNPC(creature)
 		creature.Name = utilMod.uniqueName(creature.Name)
 		utilMod.SetAttribute(creature, "OwnedBy", "None")
-		creature:AddTag("Character")
+		for i,val in ipairs(workspace:FindFirstChild("FeralSpawnPoints"):GetChildren()) do
+			if i < 6 then
+				local attr = "SpawnChoice_"..tostring(i)
+				utilMod.SetAttribute(creature, attr, val.Position )
+			end
+		end
+		utilMod.SetAttribute(creature, "StationaryStatus", "Traveler")
 	end
 
 	creature.Parent = workspace:WaitForChild("Ferals")
