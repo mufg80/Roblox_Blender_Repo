@@ -21,7 +21,12 @@ export type UtilMod = {
 	GetRootPart: (subject: Instance?) -> BasePart?,
 	GetPosition: (subject: Instance | Vector3) -> Vector3?,
 	GetDistance: (a: Instance | Vector3, b: Instance | Vector3) -> number?,
-	GetPartyMembers: (model: Instance) -> { Player: Player, Character: Model?, pets: { Model } },
+	GetPartyMembers: (model: Instance) -> {
+        Player: Player,
+        Character: Model?,
+        pets: { Model },
+        buildings: { Model }
+    },
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
 	RemoveSpaces: (input: string) -> string,
@@ -63,7 +68,7 @@ export type UtilMod = {
 	customTrim: (input: string?) -> string,
 	InitNPC: (model: Model) -> (),
 	RemoveFeralPrefix: (name: string) -> string,
-	ReassignSpawn: (model:Model, spawnPosition:Vector3) -> Vector3,
+	ReassignSpawn: (model: Model, spawnPosition: Vector3) -> Vector3,
 }
 
 -- ────────────────────────────────────────────────────────────────
@@ -854,8 +859,22 @@ function utilMod.GetClosestModelSkipAllyPets(playerChar: Model, folderName: "Pet
 	return closest
 end
 
--- Returns a table like: { { Player = Player, Character = Model?, pets = {Model} } }
-function utilMod.GetPartyMembers(model: Instance): { { Player: Player, Character: Model?, pets: { Model } } }
+
+-- Returns a table like:
+-- { {
+--     Player = Player,
+--     Character = Model?,
+--     pets = {Model},
+--     buildings = {Model}
+-- } }
+function utilMod.GetPartyMembers(model: Instance): {
+	{
+		Player: Player,
+		Character: Model?,
+		pets: { Model },
+		buildings: { Model },
+	}
+}
 	local player: Player?
 
 	-- Case 1: The instance is the Player itself
@@ -888,19 +907,38 @@ function utilMod.GetPartyMembers(model: Instance): { { Player: Player, Character
 	end
 
 	-- Get the player's current character (may be nil if not spawned)
-	if not player.Character then
-		return {}
-	end
 	local character = player.Character
+	if not character then
+		return {
+			Player = player,
+			Character = nil,
+			pets = {},
+			buildings = {},
+		}
+	end
 
-	-- Get all owned pet models via your existing function
+	-- Get all owned pet models
 	local petModels = utilMod.MyPets(character) or {}
 
-	-- Return the party table (single entry for this player)
+	-- Get all owned buildings from workspace.ManaPoints
+	local buildings = {}
+	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
+
+	if manaPointsFolder and manaPointsFolder:IsA("Folder") then
+		for _, building in manaPointsFolder:GetChildren() do
+			local ownedBy = utilMod.GetAttribute(building, "OwnedBy")
+			if typeof(ownedBy) == "number" and ownedBy == player.UserId then
+				table.insert(buildings, building)
+			end
+		end
+	end
+
+	-- Return the complete party member entry
 	return {
 		Player = player,
 		Character = character,
 		pets = petModels,
+		buildings = buildings,
 	}
 end
 
@@ -1271,36 +1309,39 @@ function utilMod.RemoveFeralPrefix(name: string): string
 	return cleaned
 end
 
-
 function utilMod.ReassignSpawn(model: Model, spawnPosition: Vector3): Vector3
 	-- Collect all possible spawn choices from attributes that start with "SpawnChoice_"
-	local possibleSpawns: {Vector3} = {}
+	local possibleSpawns: { Vector3 } = {}
 	local attrtable = model:GetAttributes()
 	for key, val in pairs(model:GetAttributes()) do
 		if typeof(key) == "string" and string.match(key, "SpawnChoice_") then
 			local value = val
 			if typeof(value) == "Vector3" then
 				-- Skip the current spawn position to avoid immediately picking the same spot
-				if not value:FuzzyEq(spawnPosition, 0.1) and not value:FuzzyEq(Vector3.new(0,0,0),0.1) then  -- small tolerance for floating-point
+				if not value:FuzzyEq(spawnPosition, 0.1) and not value:FuzzyEq(Vector3.new(0, 0, 0), 0.1) then -- small tolerance for floating-point
 					table.insert(possibleSpawns, value)
 				end
 			end
 		end
 	end
-	
+
 	-- If we have no other choices, fall back to current position (or could error/warn)
 	if #possibleSpawns == 0 then
-		warn("[ReassignSpawn] No other SpawnChoice_ attributes found on " .. model.Name .. " — staying at current position")
+		warn(
+			"[ReassignSpawn] No other SpawnChoice_ attributes found on "
+				.. model.Name
+				.. " — staying at current position"
+		)
 		return spawnPosition
 	end
-	
+
 	-- Pick one at random
 	local randomIndex = math.random(1, #possibleSpawns)
 	local chosen = possibleSpawns[randomIndex]
-	
+
 	-- Optional: debug print (comment out in production)
 	-- print("[ReassignSpawn] " .. model.Name .. " moving from " .. tostring(spawnPosition) .. " → " .. tostring(chosen))
-	
+
 	return chosen
 end
 

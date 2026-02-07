@@ -240,6 +240,22 @@ function lithMod.CreateUnique(building: Instance): number?
     return nextUniqueId - 1
 end
 
+
+-- Mana points (spouts)
+local manaSpawnPoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
+for _, point in manaSpawnPoints do
+	if utilMod.GetAttribute(point, "HasBuilding") ~= true then
+		utilMod.SetAttribute(point, "HasBuilding", true)
+		local spoutTemplate = ServerStorage.Buildings.ManaSpout
+		if spoutTemplate then
+			local clone = spoutTemplate:Clone()
+			clone:PivotTo(point.CFrame)
+			clone.Parent = workspace.ManaPoints
+		end
+	end
+end
+
+
 -- Public: Get current lith control/health
 function lithMod.GetLithControl(uniqueId: number): number?
     return (liths[uniqueId] or LITHHEALTHCAP) / LITHHEALTHCAP
