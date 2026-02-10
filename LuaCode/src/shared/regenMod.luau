@@ -7,7 +7,7 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 -- ────────────────────────────────────────────────
 -- Debug toggle - set to true to see detailed output
 -- ────────────────────────────────────────────────
-local isDebugging = true
+local isDebugging = false
 
 local playerHealthRegen = 5
 local playerManaRegen = 5

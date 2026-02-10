@@ -1,5 +1,3 @@
-
-
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
@@ -15,8 +13,17 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local setupMod = {}
 
+-- DEV Testing Quick Setup
+local function setupDevTesting(player:Player)
+	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Nature)
+	utilMod.SetAttribute(player, "NatureLevel", 5)
+	utilMod.SetAttribute(player, "PrimordialLevel", 5)
+	utilMod.SetAttribute(player, "ArtificerLevel", 5)
+
+end
 
 local function setCollisionGroup(plrId: number, model: Model)
+	if model.Name == "Dervish" or model.Name == "FeralDervish" then return end
 	if not plrId or not model then
 		warn("should not reach me")
 		return
@@ -142,7 +149,7 @@ local function setStaffandPets(player: Player, char: Model): ()
 	end
 end
 
-function GetMagicType(player: Player): string?
+function setupMod.GetMagicType(player: Player): string?
 	local magic = utilMod.GetAttribute(player, "Magic")
 	if magic == statsMod.MagicType.Artificer then
 		return "ArtificerLevel"
@@ -388,8 +395,9 @@ local function CharacterAdded(character: Model)
 	end
 
 	-- Dev/test: force Artificer + level 7
-	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Artificer)
-	utilMod.SetAttribute(player, "ArtificerLevel", 7)
+
+	setupDevTesting(player)
+	
 end
 
 game.Players.PlayerAdded:Connect(function(player)

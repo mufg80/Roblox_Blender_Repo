@@ -69,9 +69,7 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any })
 			humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
 		end
 
-		-- Update attributes used in AI
-		--utilMod.SetAttribute(model, "StationaryStatus", utilMod.GetAttribute(model, "StationaryStatus") ~= false)
-		--utilMod.SetAttribute(model, "IdleReset", utilMod.GetAttribute(model, "IdleReset") or 15)
+		
 	end
 
 	-- On buff/debuff apply → just refresh
@@ -368,9 +366,9 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 	for statName: string, changeValue: number in pairs(buffInfo) do
 		local valueObj: ValueBase? = dataFolder:FindFirstChild(statName)
 		if valueObj and valueObj:IsA("ValueBase") and typeof(valueObj.Value) == "number" then
-			print("before: " .. valueObj.Name .. " " .. valueObj.Value)
+			--print("before: " .. valueObj.Name .. " " .. valueObj.Value)
 			valueObj.Value += changeValue * multiplier
-			print("after: " .. valueObj.Name .. " " .. valueObj.Value)
+			--print("after: " .. valueObj.Name .. " " .. valueObj.Value)
 		end
 	end
 

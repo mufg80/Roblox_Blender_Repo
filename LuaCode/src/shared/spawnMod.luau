@@ -32,6 +32,7 @@ end
 
 -- Main function – call this for each feral/NPC model you spawn
 local function setFeralCollisionGroup(model: Model)
+	if model.Name == "Dervish" or model.Name == "FeralDervish" then return end
 	if not model or not model:IsA("Model") then
 		warn("setFeralCollisionGroup: Expected a Model, got", model and model.ClassName)
 		return
@@ -71,10 +72,15 @@ local function spawnFeral()
 	if recyleMod.CheckIfExistsFeral("FeralArtifactGuardian") then
 		creature = recyleMod.ReturnFeral("FeralArtifactGuardian")
 	else
-		local template = ServerStorage.Entities:FindFirstChild("FeralArtifactGuardian")
-		if not template then
-			return
-		end
+		local template = ServerStorage.FeralEntities:FindFirstChild("FeralGiantAmoeba")
+		--local templates = ServerStorage.FeralEntities:GetChildren()
+
+		-- if not templates then
+		-- 	return
+		-- end
+		-- coatarms, flyinggargoyle, grandpo, litheater, stonemanapriest, 
+		--local randomized = math.random(23,23)
+		--local template = templates[randomized]
 		creature = template:Clone()
 		utilMod.InitNPC(creature)
 		creature.Name = utilMod.uniqueName(creature.Name)

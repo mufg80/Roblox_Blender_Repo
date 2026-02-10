@@ -25,8 +25,14 @@ local hrp: BasePart = model:FindFirstChild("HumanoidRootPart")
 if not humanoid or not hrp then
 	return
 end
+local dervishmodel: Model = nil
+if string.sub(thisMob, 1, 5) == "Feral" then
+	-- it's a Feral mob
+	dervishmodel = serverstorage:FindFirstChild("FeralEntities").FeralDervish:Clone()
+else
+	dervishmodel = serverstorage:FindFirstChild("Entities").Dervish:Clone()
+end
 
-local dervishmodel: Model = serverstorage:FindFirstChild("Entities").Dervish:Clone()
 local dervhumanoid = dervishmodel:FindFirstChild("Humanoid")
 local dervAnimator = dervhumanoid:FindFirstChild("Animator")
 local dervhrp: BasePart = dervishmodel:FindFirstChild("HumanoidRootPart") :: BasePart

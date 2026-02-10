@@ -35,12 +35,6 @@
             "$path": "src/ServerStorage/Entities/ArtifactGuardianScript.server.luau"
           }
         },
-        "FeralArtifactGuardian": {
-          "$className": "Model",
-          "FeralArtifactGuardianScript": {
-            "$path": "src/ServerStorage/Entities/ArtifactGuardianScript.server.luau"
-          }
-        },
         "Blob": {
           "$className": "Model",
           "BlobScript": {
@@ -119,10 +113,10 @@
             "$path": "src/ServerStorage/Entities/SuitArmsScript.server.luau"
           }
         },
-        "FlyingGolem": {
+        "FlyingGargoyle": {
           "$className": "Model",
-          "FlyingGolemScript": {
-            "$path": "src/ServerStorage/Entities/FlyingGolemScript.server.luau"
+          "FlyingGargoyleScript": {
+            "$path": "src/ServerStorage/Entities/FlyingGargoylescript.server.luau"
           }
         },
         "FossilizedDybb": {
@@ -156,6 +150,135 @@
           }
         },
         "VenusDybbTrap": {
+          "$className": "Model",
+          "VenusDybbTrapScript": {
+            "$path": "src/ServerStorage/Entities/VenusDybbTrapScript.server.luau"
+          }
+        }
+      },
+      "FeralEntities": {
+        "$className": "Folder",
+        "FeralArtifactGuardian": {
+          "$className": "Model",
+          "FeralArtifactGuardianScript": {
+            "$path": "src/ServerStorage/Entities/ArtifactGuardianScript.server.luau"
+          }
+        },
+        "FeralBlob": {
+          "$className": "Model",
+          "BlobScript": {
+            "$path": "src/ServerStorage/Entities/BlobScript.server.luau"
+          }
+        },
+        "FeralCoatArms": {
+          "$className": "Model",
+          "CoatArmsScript": {
+            "$path": "src/ServerStorage/Entities/CoatArmsScript.server.luau"
+          }
+        },
+        "FeralDybb": {
+          "$className": "Model",
+          "DybbScript": {
+            "$path": "src/ServerStorage/Entities/DybbScript.server.luau"
+          }
+        },
+        "FeralGrandPo": {
+          "$className": "Model",
+          "GrandPoScript": {
+            "$path": "src/ServerStorage/Entities/GrandPoScript.server.luau"
+          }
+        },
+        "FeralGriffin": {
+          "$className": "Model",
+          "GriffinScript": {
+            "$path": "src/ServerStorage/Entities/GriffinScript.server.luau"
+          }
+        },
+        "FeralLithEater": {
+          "$className": "Model",
+          "LithEaterScript": {
+            "$path": "src/ServerStorage/Entities/LithEaterScript.server.luau"
+          }
+        },
+        "FeralMudPriest": {
+          "$className": "Model",
+          "MudPriestScript": {
+            "$path": "src/ServerStorage/Entities/MudPriestScript.server.luau"
+          }
+        },
+        "FeralPog": {
+          "$className": "Model",
+          "PogScript": {
+            "$path": "src/ServerStorage/Entities/PogScript.server.luau"
+          }
+        },
+        "FeralStoneManaPriest": {
+          "$className": "Model",
+          "StoneManaPriestScript": {
+            "$path": "src/ServerStorage/Entities/StoneManaPriestScript.server.luau"
+          }
+        },
+        "FeralWindSpirit": {
+          "$className": "Model",
+          "WindSpiritScript": {
+            "$path": "src/ServerStorage/Entities/WindSpiritScript.server.luau"
+          }
+        },
+        "FeralUnkemptDruid": {
+          "$className": "Model",
+          "UnkemptDruidScript": {
+            "$path": "src/ServerStorage/Entities/UnkemptDruidScript.server.luau"
+          }
+        },
+        "FeralArtifactProtector": {
+          "$className": "Model",
+          "ArtifactProtectorScript": {
+            "$path": "src/ServerStorage/Entities/ArtifactProtectorScript.server.luau"
+          }
+        },
+        "FeralSuitArms": {
+          "$className": "Model",
+          "SuitArmsScript": {
+            "$path": "src/ServerStorage/Entities/SuitArmsScript.server.luau"
+          }
+        },
+        "FeralFlyingGargoyle": {
+          "$className": "Model",
+          "FlyingGargoyleScript": {
+            "$path": "src/ServerStorage/Entities/FlyingGargoyleScript.server.luau"
+          }
+        },
+        "FeralFossilizedDybb": {
+          "$className": "Model",
+          "FossilizedDybbScript": {
+            "$path": "src/ServerStorage/Entities/FossilizedDybbScript.server.luau"
+          }
+        },
+        "FeralGiantAmoeba": {
+          "$className": "Model",
+          "GiantAmoebaScript": {
+            "$path": "src/ServerStorage/Entities/GiantAmoebaScript.server.luau"
+          }
+        },
+        "FeralWingedLith": {
+          "$className": "Model",
+          "WingedLithScript": {
+            "$path": "src/ServerStorage/Entities/WingedLithScript.server.luau"
+          }
+        },
+        "FeralGreatTuskedPog": {
+          "$className": "Model",
+          "GreatTuskedPogScript": {
+            "$path": "src/ServerStorage/Entities/GreatTuskedPogScript.server.luau"
+          }
+        },
+        "FeralAwakenedTreant": {
+          "$className": "Model",
+          "AwakenedTreantScript": {
+            "$path": "src/ServerStorage/Entities/AwakenedTreantScript.server.luau"
+          }
+        },
+        "FeralVenusDybbTrap": {
           "$className": "Model",
           "VenusDybbTrapScript": {
             "$path": "src/ServerStorage/Entities/VenusDybbTrapScript.server.luau"

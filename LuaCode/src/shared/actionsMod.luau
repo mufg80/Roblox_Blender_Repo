@@ -611,7 +611,7 @@ function actionsMod.PerformActions(context: table)
 		elseif movingDirection == "MovingToRandom" then
 			local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
 
-			if random:NextInteger(1, 10) < 5 then
+			if random:NextInteger(1, 10) < 8 then
 				local limit = utilMod.GetAttribute(model, "RangeLimit") or 50
 				if limit > 11 then
 					limit = limit - 5
