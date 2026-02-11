@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
-local MagicClassUI = require(ReplicatedStorage.Client.MagicClassUI)
+--local MagicClassUI = require(ReplicatedStorage.Client.MagicClassUI)
 
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -18,14 +18,13 @@ local CastFeedback = {}
 local isCasting = false
 
 -- Start cast bar animation
-function CastFeedback.StartCast(duration: number, onComplete: () -> ())
+function CastFeedback.StartCast(duration: number, castColorhex:string, onComplete: () -> ())
 	if isCasting then return end
 	isCasting = true
 
 	castFrame.Visible = true
 	-- FIXED: Convert hex string to Color3
-	local castColorHex = MagicClassUI.GetCastColor()
-	innerFill.BackgroundColor3 = Color3.fromHex(castColorHex or "#FFFFFF")
+	innerFill.BackgroundColor3 = Color3.fromHex(castColorhex or "#FFFFFF")
 
 	local startTime = time()
 

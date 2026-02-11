@@ -5,7 +5,7 @@ local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 
 local testMod = {}
-local isDebugging = true   -- ← change to true when you want debug output
+local isDebugging = false   -- ← change to true when you want debug output
 
 --==============================================================================
 -- Test version of MeleeAttackResult that uses stats from statsMod.creatureStats table instead of instances.

@@ -10,20 +10,20 @@ local DataStoreService = game:GetService("DataStoreService")
 local dataStoreEnabled: boolean = false
 local ServerStorage = game:GetService("ServerStorage")
 
-
 local setupMod = {}
 
 -- DEV Testing Quick Setup
-local function setupDevTesting(player:Player)
+local function setupDevTesting(player: Player)
 	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Nature)
 	utilMod.SetAttribute(player, "NatureLevel", 5)
 	utilMod.SetAttribute(player, "PrimordialLevel", 5)
 	utilMod.SetAttribute(player, "ArtificerLevel", 5)
-
 end
 
 local function setCollisionGroup(plrId: number, model: Model)
-	if model.Name == "Dervish" or model.Name == "FeralDervish" then return end
+	if model.Name == "Dervish" or model.Name == "FeralDervish" then
+		return
+	end
 	if not plrId or not model then
 		warn("should not reach me")
 		return
@@ -111,7 +111,8 @@ local function setStaffandPets(player: Player, char: Model): ()
 	local currentType = utilMod.GetAttribute(player, "Magic")
 	local pets = utilMod.MyPets(char)
 	for _, pet in pets do
-		local petType = statsMod.creatureStats[utilMod.customTrim(pet.Name)] and statsMod.creatureStats[utilMod.customTrim(pet.Name)].magicType
+		local petType = statsMod.creatureStats[utilMod.customTrim(pet.Name)]
+			and statsMod.creatureStats[utilMod.customTrim(pet.Name)].magicType
 		if petType and petType ~= currentType then
 			utilMod.SetAttribute(pet, "Reclaimed", true)
 			utilMod.SetAttribute(pet, "RecycleMe", true)
@@ -201,6 +202,9 @@ local function CharacterAdded(character: Model)
 	if not player then
 		return
 	end
+
+	
+
 	setCollisionGroup(player.UserId, character)
 	local souls = utilMod.GetAttribute(player, "Souls") or 0
 	local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0
@@ -397,7 +401,6 @@ local function CharacterAdded(character: Model)
 	-- Dev/test: force Artificer + level 7
 
 	setupDevTesting(player)
-	
 end
 
 game.Players.PlayerAdded:Connect(function(player)
@@ -503,8 +506,5 @@ petEvent.OnServerEvent:Connect(
 		utilMod.SetAttribute(player, "PetDefendLith", commands.DefendingLith)
 	end
 )
-
-
-
 
 return setupMod

@@ -1,37 +1,41 @@
 -- --!strict
 
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-local utilMod   = require(ReplicatedStorage.Shared.utilMod)
+local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 -- other shared mods as needed...
 
-local ResourceBars        = require(ReplicatedStorage.Client.ResourceBars)
-local PetHUD              = require(ReplicatedStorage.Client.PetHUD)
-local PetCommands         = require(ReplicatedStorage.Client.PetCommands)
-local MagicClassUI        = require(ReplicatedStorage.Client.MagicClassUI)
-local CastFeedback        = require(ReplicatedStorage.Client.CastFeedback)
-local ActionButtonManager = require(ReplicatedStorage.Client.ActionButtonManager)
-local SpellAndSummonButtons = require(ReplicatedStorage.Client.SpellAndSummonButtons)
-local BuffVisuals         = require(ReplicatedStorage.Client.BuffVisuals)
+local ResourceBars = require(ReplicatedStorage.Client.ResourceBars)
+local PetHUD = require(ReplicatedStorage.Client.PetHUD)
+local PetCommands = require(ReplicatedStorage.Client.PetCommands)
+--local MagicClassUI = require(ReplicatedStorage.Client.MagicClassUI)
+local CastFeedback = require(ReplicatedStorage.Client.CastFeedback)
+--local ActionButtonManager = require(ReplicatedStorage.Client.ActionButtonManager)
+--local SpellAndSummonButtons = require(ReplicatedStorage.Client.SpellAndSummonButtons)
+local actionsMod = require(ReplicatedStorage.Client.ActionsMod)
+local BuffVisuals = require(ReplicatedStorage.Client.BuffVisuals)
 
 -- Minimal remaining top-level code (if any)
 -- e.g. wait for guis, initial calls, admin panel...
+
+local StarterGui = game:GetService("StarterGui")
+
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
 -- Init everything
 ResourceBars.Init()
 PetHUD.Init()
 PetCommands.Init()
-MagicClassUI.Init()
+--MagicClassUI.Init()
 CastFeedback.Init()
-ActionButtonManager.Init()
-SpellAndSummonButtons.Init()
+--ActionButtonManager.Init()
+--SpellAndSummonButtons.Init()
 BuffVisuals.Init()
 
-
+actionsMod.Init()
 
 -- -- admin area
 
@@ -49,9 +53,6 @@ local function ReturnLevel(): number?
 	end
 	return nil
 end
-
-
-
 
 if Players.LocalPlayer.UserId == 2484051658 then
 	local adminGui: ScreenGui = playerGui:WaitForChild("AdminGui")

@@ -314,7 +314,7 @@ local function StopIdle(animTracks: any)
 		animTracks.delayConnection = nil
 	end
 	if canceled then
-		print("long tasks for idle canceled.")
+		--print("long tasks for idle canceled.")
 	end
 
 	-- Stop all idle animation tracks
