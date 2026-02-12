@@ -65,12 +65,16 @@ tool.Activated:Connect(function()
 		canPlayAnim = false
 		holdTrack:Stop()
 		fireTrack:Play()
+		fireTrack.Stopped:Connect(function()
+			tool:Deactivate()
+		end)
 		task.wait(0.3)  -- Sync with fire anim (adjust if needed per staff)
 		fireRemote:FireServer(mouseHit.Position, staffType)
 		holdTrack:Play()
 	end
 
 	task.wait(1)  -- Cooldown
+	
 	player:SetAttribute("Firing", false)
 	debounce = true
 end)
