@@ -2,7 +2,6 @@ local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -16,6 +15,7 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
+local PetCommands = require(ReplicatedStorage.Client.PetCommands)
 
 local designFolder = ReplicatedStorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
@@ -178,7 +178,7 @@ local function updateItemData()
 			starterKey = "StarterStaffNature"
 		end
 
-		if starterKey and statsMod.StaffStats[starterKey] then
+		if starterKey and statsMod.StaffStats[starterKey] and not utilMod.GetAttribute(player, "HasFallen") then
 			local staffData = statsMod.StaffStats[starterKey]
 			table.insert(actionsMod.itemData.Staffs, {
 				Name = staffData.name or starterKey,
@@ -245,6 +245,10 @@ local function updateItemData()
 		end
 	end
 end
+
+player:GetAttributeChangedSignal("HasFallen"):Connect(function()
+	updateItemData()
+end)
 
 -- Setup default selections if all slots empty (or force = true)
 local function setupDefaultSelections(force: boolean?)
@@ -845,39 +849,87 @@ local function initializeButtons()
 	end)
 end
 
--- Cross-platform close + gamepad secondary action + Xbox bumper cycling
+-- Cross-platform controller handling (FIXED)
 local function setupInputHandling()
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then return end
+		if gameProcessed then
+			return
+		end
 
-		-- Xbox bumper cycling (only when gamepad input is available)
-		if UserInputService.GamepadEnabled then
-			local currentSelected = GuiService.SelectedObject
-
-			if currentSelected and table.find(actionsMod.buttons, currentSelected) then
-				local index = table.find(actionsMod.buttons, currentSelected)
-
-				if input.KeyCode == Enum.KeyCode.ButtonL1 then
-					local newIndex = index - 1
-					if newIndex < 1 then newIndex = #actionsMod.buttons end
-					GuiService.SelectedObject = actionsMod.buttons[newIndex]
-				elseif input.KeyCode == Enum.KeyCode.ButtonR1 then
-					local newIndex = index + 1
-					if newIndex > #actionsMod.buttons then newIndex = 1 end
-					GuiService.SelectedObject = actionsMod.buttons[newIndex]
-				end
+		-- =========================
+		-- 🎮 D-PAD PET COMMANDS
+		-- =========================
+		if not selectionFrame.Visible then
+			if input.KeyCode == Enum.KeyCode.DPadUp then
+				PetCommands.ToggleAttack()
+				return
+			elseif input.KeyCode == Enum.KeyCode.DPadLeft then
+				PetCommands.DefendLith()
+				return
+			elseif input.KeyCode == Enum.KeyCode.DPadRight then
+				PetCommands.ToggleFollow()
+				return
+			elseif input.KeyCode == Enum.KeyCode.DPadDown then
+				PetCommands.TakeLith()
+				return
 			end
 		end
 
+		-- =========================
+		-- 🎮 BUMPER CYCLING (L1 / R1)
+		-- =========================
+		if input.KeyCode == Enum.KeyCode.ButtonL1 or input.KeyCode == Enum.KeyCode.ButtonR1 then
+			local targetList = {}
+
+			if selectionFrame.Visible then
+				-- Only cycle selection frame buttons
+				for _, child in ipairs(selectionFrame:GetChildren()) do
+					if child:IsA("GuiButton") and child.Selectable then
+						table.insert(targetList, child)
+					end
+				end
+			else
+				-- Cycle hotbar buttons
+				targetList = actionsMod.buttons
+			end
+
+			if #targetList == 0 then
+				return
+			end
+
+			local current = GuiService.SelectedObject
+			local index = table.find(targetList, current) or 1
+
+			if input.KeyCode == Enum.KeyCode.ButtonL1 then
+				index -= 1
+				if index < 1 then
+					index = #targetList
+				end
+			else
+				index += 1
+				if index > #targetList then
+					index = 1
+				end
+			end
+
+			GuiService.SelectedObject = targetList[index]
+			return
+		end
+
+		-- =========================
+		-- 🎮 OPEN SELECTION (Y)
+		-- =========================
 		if not selectionFrame.Visible then
-			if input.KeyCode == Enum.KeyCode.ButtonY and not gameProcessed then
+			if input.KeyCode == Enum.KeyCode.ButtonY then
 				local focused = GuiService.SelectedObject
 				if focused and table.find(actionsMod.buttons, focused) then
 					actionsMod.selectedButton = focused
 					local category = getCategory(focused.Name)
 					local availableItems = getAvailableItems(category)
-					disableHotbarSelectable()  -- Trap navigation in selection
+
+					disableHotbarSelectable()
 					populateSelection(availableItems)
+
 					selectionFrame.Visible = true
 					selectionFrame.Active = true
 					selectionFrame.ZIndex = spellFrame.ZIndex + 10
@@ -886,18 +938,20 @@ local function setupInputHandling()
 			return
 		end
 
-		-- Close selection
-		if input.KeyCode == Enum.KeyCode.ButtonB
-			or input.KeyCode == Enum.KeyCode.Escape then
+		-- =========================
+		-- 🎮 CLOSE SELECTION (B)
+		-- =========================
+		if input.KeyCode == Enum.KeyCode.ButtonB or input.KeyCode == Enum.KeyCode.Escape then
 			closeSelection()
 		end
 	end)
 end
 
--- Cross-platform close + gamepad secondary action + L1/R1 cycling only + D-pad always blocked for pet commands
-
-
 function actionsMod.Init()
+	-- 🔥 Disable Roblox automatic gamepad GUI navigation
+	GuiService.GuiNavigationEnabled = false
+	GuiService.AutoSelectGuiEnabled = false
+
 	spellFrame.Active = true
 	selectionFrame.Visible = false
 
