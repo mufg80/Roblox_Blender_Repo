@@ -1,9 +1,11 @@
 --!strict
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
 
 local recycleMod = {}
 
@@ -215,6 +217,80 @@ function recycleMod.SpawnSoul(npc: Model): ()
 
     soulClone:PivotTo(CFrame.new(newLoc))
     soulClone.Parent = workspace:WaitForChild("Souls")
+end
+
+-- Returns the first eligible soul within range that belongs to another player,
+-- or nil if none found or requirements not met.
+function recycleMod.GetEligibleSoul(char: Model): Model?
+	if not char then
+		warn("GetEligibleSoul: character is nil")
+		return nil
+	end
+
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not hrp:IsA("BasePart") then
+		warn("GetEligibleSoul: no valid HumanoidRootPart")
+		return nil
+	end
+
+	local player = Players:GetPlayerFromCharacter(char)
+	if not player then
+		warn("GetEligibleSoul: no player associated with character")
+		return nil
+	end
+	local plrId = player.UserId
+
+    local souls = utilMod.GetAttribute(player, "Souls")
+    local maxsouls = utilMod.GetAttribute(player, "MaxSouls")
+    if souls >= maxsouls then
+        return nil
+    end
+
+	-- Get spell config once
+	local spellInfo = statsMod.SpellInfo and statsMod.SpellInfo.TheftOfSoul
+	if not spellInfo then
+		warn("GetEligibleSoul: TheftOfSoul spell info missing in statsMod")
+		return nil
+	end
+
+	local range = spellInfo.range or 0
+	local manaCost = spellInfo.manaCost or 0
+
+	if range <= 0 then
+		warn("GetEligibleSoul: invalid range for TheftOfSoul (" .. tostring(range) .. ")")
+		return nil
+	end
+
+	-- Check mana early (cheaper than looping through souls)
+	local currentMana = utilMod.GetAttribute(player, "Mana") or 0
+    
+	if manaCost > currentMana then
+		return nil  -- no warning needed — player just doesn't have mana
+	end
+
+	local soulsFolder = workspace:FindFirstChild("Souls")
+	if not soulsFolder then
+		return nil
+	end
+
+	for _, soul in ipairs(soulsFolder:GetChildren()) do
+		if not soul:IsA("Model") then
+			continue  -- skip invalid souls
+		end
+        local anch = soul:FindFirstChild("Anchor")
+        if not anch then continue end
+        local positionofanchor = anch.CFrame.Position
+
+		local distance = (positionofanchor - hrp.Position).Magnitude
+		if distance <= range then
+			local ownedBy = utilMod.GetAttribute(soul, "OwnedBy")
+			if ownedBy and ownedBy ~= plrId then
+				return soul  -- found one → return immediately
+			end
+		end
+	end
+
+	return nil
 end
 
 ----------------------------------------------------------------

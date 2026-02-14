@@ -92,7 +92,6 @@ export type AdorneeOffset = {
 	AwakenedTreant: Vector3,
 	Griffin: Vector3,
 }
-
 export type StatsMod = {
 	-- Core constants
 	MaxSpellDamage: number,
@@ -105,9 +104,9 @@ export type StatsMod = {
 	Colors: { [string]: string },
 
 	MagicLevels: {
-		Artificer: { [string]: { Abilities: string, Spells: string } },
-		Primordial: { [string]: { Abilities: string, Spells: string } },
-		Nature: { [string]: { Abilities: string, Spells: string } },
+		Artificer: { [string]: { Abilities: string, Spells: { string } } },
+		Primordial: { [string]: { Abilities: string, Spells: { string } } },
+		Nature: { [string]: { Abilities: string, Spells: { string } } },
 	},
 
 	-- Spell & buff data
@@ -138,7 +137,7 @@ local statsMod: StatsMod = {} :: any
 
 -- Global gameplay constants
 statsMod.MaxSpellDamage = 100
-statsMod.MaxSpellCost = 25
+statsMod.MaxSpellCost = 100
 statsMod.DELAY = 6.0
 statsMod.MaxDamageConstant = 50
 
@@ -155,37 +154,6 @@ statsMod.Colors = {
 	Primordial = "#819dce",
 	Nature = "#17c827",
 	None = "None",
-}
-
--- Progression per magic path
-statsMod.MagicLevels = {
-	Artificer = {
-		Level1 = { Abilities = "StoneManaPriest", Spells = "ConvertSpout" },
-		Level2 = { Abilities = "ArtifactGuardian", Spells = "ScrewFall" },
-		Level3 = { Abilities = "GrandPo", Spells = "HardSkin" },
-		Level4 = { Abilities = "CoatArms", Spells = "ReviveSpirit" },
-		Level5 = { Abilities = "ArtifactProtector", Spells = "ReclaimPet" },
-		Level6 = { Abilities = "SuitArms", Spells = "StoneonFoot" },
-		Level7 = { Abilities = "FlyingGargoyle", Spells = "Avalanche" },
-	},
-	Primordial = {
-		Level1 = { Abilities = "MudPriest", Spells = "ConvertSpout" },
-		Level2 = { Abilities = "Dybb", Spells = "DormantVirus" },
-		Level3 = { Abilities = "Blob", Spells = "AnimatedAttacks" },
-		Level4 = { Abilities = "LithEater", Spells = "HalfLife" },
-		Level5 = { Abilities = "FossilizedDybb", Spells = "ReclaimPet" },
-		Level6 = { Abilities = "GiantAmoeba", Spells = "GooSwamp" },
-		Level7 = { Abilities = "WingedLith", Spells = "InhostpitableAtmosphere" },
-	},
-	Nature = {
-		Level1 = { Abilities = "UnkemptDruid", Spells = "ConvertSpout" },
-		Level2 = { Abilities = "Pog", Spells = "StingingSwarm" },
-		Level3 = { Abilities = "WindSpirit", Spells = "AgilityoftheSquirrell" },
-		Level4 = { Abilities = "GreatTuskedPog", Spells = "Regenerate" },
-		Level5 = { Abilities = "VenusDybbTrap", Spells = "ReclaimPet" },
-		Level6 = { Abilities = "AwakenedTreant", Spells = "Root" },
-		Level7 = { Abilities = "Griffin", Spells = "NaturesDefenders" },
-	},
 }
 
 statsMod.AdorneeOffset = {
@@ -241,7 +209,7 @@ statsMod.AdorneeOffset = {
 -- Spell configuration
 statsMod.SpellInfo = {
 	ConvertSpout = {
-		manaCost = 0.5,
+		manaCost = 0.2,
 		magicType = "Any",
 		spellType = "utility",
 		missChance = 0,
@@ -256,7 +224,7 @@ statsMod.SpellInfo = {
 		printedName = "Convert Spout",
 	},
 	ReclaimPet = {
-		manaCost = 0.0,
+		manaCost = 0.01,
 		magicType = "Any",
 		spellType = "utility",
 		missChance = 0,
@@ -269,6 +237,21 @@ statsMod.SpellInfo = {
 		effectTime = 5,
 		effectOffsetXZ = 0,
 		printedName = "Reclaim Pet",
+	},
+	TheftOfSoul = {
+		manaCost = 0.3,
+		magicType = "Any",
+		spellType = "utility",
+		missChance = 0,
+		range = 20,
+		cooldown = 5,
+		numberTargets = 1,
+		aggro = 10,
+		effectMultiplier = 0,
+		castTime = 3,
+		effectTime = 0,
+		effectOffsetXZ = 0,
+		printedName = "Theft of Soul",
 	},
 
 	StarterStaffArtificer = {
@@ -284,10 +267,10 @@ statsMod.SpellInfo = {
 		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Starter Staff Artificer",
+		printedName = "Starter Staff",
 	},
 	ScrewFall = {
-		manaCost = 0.4,
+		manaCost = 0.3,
 		magicType = "Artificer",
 		spellType = "damage",
 		missChance = 0.2,
@@ -302,7 +285,7 @@ statsMod.SpellInfo = {
 		printedName = "Screw Fall",
 	},
 	HardSkin = {
-		manaCost = 0.6,
+		manaCost = 0.2,
 		magicType = "Artificer",
 		spellType = "buff",
 		missChance = 0.2,
@@ -317,7 +300,7 @@ statsMod.SpellInfo = {
 		printedName = "Hard Skin",
 	},
 	ReviveSpirit = {
-		manaCost = 0.7,
+		manaCost = 0.2,
 		magicType = "Artificer",
 		spellType = "heal",
 		missChance = 0.2,
@@ -332,7 +315,7 @@ statsMod.SpellInfo = {
 		printedName = "Revive Spirit",
 	},
 	StoneonFoot = {
-		manaCost = 0.7,
+		manaCost = 0.4,
 		magicType = "Artificer",
 		spellType = "debuff",
 		missChance = 0.2,
@@ -375,10 +358,10 @@ statsMod.SpellInfo = {
 		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Starter Staff Primordial",
+		printedName = "Starter Staff",
 	},
 	DormantVirus = {
-		manaCost = 0.4,
+		manaCost = 0.3,
 		magicType = "Primordial",
 		spellType = "damage",
 		missChance = 0.2,
@@ -393,7 +376,7 @@ statsMod.SpellInfo = {
 		printedName = "Dormant Virus",
 	},
 	AnimatedAttacks = {
-		manaCost = 0.5,
+		manaCost = 0.2,
 		magicType = "Primordial",
 		spellType = "buff",
 		missChance = 0.2,
@@ -408,7 +391,7 @@ statsMod.SpellInfo = {
 		printedName = "Animated Attacks",
 	},
 	HalfLife = {
-		manaCost = 0.6,
+		manaCost = 0.2,
 		magicType = "Primordial",
 		spellType = "heal",
 		missChance = 0.2,
@@ -423,7 +406,7 @@ statsMod.SpellInfo = {
 		printedName = "Half Life",
 	},
 	GooSwamp = {
-		manaCost = 0.7,
+		manaCost = 0.4,
 		magicType = "Primordial",
 		spellType = "debuff",
 		missChance = 0.2,
@@ -466,10 +449,10 @@ statsMod.SpellInfo = {
 		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Starter Staff Nature",
+		printedName = "Starter Staff",
 	},
 	StingingSwarm = {
-		manaCost = 0.4,
+		manaCost = 0.3,
 		magicType = "Nature",
 		spellType = "damage",
 		missChance = 0.2,
@@ -484,7 +467,7 @@ statsMod.SpellInfo = {
 		printedName = "Stinging Swarm",
 	},
 	AgilityoftheSquirrell = {
-		manaCost = 0.6,
+		manaCost = 0.2,
 		magicType = "Nature",
 		spellType = "buff",
 		missChance = 0.2,
@@ -499,7 +482,7 @@ statsMod.SpellInfo = {
 		printedName = "Agility of the Squirrell",
 	},
 	Regenerate = {
-		manaCost = 0.6,
+		manaCost = 0.2,
 		magicType = "Nature",
 		spellType = "heal",
 		missChance = 0.2,
@@ -511,10 +494,10 @@ statsMod.SpellInfo = {
 		castTime = 3,
 		effectTime = 5,
 		effectOffsetXZ = 0,
-		printedName = "Regenerate",
+		printedName = "Regen",
 	},
 	Root = {
-		manaCost = 0.7,
+		manaCost = 0.4,
 		magicType = "Nature",
 		spellType = "debuff",
 		missChance = 0.2,
@@ -680,6 +663,37 @@ statsMod.SpellInfo = {
 	},
 }
 
+-- Progression per magic path (Spells always as table)
+statsMod.MagicLevels = {
+	Artificer = {
+		Level1 = { Abilities = "StoneManaPriest", Spells = { "ConvertSpout", "TheftOfSoul" } },
+		Level2 = { Abilities = "ArtifactGuardian", Spells = { "ScrewFall" } },
+		Level3 = { Abilities = "GrandPo", Spells = { "HardSkin" } },
+		Level4 = { Abilities = "CoatArms", Spells = { "ReviveSpirit" } },
+		Level5 = { Abilities = "ArtifactProtector", Spells = { "ReclaimPet" } },
+		Level6 = { Abilities = "SuitArms", Spells = { "StoneonFoot" } },
+		Level7 = { Abilities = "FlyingGargoyle", Spells = { "Avalanche" } },
+	},
+	Primordial = {
+		Level1 = { Abilities = "MudPriest", Spells = { "ConvertSpout", "TheftOfSoul" } },
+		Level2 = { Abilities = "Dybb", Spells = { "DormantVirus" } },
+		Level3 = { Abilities = "Blob", Spells = { "AnimatedAttacks" } },
+		Level4 = { Abilities = "LithEater", Spells = { "HalfLife" } },
+		Level5 = { Abilities = "FossilizedDybb", Spells = { "ReclaimPet" } },
+		Level6 = { Abilities = "GiantAmoeba", Spells = { "GooSwamp" } },
+		Level7 = { Abilities = "WingedLith", Spells = { "InhostpitableAtmosphere" } },
+	},
+	Nature = {
+		Level1 = { Abilities = "UnkemptDruid", Spells = { "ConvertSpout", "TheftOfSoul" } },
+		Level2 = { Abilities = "Pog", Spells = { "StingingSwarm" } },
+		Level3 = { Abilities = "WindSpirit", Spells = { "AgilityoftheSquirrell" } },
+		Level4 = { Abilities = "GreatTuskedPog", Spells = { "Regenerate" } },
+		Level5 = { Abilities = "VenusDybbTrap", Spells = { "ReclaimPet" } },
+		Level6 = { Abilities = "AwakenedTreant", Spells = { "Root" } },
+		Level7 = { Abilities = "Griffin", Spells = { "NaturesDefenders" } },
+	},
+}
+
 -- Buff/Debuff stat modifications
 statsMod.BuffInfo = {
 	HardSkin = {
@@ -818,6 +832,7 @@ statsMod.StaffStats = {
 		visualSize = 0.5,
 		visualTime = 0.8,
 		BulletTemplate = "StarterStaffBullet",
+		printedName = "Artificer Staff",
 	},
 	StarterStaffPrimordial = {
 		magicType = "Primordial",
@@ -829,6 +844,7 @@ statsMod.StaffStats = {
 		visualSize = 0.5,
 		visualTime = 0.5,
 		BulletTemplate = "StarterStaffBullet",
+		printedName = "Primordial Staff",
 	},
 	StarterStaffNature = {
 		magicType = "Nature",
@@ -840,6 +856,7 @@ statsMod.StaffStats = {
 		visualSize = 0.5,
 		visualTime = 0.5,
 		BulletTemplate = "StarterStaffBullet",
+		printedName = "Nature Staff",
 	},
 }
 
@@ -847,13 +864,15 @@ statsMod.creatureMana = {
 	["UnkemptDruid"] = {
 		MaxMana = 50,
 		Mana = 25,
-	},["MudPriest"] = {
+	},
+	["MudPriest"] = {
 		MaxMana = 50,
 		Mana = 25,
-	},["StoneManaPriest"] = {
+	},
+	["StoneManaPriest"] = {
 		MaxMana = 50,
 		Mana = 25,
-	}
+	},
 }
 
 statsMod.creatureStats = {
@@ -1341,8 +1360,7 @@ statsMod.creatureStats = {
 	},
 
 	-- SPECIAL / FERAL
-	
-	
+
 	["FeralStoneManaPriest"] = {
 		magicType = "Artificer",
 		hitPoints = 50,
@@ -1934,11 +1952,11 @@ statsMod.Pathing = {
 			["Danger"] = math.huge,
 		},
 	},
-
-
 }
 
 statsMod.Pics = {
+
+	-- Creatures
 	["StoneManaPriest"] = "rbxassetid://76232346752611",
 	["ArtifactGuardian"] = "rbxassetid://79644937238265",
 	["GrandPo"] = "rbxassetid://118645136474581",
@@ -1960,6 +1978,19 @@ statsMod.Pics = {
 	["GreatTuskedPog"] = "rbxassetid://110261468534275",
 	["AwakenedTreant"] = "rbxassetid://109870119379628",
 	["Griffin"] = "rbxassetid://128046516080244",
+
+	-- Staffs
+	["StarterStaffArtificer"] = "rbxassetid://74844059300143",
+	["StarterStaffPrimordial"] = "rbxassetid://90301246444899",
+	["StarterStaffNature"] = "rbxassetid://122344977034574",
+
+	-- Spells go by spelltype
+	["damage"] = "rbxassetid://128881432393526",
+	["heal"] =  "rbxassetid://98324079877918",
+	["utility"] = "rbxassetid://140012368835726",
+	["debuff"] = "rbxassetid://127752600982886",
+	["areaDamage"] = "rbxassetid://96646824024287",
+	["buff"] = "rbxassetid://71067845760444",
 }
 
 statsMod.InitStats = {
@@ -1981,11 +2012,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["ArtifactGuardian"] = {
 		HasFallen = false,
@@ -2005,11 +2036,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["GrandPo"] = {
 		HasFallen = false,
@@ -2029,11 +2060,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["CoatArms"] = {
 		HasFallen = false,
@@ -2053,11 +2084,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["ArtifactProtector"] = {
 		HasFallen = false,
@@ -2077,11 +2108,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["SuitArms"] = {
 		HasFallen = false,
@@ -2101,11 +2132,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["FlyingGargoyle"] = {
 		HasFallen = false,
@@ -2125,11 +2156,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["MudPriest"] = {
 		HasFallen = false,
@@ -2149,11 +2180,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["Dybb"] = {
 		HasFallen = false,
@@ -2173,11 +2204,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["Blob"] = {
 		HasFallen = false,
@@ -2197,11 +2228,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["LithEater"] = {
 		HasFallen = false,
@@ -2221,11 +2252,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["FossilizedDybb"] = {
 		HasFallen = false,
@@ -2245,11 +2276,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["GiantAmoeba"] = {
 		HasFallen = false,
@@ -2269,11 +2300,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["WingedLith"] = {
 		HasFallen = false,
@@ -2293,11 +2324,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["UnkemptDruid"] = {
 		HasFallen = false,
@@ -2317,11 +2348,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["Pog"] = {
 		HasFallen = false,
@@ -2341,11 +2372,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["WindSpirit"] = {
 		HasFallen = false,
@@ -2365,11 +2396,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["VenusDybbTrap"] = {
 		HasFallen = false,
@@ -2389,11 +2420,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["GreatTuskedPog"] = {
 		HasFallen = false,
@@ -2413,11 +2444,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["AwakenedTreant"] = {
 		HasFallen = false,
@@ -2437,11 +2468,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 	["Griffin"] = {
 		HasFallen = false,
@@ -2461,11 +2492,11 @@ statsMod.InitStats = {
 		SpinCoolDown = 0,
 		IdleCastCoolDown = 0,
 		LastReassignTime = 0,
-		SpawnChoice_1 = Vector3.new(0,0,0),
-		SpawnChoice_2 = Vector3.new(0,0,0),
-		SpawnChoice_3 = Vector3.new(0,0,0),
-		SpawnChoice_4 = Vector3.new(0,0,0),
-		SpawnChoice_5 = Vector3.new(0,0,0),
+		SpawnChoice_1 = Vector3.new(0, 0, 0),
+		SpawnChoice_2 = Vector3.new(0, 0, 0),
+		SpawnChoice_3 = Vector3.new(0, 0, 0),
+		SpawnChoice_4 = Vector3.new(0, 0, 0),
+		SpawnChoice_5 = Vector3.new(0, 0, 0),
 	},
 }
 

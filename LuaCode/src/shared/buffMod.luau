@@ -1,11 +1,62 @@
 --!strict
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
+local recycleMod = require(ReplicatedStorage.Shared.recycleMod)
+local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local serverStorage = game:GetService("ServerStorage")
 local repstore = game:GetService("ReplicatedStorage")
 
 local buffMod = {}
+
+function buffMod.TheftSoul(char: Model): boolean
+	local player = Players:GetPlayerFromCharacter(char)
+	if not player then
+		return false
+	end
+
+	local soulToConsume = recycleMod.GetEligibleSoul(char)
+	if not soulToConsume then
+		return false
+	end
+
+	-- Cache attributes once (avoids double-fetch + potential races)
+	local currentSouls = utilMod.GetAttribute(player, "Souls") or 0
+	local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0  -- fallback if unset
+
+	if currentSouls >= maxSouls then
+		return false
+	end
+
+	-- Double-check soul still exists/eligible (defensive, in case destroyed mid-frame)
+	if not soulToConsume.Parent then
+		return false
+	end
+
+	-- Atomic increment + set
+	local newSouls = currentSouls + 1
+	utilMod.SetAttribute(player, "Souls", newSouls)
+
+	-- Play effect safely
+	local anchor = soulToConsume:FindFirstChild("Anchor")
+	if anchor and anchor:IsA("BasePart") then
+		local success, err = pcall(effectMod.SoulGrabbedEffect, anchor.CFrame.Position)
+		if not success then
+			warn("SoulGrabbedEffect failed:", err)
+		end
+	end
+
+	-- Despawn fully (Destroy > Parent=nil for cleanup)
+	soulToConsume:Destroy()
+
+	-- Fire client event with final values
+	ReplicatedStorage.Events.GainedSoulEvent:FireClient(player, newSouls, maxSouls)
+
+	return true
+end
 
 -- Table to track active buff tasks per model+spell
 local activeBuffs: { [string]: { thread: thread, label: ImageLabel } } = {}
@@ -68,8 +119,6 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any })
 		if spellname and statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
 			humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
 		end
-
-		
 	end
 
 	-- On buff/debuff apply → just refresh

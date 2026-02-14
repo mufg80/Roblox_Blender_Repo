@@ -389,7 +389,6 @@ function effectMod.SoulGrabbedEffect(pos: Vector3): ()
 		warn("Should not reach me.")
 		return
 	end
-	print("running emitter")
 	local emitterclone: BasePart = ReplicatedStorage.Effects.SoulEmitterPart:Clone()
 	if emitterclone then
 		emitterclone:PivotTo(CFrame.new(pos))

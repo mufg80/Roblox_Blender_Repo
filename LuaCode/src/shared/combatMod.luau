@@ -519,6 +519,8 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			end
 		elseif spellname == "ConvertSpout" then
 			applied = buffMod.ConvertSpout(player.Character)
+		elseif spellname == "TheftOfSoul" then
+			applied = buffMod.TheftSoul(player.Character)
 		end
 
 		if applied then

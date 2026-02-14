@@ -16,6 +16,7 @@ local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
 local PetCommands = require(ReplicatedStorage.Client.PetCommands)
+local recycleMod = require(ReplicatedStorage.Shared.recycleMod)
 
 local designFolder = ReplicatedStorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
@@ -181,15 +182,15 @@ local function updateItemData()
 		if starterKey and statsMod.StaffStats[starterKey] and not utilMod.GetAttribute(player, "HasFallen") then
 			local staffData = statsMod.StaffStats[starterKey]
 			table.insert(actionsMod.itemData.Staffs, {
-				Name = staffData.name or starterKey,
-				Icon = "rbxassetid://0", -- TODO: real icon
+				Name = staffData.printedName or staffData.name or starterKey,
+				Icon = statsMod.Pics[starterKey],
 				Type = "Staff",
 				InternalName = starterKey,
 			})
 		end
 	end
 
-	-- Creatures / Abilities
+	-- Creatures / Abilities & Spells
 	local typeLevels = statsMod.MagicLevels and statsMod.MagicLevels[magicType] or {}
 	local seenCreatures = {}
 	local seenSpells = {}
@@ -200,6 +201,7 @@ local function updateItemData()
 			continue
 		end
 
+		-- Abilities (still single string)
 		if levelData.Abilities then
 			local ability = levelData.Abilities
 			if not seenCreatures[ability] then
@@ -211,33 +213,35 @@ local function updateItemData()
 				) or ability
 				table.insert(actionsMod.itemData.Creatures, {
 					Name = printedName,
-					Icon = "rbxassetid://0",
+					Icon = statsMod.Pics[ability], -- TODO: real icon
 					Type = "Creature",
 					InternalName = ability,
 				})
 			end
 		end
 
+		-- Spells (now always a table)
 		if levelData.Spells then
-			local spell = levelData.Spells
-			if not seenSpells[spell] then
-				seenSpells[spell] = true
-				local printedName = (
-					statsMod.SpellInfo
-					and statsMod.SpellInfo[spell]
-					and statsMod.SpellInfo[spell].printedName
-				) or spell
-				table.insert(actionsMod.itemData.Spells, {
-					Name = printedName,
-					Icon = "rbxassetid://0",
-					Type = "Spell",
-					InternalName = spell,
-				})
+			for _, spell in ipairs(levelData.Spells) do
+				if not seenSpells[spell] then
+					seenSpells[spell] = true
+					local printedName = (
+						statsMod.SpellInfo
+						and statsMod.SpellInfo[spell]
+						and statsMod.SpellInfo[spell].printedName
+					) or spell
+					table.insert(actionsMod.itemData.Spells, {
+						Name = printedName,
+						Icon = statsMod.Pics[statsMod.SpellInfo[spell].spellType], -- TODO: real icon
+						Type = "Spell",
+						InternalName = spell,
+					})
+				end
 			end
 		end
 	end
 
-	-- Limit to 16 per category
+	-- Limit to 16 per category (optional safety cap)
 	for _, cat in pairs({ "Staffs", "Creatures", "Spells" }) do
 		local list = actionsMod.itemData[cat]
 		if #list > 16 then
@@ -254,10 +258,14 @@ end)
 local function setupDefaultSelections(force: boolean?)
 	if force then
 		for _, btn in ipairs(actionsMod.buttons) do
-			btn.Text = btn.Name
+			btn.NameLabel.Text = btn.Name
 			if btn:IsA("ImageButton") then
 				btn.Image = "rbxassetid://0"
 			end
+			btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			btn.BackgroundTransparency = 0
+			btn.ImageTransparency = 0.6
+			btn.NameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 			btn:SetAttribute("SelectedItem", nil)
 			btn:SetAttribute("ItemType", nil)
 			btn:SetAttribute("InternalName", nil)
@@ -321,10 +329,16 @@ local function setupDefaultSelections(force: boolean?)
 
 	if staffButton and #actionsMod.itemData.Staffs > 0 then
 		local item = actionsMod.itemData.Staffs[1]
-		staffButton.Text = item.Name or "?"
+		staffButton.NameLabel.Text = item.Name or "?"
 		if staffButton:IsA("ImageButton") then
 			staffButton.Image = item.Icon or "rbxassetid://0"
 		end
+		staffButton.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+		staffButton.BackgroundTransparency = 0
+		staffButton.ImageTransparency = 0
+		local tempcolor = staffButton.BackgroundColor3
+		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+		staffButton.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		staffButton:SetAttribute("SelectedItem", item.Name)
 		staffButton:SetAttribute("ItemType", item.Type)
 		staffButton:SetAttribute("InternalName", item.InternalName or "")
@@ -348,10 +362,16 @@ local function setupDefaultSelections(force: boolean?)
 	for i = 1, math.min(2, numCreatureSlots, #unlockedCreatures) do
 		local item = unlockedCreatures[i]
 		local btn = creatureButtons[i]
-		btn.Text = item.Name or "?"
+		btn.NameLabel.Text = item.Name or "?"
 		if btn:IsA("ImageButton") then
 			btn.Image = item.Icon or "rbxassetid://0"
 		end
+		btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+		btn.BackgroundTransparency = 0
+		btn.ImageTransparency = 0
+		local tempcolor = btn.BackgroundColor3
+		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		btn:SetAttribute("SelectedItem", item.Name)
 		btn:SetAttribute("ItemType", item.Type)
 		btn:SetAttribute("InternalName", item.InternalName or "")
@@ -362,10 +382,16 @@ local function setupDefaultSelections(force: boolean?)
 	for i = 1, math.min(7, numSpellSlots, #unlockedSpells) do
 		local item = unlockedSpells[i]
 		local btn = spellButtons[i]
-		btn.Text = item.Name or "?"
+		btn.NameLabel.Text = item.Name or "?"
 		if btn:IsA("ImageButton") then
 			btn.Image = item.Icon or "rbxassetid://0"
 		end
+		btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+		btn.BackgroundTransparency = 0
+		btn.ImageTransparency = 0
+		local tempcolor = btn.BackgroundColor3
+		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		btn:SetAttribute("SelectedItem", item.Name)
 		btn:SetAttribute("ItemType", item.Type)
 		btn:SetAttribute("InternalName", item.InternalName or "")
@@ -472,12 +498,20 @@ local function updateButtonStates()
 				end
 			end
 
+			if spellName == "TheftOfSoul" and player.Character then
+				local eligiblesoul = recycleMod.GetEligibleSoul(player.Character)
+				if not eligiblesoul then
+					disableButton(btn)
+				end
+			end
+
 			if spell.spellType and table.find({ "damage", "areaDamage", "debuff" }, spell.spellType) then
 				local range = spell.range or 30
 				if player.Character and not utilMod.IsEnemyInRange(player.Character, range) then
 					disableButton(btn)
 				end
 			end
+
 		end
 	end
 end
@@ -506,6 +540,24 @@ local function updateMagicUI()
 
 	updateItemData()
 	setupDefaultSelections(true) -- force during development; change to false later
+
+	-- Reapply styles to all buttons based on new theme
+	for _, btn in ipairs(actionsMod.buttons) do
+		if btn:GetAttribute("InternalName") then
+			btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+			btn.BackgroundTransparency = 0
+			btn.ImageTransparency = 0
+			local tempcolor = btn.BackgroundColor3
+			local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+			btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			btn.BackgroundTransparency = 0
+			btn.ImageTransparency = 0.6
+			btn.NameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+		end
+	end
+
 	updateButtonStates()
 end
 
@@ -564,6 +616,7 @@ local function populateSelection(items)
 		label.BackgroundTransparency = 1
 		label.Text = item.Name or "?"
 		label.TextScaled = true
+		label.TextWrapped = true
 		label.Font = Enum.Font.GothamBold
 
 		-- Make text readable on colored background
@@ -572,7 +625,7 @@ local function populateSelection(items)
 		else
 			-- White or black depending on cast color brightness (simple heuristic)
 			local tempcolor = Color3.fromHex(actionsMod.CastColor)
-			local brightness = (tempcolor.R + tempcolor.G + tempcolor.B) / 3
+			local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
 			label.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		end
 		label.Parent = slot
@@ -602,10 +655,14 @@ local function populateSelection(items)
 				end
 
 				if item.IsPlaceholder then
-					actionsMod.selectedButton.Text = actionsMod.selectedButton.Name
+					actionsMod.selectedButton.NameLabel.Text = actionsMod.selectedButton.Name
 					if actionsMod.selectedButton:IsA("ImageButton") then
 						actionsMod.selectedButton.Image = "rbxassetid://0"
 					end
+					actionsMod.selectedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+					actionsMod.selectedButton.BackgroundTransparency = 0
+					actionsMod.selectedButton.ImageTransparency = 0.6
+					actionsMod.selectedButton.NameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 					actionsMod.selectedButton:SetAttribute("SelectedItem", nil)
 					actionsMod.selectedButton:SetAttribute("ItemType", nil)
 					actionsMod.selectedButton:SetAttribute("InternalName", nil)
@@ -617,10 +674,16 @@ local function populateSelection(items)
 						end
 					end
 				else
-					actionsMod.selectedButton.Text = item.Name or "?"
+					actionsMod.selectedButton.NameLabel.Text = item.Name or "?"
 					if actionsMod.selectedButton:IsA("ImageButton") then
 						actionsMod.selectedButton.Image = item.Icon or "rbxassetid://0"
 					end
+					actionsMod.selectedButton.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+					actionsMod.selectedButton.BackgroundTransparency = 0
+					actionsMod.selectedButton.ImageTransparency = 0
+					local tempcolor = actionsMod.selectedButton.BackgroundColor3
+					local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+					actionsMod.selectedButton.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 					actionsMod.selectedButton:SetAttribute("SelectedItem", item.Name)
 					actionsMod.selectedButton:SetAttribute("ItemType", item.Type)
 					actionsMod.selectedButton:SetAttribute("InternalName", item.InternalName or "")
@@ -761,6 +824,23 @@ local function initializeButtons()
 			stroke.Thickness = 1
 			stroke.Color = Color3.fromRGB(255, 255, 255)
 			stroke.Parent = child
+		end
+
+		if not child:FindFirstChild("NameLabel") then
+			local label = Instance.new("TextLabel")
+			label.Name = "NameLabel"
+			label.Size = UDim2.new(1, 0, 1, 0)
+			label.BackgroundTransparency = 1
+			label.Text = child.Name
+			label.TextScaled = true
+			label.TextWrapped = true
+			label.Font = Enum.Font.GothamBold
+			label.TextColor3 = Color3.fromRGB(180, 180, 180)
+			label.Parent = child
+		end
+
+		if child:IsA("ImageButton") then
+			child.ScaleType = Enum.ScaleType.Fit
 		end
 
 		child.MouseEnter:Connect(function()
@@ -948,6 +1028,8 @@ local function setupInputHandling()
 end
 
 function actionsMod.Init()
+
+	task.wait(.3)
 	-- 🔥 Disable Roblox automatic gamepad GUI navigation
 	GuiService.GuiNavigationEnabled = false
 	GuiService.AutoSelectGuiEnabled = false
