@@ -263,9 +263,9 @@ testMod.CalculateDPS({}, {}, "StoneManaPriest")
 --testMod.CalculateDPS({"HardSkin"}, {}, "StoneManaPriest")
 
 -- Pure debuff on defender
---testMod.CalculateDPS({}, {"StoneonFoot"}, "StoneManaPriest")
+--testMod.CalculateDPS({}, {"AnchoredFoot"}, "StoneManaPriest")
 
 -- Both: buffed attacker vs debuffed defender
---testMod.CalculateDPS({"HardSkin"}, {"StoneonFoot"}, "StoneManaPriest")
+--testMod.CalculateDPS({"HardSkin"}, {"AnchoredFoot"}, "StoneManaPriest")
 
 return testMod

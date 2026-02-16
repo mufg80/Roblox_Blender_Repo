@@ -1,25 +1,27 @@
 --!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
+local castFeedback = require(ReplicatedStorage.Client.CastFeedback)
 local camera = workspace.CurrentCamera
 local tool: Tool = script.Parent
 local player: Player = Players.LocalPlayer
 local character: Model = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
 local animator: Animator = humanoid:WaitForChild("Animator")
-
+local staffType = tool:GetAttribute("StaffType")
+local stats = statsMod.StaffStats[staffType] or {}
+local staffCooldown = stats.coolDown or 1.0 -- fallback 1 second
 
 local UserInputService = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
 local crosshairGui = player.PlayerGui:WaitForChild("CrossHairGui")
-local isCrosshairsVisible:boolean = false
+local isCrosshairsVisible: boolean = false
 local verticalOffset = -100
 local horizontalOffset = 100
 
-
 local function updateVisibility(equipped: boolean)
-	local position  = UDim2.new(0.5, horizontalOffset, 0.5, verticalOffset)
+	local position = UDim2.new(0.5, horizontalOffset, 0.5, verticalOffset)
 	local label = crosshairGui:FindFirstChild("ImageLabel")
 	label.Position = position
 	if isCrosshairsVisible and equipped then
@@ -27,7 +29,6 @@ local function updateVisibility(equipped: boolean)
 	else
 		crosshairGui.Enabled = false
 	end
-	
 end
 
 UserInputService.GamepadConnected:Connect(function()
@@ -38,7 +39,6 @@ UserInputService.GamepadDisconnected:Connect(function()
 end)
 
 isCrosshairsVisible = UserInputService.GamepadEnabled
-
 
 player:SetAttribute("Firing", false)
 -- Load animations from tool's child Animation objects (different IDs per staff)
@@ -109,7 +109,7 @@ local function GetAimPosition(maxDistance: number): Vector3
 	end
 
 	local rayParams = RaycastParams.new()
-	rayParams.FilterDescendantsInstances = {character}
+	rayParams.FilterDescendantsInstances = { character }
 	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 	rayParams.IgnoreWater = true
 
@@ -143,13 +143,18 @@ tool.Activated:Connect(function()
 
 		task.wait(0.3) -- Sync with fire anim
 
+		-- local color = statsMod.Colors[stats.magicType]
+		-- castFeedback.StartCast(staffCooldown, color, function()
+		-- 	debounce = true
+		-- end)
+
 		fireRemote:FireServer(targetPosition, staffType)
 
 		holdTrack:Play()
 	end
 
-	task.wait(1) -- Cooldown
-	
+	task.wait(staffCooldown) -- Cooldown
+	print(staffCooldown)
 	player:SetAttribute("Firing", false)
 	debounce = true
 end)

@@ -126,26 +126,39 @@ local function setStaffandPets(player: Player, char: Model): ()
 	end
 	-- Give correct starter staff
 	local NotDead = player and not utilMod.GetAttribute(player, "HasFallen")
-	if NotDead then
-		if currentType == statsMod.MagicType.Artificer then
-			staffName = "StarterStaffArtificer"
-		elseif currentType == statsMod.MagicType.Primordial then
-			staffName = "StarterStaffPrimordial"
-		elseif currentType == statsMod.MagicType.Nature then
-			staffName = "StarterStaffNature"
-		end
+	-- if NotDead then
+	-- 	if currentType == statsMod.MagicType.Artificer then
+	-- 		staffName = "StarterStaffArtificer"
+	-- 	elseif currentType == statsMod.MagicType.Primordial then
+	-- 		staffName = "StarterStaffPrimordial"
+	-- 	elseif currentType == statsMod.MagicType.Nature then
+	-- 		staffName = "StarterStaffNature"
+	-- 	end
 
-		if staffName and backpack then
-			local staff = hidden:FindFirstChild(staffName)
-			if staff and staff:IsA("Tool") then
-				staff.Parent = backpack
-			else
-				local template = ServerStorage.Staffs:FindFirstChild(staffName)
-				if template and template:IsA("Tool") then
-					local clone = template:Clone()
-					clone.Parent = backpack
-				end
+	-- 	if staffName and backpack then
+	-- 		local staff = hidden:FindFirstChild(staffName)
+	-- 		if staff and staff:IsA("Tool") then
+	-- 			staff.Parent = backpack
+	-- 		else
+	-- 			local template = ServerStorage.Staffs:FindFirstChild(staffName)
+	-- 			if template and template:IsA("Tool") then
+	-- 				local clone = template:Clone()
+	-- 				clone.Parent = backpack
+	-- 			end
+	-- 		end
+	-- 	end
+	-- end
+	if next(hidden:GetChildren()) == nil then
+		for i, staff in ServerStorage.Staffs:GetChildren() do
+			local temp = staff:Clone()
+			if temp and temp:IsA("Tool") then
+				temp.Parent = hidden
 			end
+		end
+	end
+	if NotDead then
+		for _,staff in hidden:GetChildren() do
+			staff.Parent = backpack
 		end
 	end
 end
@@ -202,8 +215,6 @@ local function CharacterAdded(character: Model)
 	if not player then
 		return
 	end
-
-	
 
 	setCollisionGroup(player.UserId, character)
 	local souls = utilMod.GetAttribute(player, "Souls") or 0
@@ -423,6 +434,8 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "PetFollow", true)
 	utilMod.SetAttribute(player, "PetTakeLith", false)
 	utilMod.SetAttribute(player, "PetDefendLith", false)
+    --utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryHammer", true)
+	
 
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
 end)
@@ -438,6 +451,7 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 	end
 
 	local castTime = utilMod.CreatureCastTime(creatureName)
+	combatMod.AdjustSpeedOfHumanoid(player, castTime)
 	task.delay(castTime, function()
 		if utilMod.GetAttribute(player, "HasFallen") then
 			return
@@ -485,6 +499,7 @@ spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
 	end
 
 	local castTime = spell.castTime or 3
+	combatMod.AdjustSpeedOfHumanoid(player, castTime)
 	task.delay(castTime, function()
 		if utilMod.GetAttribute(player, "HasFallen") then
 			return

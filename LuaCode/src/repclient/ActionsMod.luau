@@ -54,6 +54,49 @@ actionsMod.itemData = {
 	Spells = {},
 }
 
+
+-- Returns a table shaped like statsMod.MagicLevels, but only containing bonus/earned items
+-- Structure: { Artificer = { staffs = {...}, abilities = {...}, spells = {...} }, ... }
+function actionsMod.GetEarnedBonusItems()
+    local player = game.Players.LocalPlayer
+    local bonus = {
+        Artificer = { staffs = {}, abilities = {}, spells = {} },
+        Primordial = { staffs = {}, abilities = {}, spells = {} },
+        Nature    = { staffs = {}, abilities = {}, spells = {} },
+    }
+
+    -- Helper to add item to the correct path/category
+    local function addToPath(magicType, category, itemName)
+        if not bonus[magicType] then return end
+        if not bonus[magicType][category] then return end
+        table.insert(bonus[magicType][category], itemName)
+    end
+
+    -- Get all current attributes (this is fast and local)
+    local attributes = player:GetAttributes()  -- returns a dictionary { [key] = value, ... }
+
+    for attrName, value in pairs(attributes) do
+        if value ~= true then continue end   -- only care about true flags
+
+        -- Pattern: "Earned_Staff_Artificer_LegendaryHammer" → categoryRaw = "Staff", magicType = "Artificer", itemName = "LegendaryHammer"
+        local categoryRaw, magicType, itemName = attrName:match("^Earned_(%w+)_(%w+)_(.+)$")
+
+        if categoryRaw and magicType and itemName then
+            local categoryLower = categoryRaw:lower()
+
+            if categoryLower == "staff" or categoryLower == "staffs" then
+                addToPath(magicType, "staffs", itemName)
+            elseif categoryLower == "ability" or categoryLower == "abilities" or categoryLower == "creature" or categoryLower == "creatures" then
+                addToPath(magicType, "abilities", itemName)
+            elseif categoryLower == "spell" or categoryLower == "spells" then
+                addToPath(magicType, "spells", itemName)
+            end
+        end
+    end
+
+    return bonus
+end
+
 actionsMod.CastColor = nil
 
 -- Helper: Get current level for the active magic type
@@ -153,101 +196,209 @@ local function getAvailableItems(category)
 	return available
 end
 
--- Populate itemData based on current magic type and unlocked levels
+--        Example attributes for pickup now
+--Earned_Staff_Artificer_LegendaryHammer     = true
+--Earned_Ability_Nature_EternalBloom         = true
+--Earned_Spell_Primordial_VoidNova           = true
+--Earned_Staff_Primordial_CrystalWand        = true
+
+-- Populate itemData based on current magic type and unlocked levels + earned bonuses
 local function updateItemData()
-	local magicType = utilMod.GetAttribute(player, "Magic")
-	local level = getLevelForType(magicType)
+    local magicType = utilMod.GetAttribute(player, "Magic")
+    local level = getLevelForType(magicType)
 
-	actionsMod.itemData = {
-		Staffs = {},
-		Creatures = {},
-		Spells = {},
-	}
+    actionsMod.itemData = {
+        Staffs = {},
+        Creatures = {},
+        Spells = {},
+    }
 
-	if magicType == statsMod.MagicType.None then
-		return
-	end
+    if magicType == statsMod.MagicType.None then
+        return
+    end
 
-	-- Staffs: Starter staff always available
-	if statsMod.StaffStats then
-		local starterKey
-		if magicType == statsMod.MagicType.Artificer then
-			starterKey = "StarterStaffArtificer"
-		elseif magicType == statsMod.MagicType.Primordial then
-			starterKey = "StarterStaffPrimordial"
-		elseif magicType == statsMod.MagicType.Nature then
-			starterKey = "StarterStaffNature"
-		end
+    local pathName
+    if magicType == statsMod.MagicType.Artificer then
+        pathName = "Artificer"
+    elseif magicType == statsMod.MagicType.Primordial then
+        pathName = "Primordial"
+    elseif magicType == statsMod.MagicType.Nature then
+        pathName = "Nature"
+    else
+        return
+    end
 
-		if starterKey and statsMod.StaffStats[starterKey] and not utilMod.GetAttribute(player, "HasFallen") then
-			local staffData = statsMod.StaffStats[starterKey]
-			table.insert(actionsMod.itemData.Staffs, {
-				Name = staffData.printedName or staffData.name or starterKey,
-				Icon = statsMod.Pics[starterKey],
-				Type = "Staff",
-				InternalName = starterKey,
-			})
-		end
-	end
+    local typeLevels = statsMod.MagicLevels and statsMod.MagicLevels[pathName] or {}
 
-	-- Creatures / Abilities & Spells
-	local typeLevels = statsMod.MagicLevels and statsMod.MagicLevels[magicType] or {}
-	local seenCreatures = {}
-	local seenSpells = {}
+    local seenStaffs    = {}
+    local seenCreatures = {}
+    local seenSpells    = {}
 
-	for lvl = 1, level do
-		local levelData = typeLevels["Level" .. lvl]
-		if not levelData then
-			continue
-		end
+    -- ────────────────────────────────────────────────
+    -- 1. Starter staff (always included unless HasFallen)
+    -- ────────────────────────────────────────────────
+    local starterKey
+    if magicType == statsMod.MagicType.Artificer then
+        starterKey = "StarterStaffArtificer"
+    elseif magicType == statsMod.MagicType.Primordial then
+        starterKey = "StarterStaffPrimordial"
+    elseif magicType == statsMod.MagicType.Nature then
+        starterKey = "StarterStaffNature"
+    end
 
-		-- Abilities (still single string)
-		if levelData.Abilities then
-			local ability = levelData.Abilities
-			if not seenCreatures[ability] then
-				seenCreatures[ability] = true
-				local printedName = (
-					statsMod.creatureStats
-					and statsMod.creatureStats[ability]
-					and statsMod.creatureStats[ability].printedName
-				) or ability
-				table.insert(actionsMod.itemData.Creatures, {
-					Name = printedName,
-					Icon = statsMod.Pics[ability], -- TODO: real icon
-					Type = "Creature",
-					InternalName = ability,
-				})
-			end
-		end
+    if starterKey and not utilMod.GetAttribute(player, "HasFallen") then
+        if statsMod.StaffStats and statsMod.StaffStats[starterKey] then
+            local staffData = statsMod.StaffStats[starterKey]
+            if not seenStaffs[starterKey] then
+                seenStaffs[starterKey] = true
+                table.insert(actionsMod.itemData.Staffs, {
+                    Name = staffData.printedName or staffData.name or starterKey,
+                    Icon = statsMod.Pics[starterKey] or "rbxassetid://0",
+                    Type = "Staff",
+                    InternalName = starterKey,
+                })
+            end
+        end
+    end
 
-		-- Spells (now always a table)
-		if levelData.Spells then
-			for _, spell in ipairs(levelData.Spells) do
-				if not seenSpells[spell] then
-					seenSpells[spell] = true
-					local printedName = (
-						statsMod.SpellInfo
-						and statsMod.SpellInfo[spell]
-						and statsMod.SpellInfo[spell].printedName
-					) or spell
-					table.insert(actionsMod.itemData.Spells, {
-						Name = printedName,
-						Icon = statsMod.Pics[statsMod.SpellInfo[spell].spellType], -- TODO: real icon
-						Type = "Spell",
-						InternalName = spell,
-					})
-				end
-			end
-		end
-	end
+    -- ────────────────────────────────────────────────
+    -- 2. Normal progression (levels 1 to current level)
+    -- ────────────────────────────────────────────────
+    for lvl = 1, level do
+        local levelKey = "Level" .. lvl
+        local levelData = typeLevels[levelKey]
+        if not levelData then continue end
 
-	-- Limit to 16 per category (optional safety cap)
-	for _, cat in pairs({ "Staffs", "Creatures", "Spells" }) do
-		local list = actionsMod.itemData[cat]
-		if #list > 16 then
-			actionsMod.itemData[cat] = { unpack(list, 1, 16) }
-		end
-	end
+        -- Staffs
+        if levelData.staffs then
+            for _, staffName in ipairs(levelData.staffs) do
+                if staffName and staffName ~= "" and not seenStaffs[staffName] then
+                    seenStaffs[staffName] = true
+                    local staffData = statsMod.StaffStats and statsMod.StaffStats[staffName]
+                    local printedName = staffData and (staffData.printedName or staffData.name) or staffName
+                    table.insert(actionsMod.itemData.Staffs, {
+                        Name = printedName,
+                        Icon = statsMod.Pics[staffName] or "rbxassetid://0",
+                        Type = "Staff",
+                        InternalName = staffName,
+                    })
+                end
+            end
+        end
+
+        -- Abilities / Creatures
+        if levelData.abilities then
+            for _, creatureName in ipairs(levelData.abilities) do
+                if creatureName and creatureName ~= "" and not seenCreatures[creatureName] then
+                    seenCreatures[creatureName] = true
+                    local printedName = (
+                        statsMod.creatureStats
+                        and statsMod.creatureStats[creatureName]
+                        and statsMod.creatureStats[creatureName].printedName
+                    ) or creatureName
+                    table.insert(actionsMod.itemData.Creatures, {
+                        Name = printedName,
+                        Icon = statsMod.Pics[creatureName] or "rbxassetid://0",
+                        Type = "Creature",
+                        InternalName = creatureName,
+                    })
+                end
+            end
+        end
+
+        -- Spells
+        if levelData.spells then
+            for _, spell in ipairs(levelData.spells) do
+                if spell and spell ~= "" and not seenSpells[spell] then
+                    seenSpells[spell] = true
+                    local printedName = (
+                        statsMod.SpellInfo
+                        and statsMod.SpellInfo[spell]
+                        and statsMod.SpellInfo[spell].printedName
+                    ) or spell
+                    table.insert(actionsMod.itemData.Spells, {
+                        Name = printedName,
+                        Icon = (
+                            statsMod.SpellInfo and statsMod.SpellInfo[spell]
+                            and statsMod.Pics[statsMod.SpellInfo[spell].spellType]
+                        ) or "rbxassetid://0",
+                        Type = "Spell",
+                        InternalName = spell,
+                    })
+                end
+            end
+        end
+    end
+
+    -- ────────────────────────────────────────────────
+    -- 3. Bonus items from attributes (Earned_...)
+    -- ────────────────────────────────────────────────
+    local bonusItems = actionsMod.GetEarnedBonusItems()
+    local bonusForPath = bonusItems[pathName] or { staffs = {}, abilities = {}, spells = {} }
+
+    -- Bonus Staffs
+    for _, staffName in ipairs(bonusForPath.staffs) do
+        if staffName and staffName ~= "" and not seenStaffs[staffName] then
+            seenStaffs[staffName] = true
+            local staffData = statsMod.StaffStats and statsMod.StaffStats[staffName]
+            local printedName = staffData and (staffData.printedName or staffData.name) or staffName
+            table.insert(actionsMod.itemData.Staffs, {
+                Name = printedName,
+                Icon = statsMod.Pics[staffName] or "rbxassetid://0",
+                Type = "Staff",
+                InternalName = staffName,
+            })
+        end
+    end
+
+    -- Bonus Abilities/Creatures
+    for _, creatureName in ipairs(bonusForPath.abilities) do
+        if creatureName and creatureName ~= "" and not seenCreatures[creatureName] then
+            seenCreatures[creatureName] = true
+            local printedName = (
+                statsMod.creatureStats
+                and statsMod.creatureStats[creatureName]
+                and statsMod.creatureStats[creatureName].printedName
+            ) or creatureName
+            table.insert(actionsMod.itemData.Creatures, {
+                Name = printedName,
+                Icon = statsMod.Pics[creatureName] or "rbxassetid://0",
+                Type = "Creature",
+                InternalName = creatureName,
+            })
+        end
+    end
+
+    -- Bonus Spells
+    for _, spell in ipairs(bonusForPath.spells) do
+        if spell and spell ~= "" and not seenSpells[spell] then
+            seenSpells[spell] = true
+            local printedName = (
+                statsMod.SpellInfo
+                and statsMod.SpellInfo[spell]
+                and statsMod.SpellInfo[spell].printedName
+            ) or spell
+            table.insert(actionsMod.itemData.Spells, {
+                Name = printedName,
+                Icon = (
+                    statsMod.SpellInfo and statsMod.SpellInfo[spell]
+                    and statsMod.Pics[statsMod.SpellInfo[spell].spellType]
+                ) or "rbxassetid://0",
+                Type = "Spell",
+                InternalName = spell,
+            })
+        end
+    end
+
+    -- ────────────────────────────────────────────────
+    -- 4. Optional safety cap (prevent UI overflow)
+    -- ────────────────────────────────────────────────
+    for _, cat in pairs({"Staffs", "Creatures", "Spells"}) do
+        local list = actionsMod.itemData[cat]
+        if #list > 16 then
+            actionsMod.itemData[cat] = { table.unpack(list, 1, 16) }
+        end
+    end
 end
 
 player:GetAttributeChangedSignal("HasFallen"):Connect(function()
@@ -749,7 +900,6 @@ local function startCastAndCooldown(duration: number, itemName: string, cooldown
 
 	utilMod.SetAttribute(player, "button_" .. itemName, time() + fullCooldown)
 	actionsMod.cooldowns[itemName] = time() + fullCooldown
-
 	onCast()
 
 	task.delay(0.05, updateButtonStates)
@@ -785,6 +935,7 @@ local function useItem(button)
 	elseif itemType == "Creature" then
 		local creatureName = internalName
 		local castTime = utilMod.CreatureCastTime and utilMod.CreatureCastTime(creatureName) or 1.5
+		
 		startCastAndCooldown(castTime, internalName, 3, function()
 			Events.SummonEvent:FireServer(creatureName)
 		end)
@@ -795,7 +946,9 @@ local function useItem(button)
 			return
 		end
 		local castTime = spellInfo.castTime or 2
+		
 		local extraCooldown = spellInfo.cooldown or 0
+		
 		startCastAndCooldown(castTime, internalName, extraCooldown, function()
 			Events.SpellCastEvent:FireServer(spellName)
 		end)

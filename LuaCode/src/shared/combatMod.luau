@@ -282,6 +282,21 @@ function combatMod.ExecuteSpellDamageToBody(source: Model, target: Model, damage
 	return true
 end
 
+function combatMod.AdjustSpeedOfHumanoid(player:Player, casttime:number):()
+	if not player or not casttime or casttime < .1 then return end
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChild("Humanoid")
+		if hum then
+			hum.WalkSpeed = 4
+			task.spawn(function()
+				task.wait(casttime)
+				hum.WalkSpeed = 16
+			end)
+		end
+	end
+end
+
 --==============================================================================
 -- Summons or recycles a creature/pet for a player
 --==============================================================================
@@ -379,6 +394,7 @@ end
 -- Main spell dispatcher – handles all spell types
 --==============================================================================
 function combatMod.ApplySpell(player: Player, spellname: string)
+	print("applyspellcalled")
 	local info = statsMod.SpellInfo[spellname]
 	if not info then
 		warn("Spell not found:", spellname)
@@ -687,6 +703,7 @@ export type CombatMod = {
 	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
 	CalculateAggro: (damageTaken: number) -> number,
 	ApplyPriestSpell: (model: Model, target: Model, spellname: string) -> (),
+	AdjustSpeedOfHumanoid: (player:Player, casttime:number)-> (),
 }
 
 return combatMod :: CombatMod

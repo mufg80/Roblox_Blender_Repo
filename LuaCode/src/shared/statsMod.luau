@@ -314,7 +314,7 @@ statsMod.SpellInfo = {
 		effectOffsetXZ = 0,
 		printedName = "Revive Spirit",
 	},
-	StoneonFoot = {
+	AnchoredFoot = {
 		manaCost = 0.4,
 		magicType = "Artificer",
 		spellType = "debuff",
@@ -663,34 +663,34 @@ statsMod.SpellInfo = {
 	},
 }
 
--- Progression per magic path (Spells always as table)
+-- Progression per magic path
 statsMod.MagicLevels = {
 	Artificer = {
-		Level1 = { Abilities = "StoneManaPriest", Spells = { "ConvertSpout", "TheftOfSoul" } },
-		Level2 = { Abilities = "ArtifactGuardian", Spells = { "ScrewFall" } },
-		Level3 = { Abilities = "GrandPo", Spells = { "HardSkin" } },
-		Level4 = { Abilities = "CoatArms", Spells = { "ReviveSpirit" } },
-		Level5 = { Abilities = "ArtifactProtector", Spells = { "ReclaimPet" } },
-		Level6 = { Abilities = "SuitArms", Spells = { "StoneonFoot" } },
-		Level7 = { Abilities = "FlyingGargoyle", Spells = { "Avalanche" } },
+		Level1 = { staffs = {"StarterStaffArtificer"}, abilities = { "StoneManaPriest" } , spells = { "ConvertSpout", "TheftOfSoul" } },
+		Level2 = { staffs = {}, abilities = { "ArtifactGuardian" } , spells = { "ScrewFall" } },
+		Level3 = { staffs = {}, abilities = { "GrandPo" } , spells = { "HardSkin" } },
+		Level4 = { staffs = {}, abilities = { "CoatArms" } , spells = { "ReviveSpirit" } },
+		Level5 = { staffs = {}, abilities = { "ArtifactProtector" } , spells = { "ReclaimPet" } },
+		Level6 = { staffs = {}, abilities = { "SuitArms" } , spells = { "AnchoredFoot" } },
+		Level7 = { staffs = {}, abilities = { "FlyingGargoyle" } , spells = { "Avalanche" } },
 	},
 	Primordial = {
-		Level1 = { Abilities = "MudPriest", Spells = { "ConvertSpout", "TheftOfSoul" } },
-		Level2 = { Abilities = "Dybb", Spells = { "DormantVirus" } },
-		Level3 = { Abilities = "Blob", Spells = { "AnimatedAttacks" } },
-		Level4 = { Abilities = "LithEater", Spells = { "HalfLife" } },
-		Level5 = { Abilities = "FossilizedDybb", Spells = { "ReclaimPet" } },
-		Level6 = { Abilities = "GiantAmoeba", Spells = { "GooSwamp" } },
-		Level7 = { Abilities = "WingedLith", Spells = { "InhostpitableAtmosphere" } },
+		Level1 = { staffs = {"StarterStaffPrimordial"}, abilities = { "MudPriest"}, spells = { "ConvertSpout", "TheftOfSoul" } },
+		Level2 = { staffs = {}, abilities = { "Dybb"}, spells = { "DormantVirus" } },
+		Level3 = { staffs = {}, abilities = { "Blob"}, spells = { "AnimatedAttacks" } },
+		Level4 = { staffs = {}, abilities = { "LithEater"}, spells = { "HalfLife" } },
+		Level5 = { staffs = {}, abilities = { "FossilizedDybb"}, spells = { "ReclaimPet" } },
+		Level6 = { staffs = {}, abilities = { "GiantAmoeba"}, spells = { "GooSwamp" } },
+		Level7 = { staffs = {}, abilities = { "WingedLith"}, spells = { "InhostpitableAtmosphere" } },
 	},
 	Nature = {
-		Level1 = { Abilities = "UnkemptDruid", Spells = { "ConvertSpout", "TheftOfSoul" } },
-		Level2 = { Abilities = "Pog", Spells = { "StingingSwarm" } },
-		Level3 = { Abilities = "WindSpirit", Spells = { "AgilityoftheSquirrell" } },
-		Level4 = { Abilities = "GreatTuskedPog", Spells = { "Regenerate" } },
-		Level5 = { Abilities = "VenusDybbTrap", Spells = { "ReclaimPet" } },
-		Level6 = { Abilities = "AwakenedTreant", Spells = { "Root" } },
-		Level7 = { Abilities = "Griffin", Spells = { "NaturesDefenders" } },
+		Level1 = { staffs = {"StarterStaffNature", "StarterStaffPrimordial", "StarterStaffArtificer"}, abilities = { "UnkemptDruid"}, spells = { "ConvertSpout", "TheftOfSoul" } },
+		Level2 = { staffs = {}, abilities = { "Pog"}, spells = { "StingingSwarm" } },
+		Level3 = { staffs = {}, abilities = { "WindSpirit"}, spells = { "AgilityoftheSquirrell" } },
+		Level4 = { staffs = {}, abilities = { "GreatTuskedPog"}, spells = { "Regenerate" } },
+		Level5 = { staffs = {}, abilities = { "VenusDybbTrap"}, spells = { "ReclaimPet" } },
+		Level6 = { staffs = {}, abilities = { "AwakenedTreant"}, spells = { "Root" } },
+		Level7 = { staffs = {}, abilities = { "Griffin"}, spells = { "NaturesDefenders" } },
 	},
 }
 
@@ -712,7 +712,7 @@ statsMod.BuffInfo = {
 	ReviveSpirit = { hitPoints = 10, seconds = 4 },
 	ScrewFall = { hitPoints = 0, seconds = 2 },
 	Avalanche = { hitPoints = 0, seconds = 2 },
-	StoneonFoot = {
+	AnchoredFoot = {
 		attack = -0.08,
 		attackDelay = 0.13,
 		defense = -0.19,
@@ -832,6 +832,7 @@ statsMod.StaffStats = {
 		visualSize = 0.5,
 		visualTime = 0.8,
 		BulletTemplate = "StarterStaffBullet",
+		CoolDown = 0.5,
 		printedName = "Artificer Staff",
 	},
 	StarterStaffPrimordial = {
@@ -844,6 +845,7 @@ statsMod.StaffStats = {
 		visualSize = 0.5,
 		visualTime = 0.5,
 		BulletTemplate = "StarterStaffBullet",
+		CoolDown = 0.5,
 		printedName = "Primordial Staff",
 	},
 	StarterStaffNature = {
@@ -856,6 +858,7 @@ statsMod.StaffStats = {
 		visualSize = 0.5,
 		visualTime = 0.5,
 		BulletTemplate = "StarterStaffBullet",
+		coolDown = 3.5,
 		printedName = "Nature Staff",
 	},
 }
