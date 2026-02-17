@@ -67,7 +67,7 @@ local animTracks: AnimTrackDict = {
 	idleSpeed = nil,
 	deathSpeed = nil,
 	castSpeed = nil,
-	attackSpeeds = { 1, 1, 1, 1 },
+	attackSpeeds = { 1.5, 1.5, 1.5, 1.5, 1.5, 1.5 },
 }
 
 if animator then
@@ -99,6 +99,7 @@ if animator then
 			while attack.Length <= 0 do
 				task.wait()
 			end
+			print("Attacklength ".. attack.Length)
 			if MINATTACKDELAY < attack.Length / (animTracks.attackSpeeds[i] or 1) then
 				MINATTACKDELAY = attack.Length / (animTracks.attackSpeeds[i] or 1)
 			end
@@ -132,6 +133,7 @@ task.spawn(function()
 		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
 		if ATTACK_COOLDOWN < MINATTACKDELAY then
 			ATTACK_COOLDOWN = MINATTACKDELAY
+			warn("slow anims on "..thisMob)
 		end
 
 		local ownerInstance: Model? = pet.GetOwnerModel()
@@ -247,7 +249,7 @@ task.spawn(function()
 				if not animTracks.death.IsPlaying and not deathPlayed then
 					deathPlayed = true
 					local deathanim: AnimationTrack = animTracks.death
-					deathanim:Play(0.3, 1, 1)
+					deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
 					deathanim.Stopped:Connect(function()
 						local length = deathanim.Length - 0.01
 						deathanim:AdjustSpeed(0)

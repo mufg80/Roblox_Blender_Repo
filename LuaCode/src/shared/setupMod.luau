@@ -1,4 +1,5 @@
 local PhysicsService = game:GetService("PhysicsService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
@@ -15,9 +16,9 @@ local setupMod = {}
 -- DEV Testing Quick Setup
 local function setupDevTesting(player: Player)
 	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Nature)
-	utilMod.SetAttribute(player, "NatureLevel", 5)
-	utilMod.SetAttribute(player, "PrimordialLevel", 5)
-	utilMod.SetAttribute(player, "ArtificerLevel", 5)
+	utilMod.SetAttribute(player, "NatureLevel", 2)
+	utilMod.SetAttribute(player, "PrimordialLevel", 2)
+	utilMod.SetAttribute(player, "ArtificerLevel", 1)
 end
 
 local function setCollisionGroup(plrId: number, model: Model)
@@ -57,42 +58,24 @@ local function setCollisionGroup(plrId: number, model: Model)
 end
 
 local function setStaffandPets(player: Player, char: Model): ()
-	if not player then
-		warn("Should not reach me.")
-		return
-	end
-	if not char then
-		warn("Should not reach me.")
-		return
-	end
+	if not player or not char then return end
+
 	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then
-		warn("Should not reach me.")
-		return
-	end
+	if not hum then return end
 
 	local backpack = player:FindFirstChildOfClass("Backpack")
-	local hidden = player:FindFirstChild("BackpackHidden")
-	if not hidden then
-		-- create if missing
-		hidden = Instance.new("Folder")
-		hidden.Name = "BackpackHidden"
-		hidden.Parent = player
-	end
+	if not backpack then return end
 
-	if not backpack or not hidden then
-		warn("Should not reach me.")
-		return
-	end
-
-	-- Remove old staffs from character and backpack
+	-- ────────────────────────────────────────────────
+	-- 1. Unequip & wait for staffs to leave character
+	-- ────────────────────────────────────────────────
 	hum:UnequipTools()
 
-	local timeout = tick() + 1.0 -- safety timeout
+	local timeout = tick() + 1.5
 	local allUnequipped = false
 
 	repeat
-		task.wait(0.05) -- check every ~50 ms
+		task.wait(0.05)
 		allUnequipped = true
 		for _, child in char:GetChildren() do
 			if child:IsA("Tool") and utilMod.GetAttribute(child, "StaffType") then
@@ -101,21 +84,26 @@ local function setStaffandPets(player: Player, char: Model): ()
 			end
 		end
 	until allUnequipped or tick() > timeout
-	for _, item in backpack:GetChildren() do
-		if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
-			item.Parent = hidden
-		end
+
+	if not allUnequipped then
+		warn("setStaffandPets: Timeout waiting to unequip staffs - " .. player.Name)
 	end
 
-	-- Remove mismatched pets
-	local currentType = utilMod.GetAttribute(player, "Magic")
-	local pets = utilMod.MyPets(char)
+	-- ────────────────────────────────────────────────
+	-- 2. Handle mismatched pets (unchanged)
+	-- ────────────────────────────────────────────────
+	local currentMagic = utilMod.GetAttribute(player, "Magic") or "None"
+	local pets = utilMod.MyPets(char) or {}
+
 	for _, pet in pets do
-		local petType = statsMod.creatureStats[utilMod.customTrim(pet.Name)]
-			and statsMod.creatureStats[utilMod.customTrim(pet.Name)].magicType
-		if petType and petType ~= currentType then
+		local trimmed = utilMod.customTrim(pet.Name)
+		local petType = statsMod.creatureStats[trimmed] 
+			and statsMod.creatureStats[trimmed].magicType
+			
+		if petType and petType ~= currentMagic then
 			utilMod.SetAttribute(pet, "Reclaimed", true)
 			utilMod.SetAttribute(pet, "RecycleMe", true)
+			
 			local souls = utilMod.GetAttribute(player, "Souls") or 0
 			local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0
 			if souls < maxSouls then
@@ -124,43 +112,82 @@ local function setStaffandPets(player: Player, char: Model): ()
 			end
 		end
 	end
-	-- Give correct starter staff
-	local NotDead = player and not utilMod.GetAttribute(player, "HasFallen")
-	-- if NotDead then
-	-- 	if currentType == statsMod.MagicType.Artificer then
-	-- 		staffName = "StarterStaffArtificer"
-	-- 	elseif currentType == statsMod.MagicType.Primordial then
-	-- 		staffName = "StarterStaffPrimordial"
-	-- 	elseif currentType == statsMod.MagicType.Nature then
-	-- 		staffName = "StarterStaffNature"
-	-- 	end
 
-	-- 	if staffName and backpack then
-	-- 		local staff = hidden:FindFirstChild(staffName)
-	-- 		if staff and staff:IsA("Tool") then
-	-- 			staff.Parent = backpack
-	-- 		else
-	-- 			local template = ServerStorage.Staffs:FindFirstChild(staffName)
-	-- 			if template and template:IsA("Tool") then
-	-- 				local clone = template:Clone()
-	-- 				clone.Parent = backpack
-	-- 			end
-	-- 		end
-	-- 	end
-	-- end
-	if next(hidden:GetChildren()) == nil then
-		for i, staff in ServerStorage.Staffs:GetChildren() do
-			local temp = staff:Clone()
-			if temp and temp:IsA("Tool") then
-				temp.Parent = hidden
+	-- ────────────────────────────────────────────────
+	-- 3. STAFF MANAGEMENT
+	-- ────────────────────────────────────────────────
+	local serverStaffs = ServerStorage:FindFirstChild("Staffs")
+	if not serverStaffs then
+		warn("ServerStorage.Staffs folder missing!")
+		return
+	end
+
+	-- A. Collect all desired staff names
+	local desiredStaffs = {}   -- [staffName] = true
+
+	-- Progression staffs (all levels up to current)
+	local levelAttrName = setupMod.GetMagicType(player)  -- probably returns "ArtificerLevel" or similar
+	local magiclevel = utilMod.GetAttribute(player, levelAttrName) or 1
+
+	local progression = statsMod.MagicLevels[currentMagic]
+	if progression then
+		for lv = 1, magiclevel do
+			local levelData = progression["Level" .. lv]
+			if levelData and levelData.staffs then
+				for _, name in levelData.staffs do
+					if name and name ~= "" then
+						desiredStaffs[name] = true
+					end
+				end
 			end
 		end
 	end
-	if NotDead then
-		for _,staff in hidden:GetChildren() do
-			staff.Parent = backpack
+
+	-- B. Bonus / purchasable / special unlocked staffs
+	for attrName,value in player:GetAttributes() do
+		local category, magicType, itemName = attrName:match("^Earned_(%w+)_(%w+)_(.+)$")
+		if category == "Staff" and itemName then
+			-- Only include if it matches current magic type
+			if magicType == currentMagic then
+				desiredStaffs[itemName] = true
+			end
 		end
 	end
+
+	-- C. Remove staffs that player should NOT have anymore
+	--    (wrong magic type OR not in desired list)
+	-- for _, item in backpack:GetChildren() do
+	-- 	if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
+	-- 		local shouldKeep = desiredStaffs[item.Name]
+	-- 		local staffMagic = utilMod.GetAttribute(item, "MagicType") or "Unknown"
+
+	-- 		if not shouldKeep or staffMagic ~= currentMagic then
+	-- 			item:Destroy()
+	-- 		end
+	-- 	end
+	-- end
+
+	-- For character (just in case something is still there)
+	for _, item in char:GetChildren() do
+		if item:IsA("Tool") and utilMod.GetAttribute(item, "StaffType") then
+			item:Destroy()
+		end
+	end
+
+	-- D. Give missing desired staffs
+	for staffName in pairs(desiredStaffs) do
+		if not backpack:FindFirstChild(staffName) then
+			local original = serverStaffs:FindFirstChild(staffName)
+			if original and original:IsA("Tool") then
+				local clone = original:Clone()
+												
+				clone.Parent = backpack
+			else
+				warn("Missing staff in ServerStorage.Staffs: " .. staffName)
+			end
+		end
+	end
+
 end
 
 function setupMod.GetMagicType(player: Player): string?
@@ -188,8 +215,10 @@ local function setStats(Char: Model, spellname: string?)
 	if not humanoid then
 		return
 	end
-
-	humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
+	local plr = Players:GetPlayerFromCharacter(Char)
+	local level = plr and utilMod.GetAttribute(plr, setupMod.GetMagicType(plr)) or 1
+	local numberlevel = tonumber(level) * 20
+	humanoid.MaxHealth = (baseStats.hitPoints + numberlevel) or humanoid.MaxHealth
 	if humanoid.Health > humanoid.MaxHealth then
 		humanoid.Health = humanoid.MaxHealth
 	end
@@ -339,18 +368,21 @@ local function CharacterAdded(character: Model)
 	player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
 		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Artificer then
 			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
+			setStats(player.Character, nil)
 		end
 	end)
 
 	player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
 		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Primordial then
 			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
+			setStats(player.Character, nil)
 		end
 	end)
 
 	player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
 		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Nature then
 			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
+			setStats(player.Character, nil)
 		end
 	end)
 
@@ -434,7 +466,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "PetFollow", true)
 	utilMod.SetAttribute(player, "PetTakeLith", false)
 	utilMod.SetAttribute(player, "PetDefendLith", false)
-    --utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryHammer", true)
+    utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryStaff", true)
 	
 
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)

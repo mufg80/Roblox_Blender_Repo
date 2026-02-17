@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
-local castFeedback = require(ReplicatedStorage.Client.CastFeedback)
 local camera = workspace.CurrentCamera
 local tool: Tool = script.Parent
 local player: Player = Players.LocalPlayer
@@ -12,6 +11,10 @@ local animator: Animator = humanoid:WaitForChild("Animator")
 local staffType = tool:GetAttribute("StaffType")
 local stats = statsMod.StaffStats[staffType] or {}
 local staffCooldown = stats.coolDown or 1.0 -- fallback 1 second
+
+local playerGui = player:WaitForChild("PlayerGui")
+local magicGui = playerGui:WaitForChild("MagicGui")
+local castFrame = magicGui:WaitForChild("CastFrame")
 
 local UserInputService = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
@@ -127,6 +130,11 @@ tool.Activated:Connect(function()
 	if not debounce then
 		return
 	end
+	if castFrame.Visible == true then
+		return
+	end
+
+
 	debounce = false
 
 	local targetPosition = GetAimPosition(1000)
@@ -143,18 +151,12 @@ tool.Activated:Connect(function()
 
 		task.wait(0.3) -- Sync with fire anim
 
-		-- local color = statsMod.Colors[stats.magicType]
-		-- castFeedback.StartCast(staffCooldown, color, function()
-		-- 	debounce = true
-		-- end)
-
 		fireRemote:FireServer(targetPosition, staffType)
 
 		holdTrack:Play()
 	end
 
 	task.wait(staffCooldown) -- Cooldown
-	print(staffCooldown)
 	player:SetAttribute("Firing", false)
 	debounce = true
 end)

@@ -52,6 +52,9 @@ function combatMod.SpellAttackResult(attackerCreature: Model, defenderCreature: 
 	end
 
 	local spell = statsMod.SpellInfo[spellName]
+	if not spell then
+		spell = statsMod.StaffStats[spellName]
+	end
 	if not attackerStats or not defenderStats or not spell then
 		return 0
 	end
@@ -394,7 +397,6 @@ end
 -- Main spell dispatcher – handles all spell types
 --==============================================================================
 function combatMod.ApplySpell(player: Player, spellname: string)
-	print("applyspellcalled")
 	local info = statsMod.SpellInfo[spellname]
 	if not info then
 		warn("Spell not found:", spellname)

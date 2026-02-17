@@ -78,7 +78,7 @@ function actionsMod.GetEarnedBonusItems()
     for attrName, value in pairs(attributes) do
         if value ~= true then continue end   -- only care about true flags
 
-        -- Pattern: "Earned_Staff_Artificer_LegendaryHammer" → categoryRaw = "Staff", magicType = "Artificer", itemName = "LegendaryHammer"
+        -- Pattern: "Earned_Staff_Nature_LegendaryStaff" → categoryRaw = "Staff", magicType = "Artificer", itemName = "LegendaryHammer"
         local categoryRaw, magicType, itemName = attrName:match("^Earned_(%w+)_(%w+)_(.+)$")
 
         if categoryRaw and magicType and itemName then
@@ -237,29 +237,29 @@ local function updateItemData()
     -- ────────────────────────────────────────────────
     -- 1. Starter staff (always included unless HasFallen)
     -- ────────────────────────────────────────────────
-    local starterKey
-    if magicType == statsMod.MagicType.Artificer then
-        starterKey = "StarterStaffArtificer"
-    elseif magicType == statsMod.MagicType.Primordial then
-        starterKey = "StarterStaffPrimordial"
-    elseif magicType == statsMod.MagicType.Nature then
-        starterKey = "StarterStaffNature"
-    end
+    -- local starterKey
+    -- if magicType == statsMod.MagicType.Artificer then
+    --     starterKey = "StarterStaffArtificer"
+    -- elseif magicType == statsMod.MagicType.Primordial then
+    --     starterKey = "StarterStaffPrimordial"
+    -- elseif magicType == statsMod.MagicType.Nature then
+    --     starterKey = "StarterStaffNature"
+    -- end
 
-    if starterKey and not utilMod.GetAttribute(player, "HasFallen") then
-        if statsMod.StaffStats and statsMod.StaffStats[starterKey] then
-            local staffData = statsMod.StaffStats[starterKey]
-            if not seenStaffs[starterKey] then
-                seenStaffs[starterKey] = true
-                table.insert(actionsMod.itemData.Staffs, {
-                    Name = staffData.printedName or staffData.name or starterKey,
-                    Icon = statsMod.Pics[starterKey] or "rbxassetid://0",
-                    Type = "Staff",
-                    InternalName = starterKey,
-                })
-            end
-        end
-    end
+    -- if starterKey and not utilMod.GetAttribute(player, "HasFallen") then
+    --     if statsMod.StaffStats and statsMod.StaffStats[starterKey] then
+    --         local staffData = statsMod.StaffStats[starterKey]
+    --         if not seenStaffs[starterKey] then
+    --             seenStaffs[starterKey] = true
+    --             table.insert(actionsMod.itemData.Staffs, {
+    --                 Name = staffData.printedName or staffData.name or starterKey,
+    --                 Icon = statsMod.Pics[starterKey] or "rbxassetid://0",
+    --                 Type = "Staff",
+    --                 InternalName = starterKey,
+    --             })
+    --         end
+    --     end
+    -- end
 
     -- ────────────────────────────────────────────────
     -- 2. Normal progression (levels 1 to current level)

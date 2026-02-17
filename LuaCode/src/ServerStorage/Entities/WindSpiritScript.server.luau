@@ -82,7 +82,7 @@ local animTracks: AnimTrackDict = {
 	favoredAttack = nil,
 	moveSpeed = nil,
 	idleSpeed = nil,
-	deathSpeed = nil,
+	deathSpeed = 1,
 	castSpeed = nil,
 	attackSpeeds = { 1, 1, 1, 1 },
 }
@@ -101,7 +101,7 @@ local dervanimTracks: AnimTrackDict = {
 	idleSpeed = nil,
 	deathSpeed = 2,
 	castSpeed = nil,
-	attackSpeeds = { 1, 1, 1, 1 },
+	attackSpeeds = { 1, 1, 1, 1, 1, 1 },
 }
 
 if animator then
@@ -192,6 +192,7 @@ task.spawn(function()
 		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
 		if ATTACK_COOLDOWN < MINATTACKDELAY then
 			ATTACK_COOLDOWN = MINATTACKDELAY
+			warn("slow anims on "..thisMob)
 		end
 		local ownerInstance: Model? = pet.GetOwnerModel()
 		local combatTargetModel: Model? = nil
@@ -307,12 +308,12 @@ task.spawn(function()
 				if not animTracks.death.IsPlaying and not deathPlayed then
 					deathPlayed = true
 					local deathanim: AnimationTrack = animTracks.death
-					deathanim:Play(0.3, 1, 1)
+					deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
 					deathanim.Stopped:Connect(function()
 						local length = deathanim.Length - 0.01
 						deathanim:AdjustSpeed(0)
 						deathanim.TimePosition = length
-						task.wait(5)
+						task.wait(3)
 						utilMod.SetAttribute(model, "RecycleMe", true)
 					end)
 

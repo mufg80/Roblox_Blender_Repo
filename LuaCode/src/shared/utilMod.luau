@@ -241,7 +241,7 @@ end
 --- @param attr string
 --- @return any
 function utilMod.GetAttribute(instance: Player | Model?, attr: string): any
-	if not instance then
+	if not instance or not attr then
 		return nil
 	end
 

@@ -66,7 +66,7 @@ local animTracks: AnimTrackDict = {
 	idleSpeed = nil,
 	deathSpeed = nil,
 	castSpeed = nil,
-	attackSpeeds = { 1, 1, 1, 1 },
+	attackSpeeds = { 1, 1, 1, 1, 1, 1 },
 }
 
 if animator then
@@ -131,6 +131,7 @@ task.spawn(function()
 		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
 		if ATTACK_COOLDOWN < MINATTACKDELAY then
 			ATTACK_COOLDOWN = MINATTACKDELAY
+			warn("slow anims on "..thisMob)
 		end
 
 		local ownerInstance: Model? = pet.GetOwnerModel()
@@ -249,8 +250,8 @@ task.spawn(function()
 					if animTracks.blink then
 						animTracks.blink:Stop()
 					end
-					animTracks.death:Play()
-					task.wait(4)
+					animTracks.death:Play(.3, 1, animTracks.deathSpeed or 1)
+					task.wait(2)
 					utilMod.SetAttribute(model, "RecycleMe", true)
 				end
 			else
