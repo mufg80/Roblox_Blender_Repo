@@ -312,6 +312,60 @@
         "StarterStaffLocalScript": {
           "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
+      },
+        "ReclaimedRailroadTie": {
+        "$path": "models/ReclaimedRailroadTie.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "StaffOfGoop": {
+        "$path": "models/StaffOfGoop.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "WornShaft": {
+        "$path": "models/WornShaft.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "AmberWand": {
+        "$path": "models/AmberWand.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "GearWand": {
+        "$path": "models/GearWand.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "UncutGemWand": {
+        "$path": "models/UncutGemWand.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
       }
     }
     },

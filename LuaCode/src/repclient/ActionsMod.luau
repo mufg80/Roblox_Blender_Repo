@@ -478,35 +478,35 @@ local function setupDefaultSelections(force: boolean?)
 		return a.Name < b.Name
 	end)
 
-	if staffButton and #actionsMod.itemData.Staffs > 0 then
-		local item = actionsMod.itemData.Staffs[1]
-		staffButton.NameLabel.Text = item.Name or "?"
-		if staffButton:IsA("ImageButton") then
-			staffButton.Image = item.Icon or "rbxassetid://0"
-		end
-		staffButton.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
-		staffButton.BackgroundTransparency = 0
-		staffButton.ImageTransparency = 0
-		local tempcolor = staffButton.BackgroundColor3
-		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
-		staffButton.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-		staffButton:SetAttribute("SelectedItem", item.Name)
-		staffButton:SetAttribute("ItemType", item.Type)
-		staffButton:SetAttribute("InternalName", item.InternalName or "")
+	-- if staffButton and #actionsMod.itemData.Staffs > 0 then
+	-- 	local item = actionsMod.itemData.Staffs[1]
+	-- 	staffButton.NameLabel.Text = item.Name or "?"
+	-- 	if staffButton:IsA("ImageButton") then
+	-- 		staffButton.Image = item.Icon or "rbxassetid://0"
+	-- 	end
+	-- 	staffButton.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+	-- 	staffButton.BackgroundTransparency = 0
+	-- 	staffButton.ImageTransparency = 0
+	-- 	local tempcolor = staffButton.BackgroundColor3
+	-- 	local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+	-- 	staffButton.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+	-- 	staffButton:SetAttribute("SelectedItem", item.Name)
+	-- 	staffButton:SetAttribute("ItemType", item.Type)
+	-- 	staffButton:SetAttribute("InternalName", item.InternalName or "")
 
-		local targetToolName = item.InternalName
-		for _, tool in ipairs(character:GetChildren()) do
-			if tool:IsA("Tool") and tool.Name:match("^StarterStaff") then
-				tool.Parent = backpack
-			end
-		end
-		local targetTool = backpack:FindFirstChild(targetToolName)
-		if targetTool and targetTool:IsA("Tool") then
-			targetTool.Parent = character
-		else
-			warn("Staff tool not found in Backpack for default: " .. targetToolName)
-		end
-	end
+	-- 	local targetToolName = item.InternalName
+	-- 	for _, tool in ipairs(character:GetChildren()) do
+	-- 		if tool:IsA("Tool") and tool.Name:match("^StarterStaff") then
+	-- 			tool.Parent = backpack
+	-- 		end
+	-- 	end
+	-- 	local targetTool = backpack:FindFirstChild(targetToolName)
+	-- 	if targetTool and targetTool:IsA("Tool") then
+	-- 		targetTool.Parent = character
+	-- 	else
+	-- 		warn("Staff tool not found in Backpack for default: " .. targetToolName)
+	-- 	end
+	-- end
 
 	local numCreatureSlots = #creatureButtons
 	local unlockedCreatures = actionsMod.itemData.Creatures
@@ -843,7 +843,7 @@ local function populateSelection(items)
 						local targetToolName = item.InternalName
 
 						for _, tool in ipairs(character:GetChildren()) do
-							if tool:IsA("Tool") and tool.Name:match("^StarterStaff") then
+							if tool:IsA("Tool") and utilMod.GetAttribute(tool, "StaffType") ~= nil then
 								tool.Parent = backpack
 							end
 						end

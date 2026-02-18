@@ -229,6 +229,7 @@ local function setStats(Char: Model, spellname: string?)
 
 	humanoid.WalkSpeed = 16 * (baseStats.speed or 1)
 	utilMod.SetAttribute(humanoid, "LastHealth", humanoid.Health)
+	setStaffandPets(plr, Char)
 end
 
 local function ReduceMana(player: Player)
@@ -466,7 +467,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "PetFollow", true)
 	utilMod.SetAttribute(player, "PetTakeLith", false)
 	utilMod.SetAttribute(player, "PetDefendLith", false)
-    utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryStaff", true)
+    --utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryStaff", true)
 	
 
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
