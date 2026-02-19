@@ -21,12 +21,14 @@ export type UtilMod = {
 	GetRootPart: (subject: Instance?) -> BasePart?,
 	GetPosition: (subject: Instance | Vector3) -> Vector3?,
 	GetDistance: (a: Instance | Vector3, b: Instance | Vector3) -> number?,
-	GetPartyMembers: (model: Instance) -> {
-        Player: Player,
-        Character: Model?,
-        pets: { Model },
-        buildings: { Model }
-    },
+	GetPartyMembers: (
+		model: Instance
+	) -> {
+		Player: Player,
+		Character: Model?,
+		pets: { Model },
+		buildings: { Model },
+	},
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
 	RemoveSpaces: (input: string) -> string,
@@ -859,7 +861,6 @@ function utilMod.GetClosestModelSkipAllyPets(playerChar: Model, folderName: "Pet
 	return closest
 end
 
-
 -- Returns a table like:
 -- { {
 --     Player = Player,
@@ -1133,6 +1134,8 @@ function utilMod.GetStatsFromFolder(instance: Instance, folderName: string?): { 
 	return stats
 end
 
+local ThreatAmountForPets = 5
+
 function utilMod.ApplyThreat(attacker: Model, target: Model, threatAmount: number): boolean
 	if not attacker or not target then
 		warn("Should not reach me.")
@@ -1142,9 +1145,9 @@ function utilMod.ApplyThreat(attacker: Model, target: Model, threatAmount: numbe
 		warn("Should not reach me.")
 		return false
 	end
-
+	local dealtoPets = false
 	if target:IsA("Player") or game.Players:GetPlayerFromCharacter(target) ~= nil then
-		return false
+		dealtoPets = true
 	end
 
 	local attackerid: number | string
@@ -1162,11 +1165,32 @@ function utilMod.ApplyThreat(attacker: Model, target: Model, threatAmount: numbe
 	else
 		return false
 	end
+	if dealtoPets then
+		local petsFolder = workspace:WaitForChild("Pets")
+		if petsFolder then
+			local allpets = petsFolder:GetChildren()
+			local plrtarg = utilMod.GetPlayerFromCharacter(target)
+			if allpets and plrtarg then
+				for _, pet in allpets do
+					local owner = pet and utilMod.GetAttribute(pet, "OwnedBy")
+					if owner and owner == plrtarg.UserId then
+						local addThreat: BindableEvent? = pet:FindFirstChild("AddThreat")
+						if addThreat and addThreat:IsA("BindableEvent") then
+							addThreat:Fire(attackerid, ThreatAmountForPets)
+						end
+					end
+				end
 
-	local addThreat: BindableEvent? = target:FindFirstChild("AddThreat")
-	if addThreat and addThreat:IsA("BindableEvent") then
-		addThreat:Fire(attackerid, threatAmount)
-		return true
+				return true
+			end
+		end
+	else
+		local addThreat: BindableEvent? = target:FindFirstChild("AddThreat")
+		if addThreat and addThreat:IsA("BindableEvent") then
+			addThreat:Fire(attackerid, threatAmount)
+			return true
+		end
+		return false
 	end
 	return false
 end

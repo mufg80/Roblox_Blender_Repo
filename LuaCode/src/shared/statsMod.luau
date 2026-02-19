@@ -138,7 +138,7 @@ local statsMod: StatsMod = {} :: any
 -- Global gameplay constants
 statsMod.MaxSpellDamage = 100
 statsMod.MaxSpellCost = 100
-statsMod.DELAY = 6.0
+statsMod.DELAY = 10.0
 statsMod.MaxDamageConstant = 50
 
 -- Magic type enum
@@ -615,6 +615,8 @@ statsMod.SpellInfo = {
 	},
 }
 
+
+
 -- Progression per magic path
 statsMod.MagicLevels = {
 	Artificer = {
@@ -944,7 +946,7 @@ statsMod.creatureStats = {
 		magicType = "None",
 		hitPoints = 60,
 		attack = 0.15,
-		attackDelay = 0.15,
+		attackDelay = 0.75,
 		defense = 0.15,
 		armour = 0.10,
 		primordialmagicdefense = 0.15,
@@ -2053,6 +2055,25 @@ statsMod.Pics = {
 	["GearWand"] = "rbxassetid://123919439068926",
 	["UncutGemWand"] = "rbxassetid://108090670473258",
 
+	--EarnedStaffs
+	["PistonRod"] = "",
+	["BrassCogWand"] = "",
+	["SteamValveStaff"] = "",
+	["FlywheelScepter"] = "",
+	["AlloyedBeam"] = "",
+
+	["SludgeDrippingRod"] = "",
+	["FossilVeinWand"] = "",
+	["MudCrystalStaff"] = "",
+	["TarOozeScepter"] = "",
+	["PetrifiedBeam"] = "",
+
+	["BarkthornRod"] = "",
+	["RootboundWand"] = "",	
+	["TwistedVineStaff"] = "",	
+	["SapwoodScepter"] = "",
+	["OvergrownBranchBeam"] = "",
+
 
 	-- Spells go by spelltype
 	["damage"] = "rbxassetid://128881432393526",
@@ -2062,6 +2083,7 @@ statsMod.Pics = {
 	["areaDamage"] = "rbxassetid://96646824024287",
 	["buff"] = "rbxassetid://71067845760444",
 }
+
 
 statsMod.InitStats = {
 	["StoneManaPriest"] = {

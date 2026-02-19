@@ -26,6 +26,7 @@ function aggroMod.Setup(model: Model): table
     addThreatEvent.Parent = model
 
     addThreatEvent.Event:Connect(function(attackerId: number | string, amount: number?)
+        --print("attacker added threat from bindableevent: "..attackerId)
         if typeof(attackerId) == "number" or typeof(attackerId) == "string" then
             hateList[attackerId] = (hateList[attackerId] or 0) + (amount or 0)
         end
@@ -44,10 +45,11 @@ function aggroMod.Setup(model: Model): table
                 local attacker = creator.Value
                 local attackerId = if attacker:IsA("Player") then attacker.UserId else attacker.Name
                 -- Only add threat if attacker is not fallen
-                local attackerModel = utilMod.GetModelByIDorName(attackerId)
-                if attackerModel and not utilMod.GetAttribute(attackerModel, "HasFallen") then
-                    hateList[attackerId] = (hateList[attackerId] or 0) + damageTaken
-                end
+                -- local attackerModel = utilMod.GetModelByIDorName(attackerId)
+                -- if attackerModel and not utilMod.GetAttribute(attackerModel, "HasFallen") then
+                --     print("attacker added threat from healthchangedevent: "..attackerId)
+                --     hateList[attackerId] = (hateList[attackerId] or 0) + damageTaken
+                -- end
                 creator:Destroy()
             end
         end

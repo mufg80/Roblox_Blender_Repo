@@ -100,6 +100,7 @@ if animator then
 			while attack.Length <= 0 do
 				task.wait()
 			end
+			--print("Attacklength ".. attack.Length)
 			if MINATTACKDELAY < attack.Length / (animTracks.attackSpeeds[i] or 1) then
 				MINATTACKDELAY = attack.Length / (animTracks.attackSpeeds[i] or 1)
 			end
