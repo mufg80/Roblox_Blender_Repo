@@ -377,9 +377,15 @@ function buffMod.ReclaimPet(char: Model, spellname: string, mypets: { Model }): 
 	end
 
 	utilMod.SetAttribute(mypet, "RecycleMe", true)
+
 	local currentmana: number = utilMod.GetAttribute(char, "Mana") or 0
 	local maxmana: number = utilMod.GetAttribute(char, "MaxMana") or 100
-	utilMod.SetAttribute(char, "Mana", math.min(currentmana + 50, maxmana))
+	local name = utilMod.customTrim( mypet.Name)
+	local creaturecost = utilMod.LeveltoManaCost(name)
+	print(creaturecost)
+	utilMod.SetAttribute(char, "Mana", math.min(currentmana + creaturecost, maxmana))
+
+
 	local maxSouls: number? = utilMod.GetAttribute(char, "MaxSouls")
 	local currentSouls: number = utilMod.GetAttribute(char, "Souls") or 0
 	utilMod.SetAttribute(char, "Souls", math.min(currentSouls + 1, maxSouls or currentSouls + 1))

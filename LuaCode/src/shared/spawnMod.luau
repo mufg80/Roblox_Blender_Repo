@@ -91,7 +91,7 @@ local function spawnFeral()
 				utilMod.SetAttribute(creature, attr, val.Position)
 			end
 		end
-		utilMod.SetAttribute(creature, "StationaryStatus", "Traveler")
+		utilMod.SetAttribute(creature, "StationaryStatus", "StationaryTraveler")
 	end
 	setFeralCollisionGroup(creature)
 	creature.Parent = workspace:WaitForChild("Ferals")

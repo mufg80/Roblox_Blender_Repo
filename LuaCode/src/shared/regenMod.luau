@@ -10,7 +10,7 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local isDebugging = false
 
 local playerHealthRegen = 5
-local playerManaRegen = 25
+local playerManaRegen = 1
 local ManaPerTickByOwnedBuildingBonus = 10
 local ManaPerTickIfPetCloseBonus = 2
 local OwnedBuildingMaxProximity = 30

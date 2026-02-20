@@ -57,7 +57,7 @@ export type UtilMod = {
 	GetAttribute: (model: Model?, attr: string) -> any,
 	SetAttribute: (model: Model?, attr: string, value: any) -> (),
 	MyPets: (char: Model) -> { Model },
-
+	LeveltoManaCost:(creatureInstance: Instance)-> number,
 	CopyStatsToFolder: (target: Instance, stats: { [string]: any }, folderName: string?) -> Folder,
 	GetStatsFromFolder: (instance: Instance, folderName: string?) -> { [string]: any },
 
@@ -116,6 +116,22 @@ Players.PlayerRemoving:Connect(function(player)
 		idStringCache[player.Character] = nil
 	end
 end)
+
+
+--==============================================================================
+-- Calculates mana cost for summoning a creature based on its level
+--==============================================================================
+function utilMod.LeveltoManaCost(creatureInstance: Instance): number
+	-- Retrieves the creature's stats table (or returns huge if missing)
+	local creature = statsMod.creatureStats[creatureInstance]
+	if not creature then
+		return math.huge
+	end
+
+	local tenth = creature.level * 0.1
+	return tenth * statsMod.MaxSpellCost
+end
+
 
 function utilMod.GetId(model: Model): string?
 	if not model then

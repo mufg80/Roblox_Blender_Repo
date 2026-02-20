@@ -18,9 +18,10 @@ local function ChangeHealth()
 	inner.Size = UDim2.new(fraction, 0, 1, 0)
 end
 
-local function ChangeMana()
-	local current = utilMod.GetAttribute(player, "Mana") or 0
-	local maxMana = utilMod.GetAttribute(player, "MaxMana") or 1
+local function ChangeMana(mana, maxmana)
+	
+	local current = mana or utilMod.GetAttribute(player, "Mana") or 0
+	local maxMana = maxmana or utilMod.GetAttribute(player, "MaxMana") or 1
 	local fraction = if maxMana == 0 then 0 else math.clamp(current / maxMana, 0, 1)
 	
 	local inner = statsGui.HudFrame.ManaMeterBar.InnerFill
@@ -66,6 +67,10 @@ function ResourceBars.Init()
 			AdjustSouls(soulsLeft, maxSouls)
 		end
 	end)
+	ReplicatedStorage.Events.ManaUsedEvent.OnClientEvent:Connect(function(Mana:number,MaxMana:number)
+		ChangeMana(Mana, MaxMana)
+	end)
+
 end
 
 return ResourceBars

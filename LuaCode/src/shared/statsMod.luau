@@ -224,7 +224,7 @@ statsMod.SpellInfo = {
 		printedName = "Convert Spout",
 	},
 	ReclaimPet = {
-		manaCost = 0.01,
+		manaCost = 0.0,
 		magicType = "Any",
 		spellType = "utility",
 		missChance = 0,
@@ -2019,6 +2019,32 @@ statsMod.Pathing = {
 	},
 }
 
+statsMod.MaxCreatures = {
+	-- Creatures
+	["StoneManaPriest"] = 3,
+	["ArtifactGuardian"] = 3,
+	["GrandPo"] = 2,
+	["CoatArms"] = 1,
+	["ArtifactProtector"] = 1,
+	["SuitArms"] =  1,
+	["FlyingGargoyle"] =  1,
+	["MudPriest"] =  3,
+	["Dybb"] =  3,
+	["Blob"] =  2,
+	["LithEater"] =  1,
+	["FossilizedDybb"] =  1,
+	["GiantAmoeba"] =  1,
+	["WingedLith"] =  1,
+	["UnkemptDruid"] =  3,
+	["Pog"] =  3,
+	["WindSpirit"] =  2,
+	["VenusDybbTrap"] =  1,
+	["GreatTuskedPog"] =  1,
+	["AwakenedTreant"] =  1,
+	["Griffin"] =  1,
+
+}
+
 statsMod.Pics = {
 
 	-- Creatures
@@ -2084,7 +2110,7 @@ statsMod.Pics = {
 	["buff"] = "rbxassetid://71067845760444",
 }
 
-
+-- StationaryStatus = Stationary, Roamer, Traveler, StationaryTraveler
 statsMod.InitStats = {
 	["StoneManaPriest"] = {
 		HasFallen = false,

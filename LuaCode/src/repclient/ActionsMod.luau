@@ -17,6 +17,7 @@ local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
 local PetCommands = require(ReplicatedStorage.Client.PetCommands)
 local recycleMod = require(ReplicatedStorage.Shared.recycleMod)
+local animMod = require(ReplicatedStorage.Shared.animMod)
 
 local designFolder = ReplicatedStorage:WaitForChild("Design")
 local designSheet = designFolder:WaitForChild("StyleSheet")
@@ -29,6 +30,8 @@ local noneTheme = themes:WaitForChild("NoneTheme")
 
 local Events = ReplicatedStorage:WaitForChild("Events")
 local CastFeedback = require(ReplicatedStorage.Client.CastFeedback)
+
+
 
 -- Attack Button
 -- DPad Up
@@ -600,7 +603,7 @@ local function updateButtonStates()
 				disableButton(btn)
 			end
 
-			local manaCost = combatMod.LeveltoManaCost and combatMod.LeveltoManaCost(creatureName) or 0
+			local manaCost = utilMod.LeveltoManaCost and utilMod.LeveltoManaCost(creatureName) or 0
 			local currentMana = utilMod.GetAttribute(player, "Mana") or 0
 			if currentMana < manaCost then
 				disableButton(btn)
@@ -612,6 +615,22 @@ local function updateButtonStates()
 				disableButton(btn)
 			elseif cdEnd then
 				utilMod.SetAttribute(player, cdAttr, nil)
+			end
+
+			-- Check if max is reached
+			local maxAmount = statsMod.MaxCreatures[creatureName]
+			if maxAmount and maxAmount > 0 then
+				local mypets = utilMod.MyPets(player.Character) or {}
+				local existing = 0
+				for _,pet in mypets do
+					if pet and pet.Parent and utilMod.customTrim(pet.Name) == creatureName then
+						existing += 1
+					end
+				end
+				if existing >= maxAmount then
+					disableButton(btn)
+				end
+
 			end
 		end
 
@@ -819,7 +838,7 @@ local function populateSelection(items)
 					actionsMod.selectedButton:SetAttribute("InternalName", nil)
 
 					for _, tool in ipairs(character:GetChildren()) do
-						if tool:IsA("Tool") and tool.Name:match("^StarterStaff") then
+						if tool:IsA("Tool") then
 							tool.Parent = backpack
 							break
 						end
@@ -905,6 +924,14 @@ local function startCastAndCooldown(duration: number, itemName: string, cooldown
 	task.delay(0.05, updateButtonStates)
 end
 
+local function CastAnimation(castTime:number)
+	local hum = player.Character:FindFirstChild("Humanoid")
+	animMod.ActivateCast(hum)
+	task.delay(castTime, function()
+		animMod.DeactivateCast(hum)
+	end)
+end
+
 local function useItem(button)
 	if button.BackgroundTransparency > 0.25 then
 		-- Button is visually disabled (no mana/cooldown/souls etc), do not perform action
@@ -935,7 +962,7 @@ local function useItem(button)
 	elseif itemType == "Creature" then
 		local creatureName = internalName
 		local castTime = utilMod.CreatureCastTime and utilMod.CreatureCastTime(creatureName) or 1.5
-		
+		CastAnimation(castTime)
 		startCastAndCooldown(castTime, internalName, 3, function()
 			Events.SummonEvent:FireServer(creatureName)
 		end)
@@ -948,7 +975,7 @@ local function useItem(button)
 		local castTime = spellInfo.castTime or 2
 		
 		local extraCooldown = spellInfo.cooldown or 0
-		
+		CastAnimation(castTime)
 		startCastAndCooldown(castTime, internalName, extraCooldown, function()
 			Events.SpellCastEvent:FireServer(spellName)
 		end)

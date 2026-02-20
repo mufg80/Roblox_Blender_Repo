@@ -40,6 +40,43 @@ export type StateResult = {
 
 local healerCache: { [string]: boolean } = {}
 
+local function TravelerAssignment(model, context, spawnPosition, hrp, movingDirection, random):string
+	local lastReassign = utilMod.GetAttribute(model, "LastReassignTime") or 0
+	local reassignInterval = random:NextInteger(30,50)
+
+	-- Only attempt when truly idle / not doing anything else
+	if
+		not context.mutable.homewardBound
+		and not utilMod.GetAttribute(model, "IsMoving")
+		and time() - lastReassign > reassignInterval
+	then
+		-- Optional safety: only reassign if close to current spawn (prevents mid-journey jumps)
+		if utilMod.GetDistance(hrp.Position, spawnPosition) < 8 then
+			local newSpawn = utilMod.ReassignSpawn(model, spawnPosition)
+			if newSpawn and typeof(newSpawn) == "Vector3" then
+				spawnPosition = newSpawn
+				context.pet.SetSpawnPoint(spawnPosition)
+				-- Reset homeward state since we have a new legal home
+				context.mutable.homewardBound = false
+
+				-- Update timestamp
+				utilMod.SetAttribute(model, "LastReassignTime", time())
+
+				-- Optional: give it a gentle nudge so it doesn't look frozen
+				-- (especially useful if the new point is very close)
+				if math.random() < 0.6 then
+					utilMod.SetFlagsForMoving(model)
+					movingDirection = "MovingToRandom"
+				end
+
+				-- Optional debug print (remove later)
+				-- warn(model.Name .. " Traveler reassigned spawn to " .. tostring(newSpawn))
+			end
+		end
+	end
+	return movingDirection
+end
+
 -- Main function called every loop from the NPC script
 function stateMod.UpdateState(model: Model, context: Context): StateResult
 	if not model or not context then
@@ -331,7 +368,11 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 			end
 		else
 			-- No enemies
-			if utilMod.GetAttribute(model, "StationaryStatus") == "Stationary" then
+			-- Add "StationaryTraveler" type here
+			if
+				utilMod.GetAttribute(model, "StationaryStatus") == "Stationary"
+				or utilMod.GetAttribute(model, "StationaryStatus") == "StationaryTraveler"
+			then
 				if
 					utilMod.GetDistance(spawnPosition, hrp.Position) > 3
 					and time() - (utilMod.GetAttribute(model, "IdleStartTime") or 0)
@@ -343,6 +384,10 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 					movingDirection = "MovingToSpawnPosition"
 				else
 					utilMod.SetFlagsForIdle(model)
+				end
+
+				if utilMod.GetAttribute(model, "StationaryStatus") == "StationaryTraveler" then
+					local dir = TravelerAssignment(model, context, spawnPosition, hrp, movingDirection, random)
 				end
 			elseif
 				utilMod.GetAttribute(model, "StationaryStatus") == "Roaming"
@@ -379,40 +424,7 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 
 				-- Traveler-only: occasionally pick a completely new home location
 				if utilMod.GetAttribute(model, "StationaryStatus") == "Traveler" then
-					local lastReassign = utilMod.GetAttribute(model, "LastReassignTime") or 0
-					local reassignInterval = math.random(75, 150) -- 75–150 seconds (~1.25–2.5 min), tune as desired
-
-					-- Only attempt when truly idle / not doing anything else
-					if
-						not mutable.homewardBound
-						and not utilMod.GetAttribute(model, "IsMoving")
-						and time() - lastReassign > reassignInterval
-					then
-						-- Optional safety: only reassign if close to current spawn (prevents mid-journey jumps)
-						if utilMod.GetDistance(hrp.Position, spawnPosition) < 8 then
-							local newSpawn = utilMod.ReassignSpawn(model, spawnPosition)
-
-							if newSpawn and typeof(newSpawn) == "Vector3" then
-								spawnPosition = newSpawn
-								context.pet.SetSpawnPoint(spawnPosition)
-								-- Reset homeward state since we have a new legal home
-								mutable.homewardBound = false
-
-								-- Update timestamp
-								utilMod.SetAttribute(model, "LastReassignTime", time())
-
-								-- Optional: give it a gentle nudge so it doesn't look frozen
-								-- (especially useful if the new point is very close)
-								if math.random() < 0.6 then
-									utilMod.SetFlagsForMoving(model)
-									movingDirection = "MovingToRandom"
-								end
-
-								-- Optional debug print (remove later)
-								-- warn(model.Name .. " Traveler reassigned spawn to " .. tostring(newSpawn))
-							end
-						end
-					end
+					movingDirection = TravelerAssignment(model, context, spawnPosition, hrp, movingDirection, random)
 				end
 			end
 		end

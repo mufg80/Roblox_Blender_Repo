@@ -14,19 +14,6 @@ local combatMod = {}
 
 local random = Random.new(time())
 
---==============================================================================
--- Calculates mana cost for summoning a creature based on its level
---==============================================================================
-function combatMod.LeveltoManaCost(creatureInstance: Instance): number
-	-- Retrieves the creature's stats table (or returns huge if missing)
-	local creature = statsMod.creatureStats[creatureInstance]
-	if not creature then
-		return math.huge
-	end
-
-	local tenth = creature.level * 0.1
-	return tenth * statsMod.MaxSpellCost
-end
 
 --==============================================================================
 -- Calculates spell damage with level difference, resistances, miss chance, etc.
@@ -308,7 +295,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		warn("should not reach me")
 		return
 	end
-	local cost = combatMod.LeveltoManaCost(creatureName)
+	local cost = utilMod.LeveltoManaCost(creatureName)
 	local mana = utilMod.GetAttribute(player, "Mana") or 0
 	if mana < cost then
 		warn("Not enough mana")
@@ -543,6 +530,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 
 		if applied then
 			buffMod.SelectTargetsForAggro(player.Character, info)
+			mana = utilMod.GetAttribute(player, "Mana")
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 		end
 	end
@@ -676,6 +664,7 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 		end
 		if applied then
 			buffMod.SelectTargetsForAggro(model, info)
+			mana = utilMod.GetAttribute(mana, "Mana")
 			utilMod.SetAttribute(model, "Mana", mana - cost)
 			local repevent = ReplicatedStorage.Events.PetManaEvent
 			if repevent then
@@ -693,7 +682,6 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 end
 
 export type CombatMod = {
-	LeveltoManaCost: (creatureInstance: Instance) -> number,
 	SpellAttackResult: (attackerCreature: Model, defenderCreature: Model, spellName: string) -> number,
 	AcceptableDistanceToOpponent: (model: Model, enemy: Model) -> boolean,
 	MeleeAttackResult: (attacker: Instance, defender: Instance) -> number,

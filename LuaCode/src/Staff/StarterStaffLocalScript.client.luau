@@ -1,92 +1,70 @@
 --!strict
+-- LocalScript inside the Staff Tool
+-- Calls animMod functions instead of managing AnimationTracks directly
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local statsMod = require(ReplicatedStorage.Shared.statsMod)
+local UserInputService = game:GetService("UserInputService")
+
+local statsMod     = require(ReplicatedStorage.Shared.statsMod)
+local animMod      = require(ReplicatedStorage.Shared.animMod)
+
+local tool         : Tool    = script.Parent
+local player       : Player  = Players.LocalPlayer
+local character    : Model   = player.Character or player.CharacterAdded:Wait()
+local humanoid     : Humanoid = character:WaitForChild("Humanoid")
+
 local camera = workspace.CurrentCamera
-local tool: Tool = script.Parent
-local player: Player = Players.LocalPlayer
-local character: Model = player.Character or player.CharacterAdded:Wait()
-local humanoid: Humanoid = character:WaitForChild("Humanoid")
-local animator: Animator = humanoid:WaitForChild("Animator")
 local staffType = tool:GetAttribute("StaffType")
 local stats = statsMod.StaffStats[staffType] or {}
-local staffCooldown = stats.coolDown or 1.0 -- fallback 1 second
+local staffCooldown = stats.coolDown or 1.0
 
 local playerGui = player:WaitForChild("PlayerGui")
 local magicGui = playerGui:WaitForChild("MagicGui")
 local castFrame = magicGui:WaitForChild("CastFrame")
 
-local UserInputService = game:GetService("UserInputService")
-local player = game.Players.LocalPlayer
-local crosshairGui = player.PlayerGui:WaitForChild("CrossHairGui")
-local isCrosshairsVisible: boolean = false
-local verticalOffset = -100
+local crosshairGui = playerGui:WaitForChild("CrossHairGui")
+local isCrosshairsVisible: boolean = UserInputService.GamepadEnabled
+
+local verticalOffset   = -100
 local horizontalOffset = 100
 
-local function updateVisibility(equipped: boolean)
-	local position = UDim2.new(0.5, horizontalOffset, 0.5, verticalOffset)
-	local label = crosshairGui:FindFirstChild("ImageLabel")
-	label.Position = position
-	if isCrosshairsVisible and equipped then
-		crosshairGui.Enabled = true
-	else
-		crosshairGui.Enabled = false
-	end
+-- Single shared RemoteEvent for all staffs
+local REMOTE_NAME = "FireStaff"
+local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME) or (function()
+	local ev = Instance.new("RemoteEvent")
+	ev.Name = REMOTE_NAME
+	ev.Parent = ReplicatedStorage
+	return ev
+end)()
+
+if not staffType or staffType == "" then
+	warn("Tool", tool.Name, "missing 'StaffType' attribute!")
 end
 
+local function updateCrosshairVisibility(equipped: boolean)
+	local label = crosshairGui:FindFirstChild("ImageLabel")
+	if label then
+		label.Position = UDim2.new(0.5, horizontalOffset, 0.5, verticalOffset)
+	end
+	crosshairGui.Enabled = (isCrosshairsVisible and equipped)
+end
+
+-- Gamepad crosshair visibility
 UserInputService.GamepadConnected:Connect(function()
 	isCrosshairsVisible = true
+	updateCrosshairVisibility(tool.Parent == character)
 end)
+
 UserInputService.GamepadDisconnected:Connect(function()
 	isCrosshairsVisible = false
+	updateCrosshairVisibility(false)
 end)
 
-isCrosshairsVisible = UserInputService.GamepadEnabled
-
+-- Initial state
 player:SetAttribute("Firing", false)
--- Load animations from tool's child Animation objects (different IDs per staff)
-local fireAnimObj: Animation = tool:WaitForChild("StarterStaffAnimation")
-local holdAnimObj: Animation = tool:WaitForChild("StarterStaffHoldAnimation")
 
-local fireAnim: Animation = Instance.new("Animation")
-fireAnim.AnimationId = fireAnimObj.AnimationId
-
-local holdAnim: Animation = Instance.new("Animation")
-holdAnim.AnimationId = holdAnimObj.AnimationId
-
-local fireTrack: AnimationTrack = animator:LoadAnimation(fireAnim)
-fireTrack.Looped = false
-
-local holdTrack: AnimationTrack = animator:LoadAnimation(holdAnim)
-holdTrack.Looped = true
-
-local canPlayAnim: boolean = true
-local debounce: boolean = true
-
--- Single shared RemoteEvent for ALL staffs
-local REMOTE_NAME: string = "FireStaff"
-local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
-if not fireRemote then
-	fireRemote = Instance.new("RemoteEvent")
-	fireRemote.Name = REMOTE_NAME
-	fireRemote.Parent = ReplicatedStorage
-end
-
-local staffType: string? = tool:GetAttribute("StaffType")
-if not staffType or staffType == "" then
-	warn("Tool", tool.Name, "missing 'StaffType' attribute! Set it to e.g. 'StarterStaffArtificer'")
-end
--- Equip: Play hold animation
-tool.Equipped:Connect(function()
-	updateVisibility(true)
-	holdTrack:Play()
-end)
-
--- Unequip: Stop hold animation
-tool.Unequipped:Connect(function()
-	updateVisibility(false)
-	holdTrack:Stop()
-end)
+local debounce = true
 
 local function GetAimPosition(maxDistance: number): Vector3
 	maxDistance = maxDistance or 1000
@@ -95,18 +73,14 @@ local function GetAimPosition(maxDistance: number): Vector3
 	local rayDirection: Vector3
 
 	if UserInputService.GamepadEnabled then
-		-- 🎮 Center screen ray
 		local viewport = camera.ViewportSize
 		local screenCenter = Vector2.new(viewport.X / 2 + horizontalOffset, viewport.Y / 2 + verticalOffset)
 		local unitRay = camera:ScreenPointToRay(screenCenter.X, screenCenter.Y)
-
 		rayOrigin = unitRay.Origin
 		rayDirection = unitRay.Direction
 	else
-		-- 🖱 Mouse ray
-		local mouse: Mouse = player:GetMouse()
+		local mouse = player:GetMouse()
 		local unitRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
-
 		rayOrigin = unitRay.Origin
 		rayDirection = unitRay.Direction
 	end
@@ -118,57 +92,69 @@ local function GetAimPosition(maxDistance: number): Vector3
 
 	local result = workspace:Raycast(rayOrigin, rayDirection * maxDistance, rayParams)
 
-	if result then
-		return result.Position
-	else
-		return rayOrigin + rayDirection * maxDistance
-	end
+	return if result then result.Position else rayOrigin + rayDirection * maxDistance
 end
 
--- Activate: Fire on click (with debounce & anim)
-tool.Activated:Connect(function()
-	if not debounce then
-		return
-	end
-	if castFrame.Visible == true then
-		return
-	end
+-- ──────────────────────────────────────────────────────────────
+-- Equip / Unequip
+-- ──────────────────────────────────────────────────────────────
 
+tool.Equipped:Connect(function()
+	updateCrosshairVisibility(true)
+	animMod.ActivateHold(humanoid)
+end)
+
+tool.Unequipped:Connect(function()
+	updateCrosshairVisibility(false)
+	animMod.DeactivateHold(humanoid)
+end)
+
+-- ──────────────────────────────────────────────────────────────
+-- Fire (Activated)
+-- ──────────────────────────────────────────────────────────────
+
+tool.Activated:Connect(function()
+	if not debounce then return end
+	if castFrame.Visible then return end
 
 	debounce = false
+	player:SetAttribute("Firing", true)
 
 	local targetPosition = GetAimPosition(1000)
 
-	if not fireTrack.IsPlaying and canPlayAnim then
-		player:SetAttribute("Firing", true)
-		canPlayAnim = false
-		holdTrack:Stop()
-		fireTrack:Play()
+	-- Play fire animation (will stop hold automatically inside animMod)
+	animMod.ActivateFire(humanoid)
 
-		fireTrack.Stopped:Connect(function()
-			tool:Deactivate()
-		end)
+	-- Wait a bit to sync with animation wind-up
+	task.wait(0.3)
 
-		task.wait(0.3) -- Sync with fire anim
+	-- Fire the actual projectile / effect via server
+	fireRemote:FireServer(targetPosition, staffType)
 
-		fireRemote:FireServer(targetPosition, staffType)
+	-- After fire animation finishes → automatically resumes hold via animMod
+	-- But we still wait the full cooldown before allowing next fire
+	task.wait(staffCooldown)
 
-		holdTrack:Play()
-	end
-
-	task.wait(staffCooldown) -- Cooldown
 	player:SetAttribute("Firing", false)
 	debounce = true
 end)
 
--- Deactivate: Allow re-interrupt
+-- Optional: if you want to allow interrupting the fire animation early
 tool.Deactivated:Connect(function()
-	canPlayAnim = true
+	-- You can choose whether to allow early stop or not.
+	-- Most staff games let the animation finish once started.
+	-- If you want to support interrupt:
+	-- animMod.DeactivateFire(humanoid)
+	-- player:SetAttribute("Firing", false)
+	-- debounce = true
 end)
 
-tool.AncestryChanged:Connect(function()
-	-- Cleanup on tool removal
-	holdTrack:Stop()
-	fireTrack:Stop()
-	updateVisibility(false)
+-- Cleanup
+tool.AncestryChanged:Connect(function(_, parent)
+	if parent == nil then
+		print("ancestrychangedfired")
+		animMod.DeactivateHold(humanoid)
+		animMod.DeactivateFire(humanoid)
+		updateCrosshairVisibility(false)
+	end
 end)
