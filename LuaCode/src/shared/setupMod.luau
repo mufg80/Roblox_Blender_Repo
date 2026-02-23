@@ -7,17 +7,34 @@ local combatMod = require(ReplicatedStorage.Shared.combatMod)
 
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local recyleMod = require(ReplicatedStorage.Shared.recycleMod)
+local playerbuildboardMod = require(ReplicatedStorage.Shared.playerbillboardMod)
 local DataStoreService = game:GetService("DataStoreService")
 local dataStoreEnabled: boolean = false
 local ServerStorage = game:GetService("ServerStorage")
 
 local setupMod = {}
 
+local ExperienceLevelForLevel2Spell = 2
+local ExperienceLevelForLevel3Spell = 3
+
+local ExperienceLevel2 = 2
+local ExperienceLevel3 = 3
+local ExperienceLevel4 = 4
+local ExperienceLevel5 = 5
+local ExperienceLevel6 = 6
+local ExperienceLevel7 = 7
+
+-- Remote events
+local petManaEvent = ReplicatedStorage.Events.PetManaEvent
+local summonEvent = ReplicatedStorage.Events.SummonEvent
+local spellCastEvent = ReplicatedStorage.Events.SpellCastEvent
+local petEvent = ReplicatedStorage.Events.PetEvent
+
 -- DEV Testing Quick Setup
 local function setupDevTesting(player: Player)
 	utilMod.SetAttribute(player, "Magic", statsMod.MagicType.Nature)
-	utilMod.SetAttribute(player, "NatureLevel", 2)
-	utilMod.SetAttribute(player, "PrimordialLevel", 2)
+	utilMod.SetAttribute(player, "NatureLevel", 1)
+	utilMod.SetAttribute(player, "PrimordialLevel", 1)
 	utilMod.SetAttribute(player, "ArtificerLevel", 1)
 end
 
@@ -59,10 +76,10 @@ end
 local function fireManaUsedEvent(player)
 	local manaevent = ReplicatedStorage.Events.ManaUsedEvent
 	if manaevent then
-		manaevent:FireClient(player, utilMod.GetAttribute(player,"Mana"), utilMod.GetAttribute(player, "MaxMana"))
+		manaevent:FireClient(player, utilMod.GetAttribute(player, "Mana"), utilMod.GetAttribute(player, "MaxMana"))
 	end
-
 end
+
 local function setStaffandPets(player: Player, char: Model): ()
 	if not player or not char then
 		return
@@ -154,6 +171,9 @@ local function setStaffandPets(player: Player, char: Model): ()
 
 	-- B. Bonus / purchasable / special unlocked staffs
 	for attrName, value in player:GetAttributes() do
+		if value ~= true then
+			continue
+		end
 		local category, magicType, itemName = attrName:match("^Earned_(%w+)_(%w+)_(.+)$")
 		if category == "Staff" and itemName and magicType == currentMagic then
 			desiredStaffs[itemName] = true
@@ -230,6 +250,7 @@ local function CharacterAdded(character: Model)
 	if not player then
 		return
 	end
+	playerbuildboardMod.Setup(player)
 
 	setCollisionGroup(player.UserId, character)
 	local souls = utilMod.GetAttribute(player, "Souls") or 0
@@ -242,6 +263,8 @@ local function CharacterAdded(character: Model)
 	if not humanoid then
 		return
 	end
+
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 
 	local inCombatTimeout
 	humanoid.HealthChanged:Connect(function(health)
@@ -335,12 +358,18 @@ local function CharacterAdded(character: Model)
 		elseif magic == statsMod.MagicType.Artificer then
 			sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
 			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
+			local message = "You have selected Artificer magic!"
+			ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
 		elseif magic == statsMod.MagicType.Primordial then
 			sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
 			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
+			local message = "You have selected Primordial magic!"
+			ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
 		elseif magic == statsMod.MagicType.Nature then
 			sourceStats = combatMod.ShallowTableCopy("PlayerNature")
 			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
+			local message = "You have selected Nature magic!"
+			ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
 		end
 
 		if sourceStats then
@@ -430,6 +459,17 @@ local function CharacterAdded(character: Model)
 	-- Dev/test: force Artificer + level 7
 
 	setupDevTesting(player)
+	task.wait(10)
+	local messages = {
+		"Welcome to the world of Oblivion Now, " .. player.Name .. "!",
+		"Defeat creatures to gain experience and level up your magic.",
+		"Equip staffs to enhance your abilities.",
+		"Summon pets to fight alongside you.",
+	}
+
+	for _, msg in ipairs(messages) do
+		ReplicatedStorage.Events.MessageEvent:FireClient(player, msg, 2)
+	end
 end
 
 game.Players.PlayerAdded:Connect(function(player)
@@ -442,6 +482,53 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "PrimordialExperience", 1)
 	utilMod.SetAttribute(player, "NatureExperience", 1)
 
+
+	local ExpEvent = Instance.new("BindableEvent")
+	ExpEvent.Name = "ExpEvent"
+	ExpEvent.Parent = player
+	ExpEvent.Event:Connect(function(creatureName)
+		local shortname = utilMod.customTrim(creatureName)
+		local amount = statsMod.CreatureExpWorth[shortname] or 0
+		local attrname = utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Artificer and "ArtificerExperience"
+			or utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Primordial and "PrimordialExperience"
+			or utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Nature and "NatureExperience"
+			or nil
+		if attrname then
+			local current = utilMod.GetAttribute(player, attrname) or 0
+			utilMod.SetAttribute(player, attrname, current + amount)
+		end
+	end)
+
+	local xptypes = { "ArtificerExperience", "PrimordialExperience", "NatureExperience" }
+
+	for _, xp in ipairs(xptypes) do
+		player:GetAttributeChangedSignal(xp):Connect(function()
+			local exp = utilMod.GetAttribute(player, xp) or 0
+			local levelAttr = xp:gsub("Experience", "Level")
+			local currentLevel = utilMod.GetAttribute(player, levelAttr) or 1
+			local message = "Congratulations! Your " .. levelAttr:gsub("Level", "") .. " magic has reached level ".. currentLevel + 1 .. "!"
+			if exp >= ExperienceLevel2 and currentLevel == 1 then
+				utilMod.SetAttribute(player, levelAttr, ExperienceLevel2)
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+			elseif exp >= ExperienceLevel3 and currentLevel == 2 then
+				utilMod.SetAttribute(player, levelAttr, ExperienceLevel3)
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+			elseif exp >= ExperienceLevel4 and currentLevel == 3  then
+				utilMod.SetAttribute(player, levelAttr, ExperienceLevel4)
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+			elseif exp >= ExperienceLevel5 and currentLevel == 4  then
+				utilMod.SetAttribute(player, levelAttr, ExperienceLevel5)
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+			elseif exp >= ExperienceLevel6 and currentLevel == 5  then
+				utilMod.SetAttribute(player, levelAttr, ExperienceLevel6)
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+			elseif exp >= ExperienceLevel7 and currentLevel == 6  then
+				utilMod.SetAttribute(player, levelAttr, ExperienceLevel7)
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+			end
+		end)
+	end
+
 	utilMod.SetAttribute(player, "MaxMana", 20)
 	utilMod.SetAttribute(player, "Mana", 20)
 	utilMod.SetAttribute(player, "HasFallen", false)
@@ -452,14 +539,73 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "PetFollow", true)
 	utilMod.SetAttribute(player, "PetTakeLith", false)
 	utilMod.SetAttribute(player, "PetDefendLith", false)
+	utilMod.SetAttribute(player, "InCombat", false)
+	utilMod.SetAttribute(player, "Firing", false)
 	--utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryStaff", true)
+
+	for name, amount in statsMod.MaxCreatures do
+		local name = "Earned_MaxBoost_" .. name
+		utilMod.SetAttribute(player, name, false)
+	end
+
+	for name, type in statsMod.EarnedStaffNames do
+		local name = "Earned_Staff_" .. type .. "_" .. name
+		utilMod.SetAttribute(player, name, false)
+	end
+
+	for _, name in statsMod.SpellUpgradeNames do
+		local typespell = statsMod.SpellInfo[name] and statsMod.SpellInfo[name].magicType
+		if not typespell then
+			warn("Unknown spell in SpellUpgradeNames:", name)
+			continue
+		end
+		local attrName = "Earned_Spell_" .. typespell .. "_" .. name .. "I"
+		utilMod.SetAttribute(player, attrName, false)
+
+		local attrName2 = "Earned_Spell_" .. typespell .. "_" .. name .. "II"
+		utilMod.SetAttribute(player, attrName2, false)
+
+		local attrName3 = "Earned_Spell_" .. typespell .. "_" .. name .. "III"
+		utilMod.SetAttribute(player, attrName3, false)
+	end
+
+	for _, name in statsMod.SpellUpgradeNames do
+		local basespellname = statsMod.SpellInfo[name] and statsMod.SpellInfo[name].spellline
+		local attrname = "Experience_" .. basespellname
+		utilMod.SetAttribute(player, attrname, 0)
+		player:GetAttributeChangedSignal(attrname):Connect(function()
+			local exp = utilMod.GetAttribute(player, attrname) or 0
+			local atname = "Earned_Spell_" .. statsMod.SpellInfo[name].magicType .. "_" .. basespellname .. "II"
+			local atname2 = "Earned_Spell_" .. statsMod.SpellInfo[name].magicType .. "_" .. basespellname .. "III"
+			if exp >= ExperienceLevelForLevel2Spell and exp < ExperienceLevelForLevel3Spell then				
+				if not utilMod.GetAttribute(player, atname) then
+					utilMod.SetAttribute(player, atname, true)
+					utilMod.SetAttribute(player, "ChangedSpells", true)
+				task.delay(1, function()
+					utilMod.SetAttribute(player, "ChangedSpells", false)
+				end)
+				local message = "Congratulations! You've unlocked " .. basespellname .. " at rank II!"
+				ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+				end
+			elseif exp >= ExperienceLevelForLevel3Spell and utilMod.GetAttribute(player, atname) ~= false then
+				if not utilMod.GetAttribute(player, atname2) then
+					utilMod.SetAttribute(player, atname2, true)
+					utilMod.SetAttribute(player, "ChangedSpells", true)
+					task.delay(1, function()
+						utilMod.SetAttribute(player, "ChangedSpells", false)
+					end)
+					local message = "Congratulations! You've unlocked " .. basespellname .. " at rank III!"
+					ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
+				end
+			end
+		end)
+	end
+
+
+	utilMod.SetAttribute(player, "Earned_MaxSoulsBoost", false)
 
 	player.CharacterAppearanceLoaded:Connect(CharacterAdded)
 end)
-
--- Remote events
-local petManaEvent = ReplicatedStorage.Events.PetManaEvent
-local summonEvent = ReplicatedStorage.Events.SummonEvent
 
 summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 	local spawnpoint = utilMod.FindClearSpawnPoint(player, 10)
@@ -468,18 +614,8 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 	end
 
 	-- Check if max is reached
-	local maxAmount = statsMod.MaxCreatures[creatureName]
-	if maxAmount and maxAmount > 0 then
-		local mypets = utilMod.MyPets(player.Character) or {}
-		local existing = 0
-		for _, pet in mypets do
-			if pet and pet.Parent and utilMod.customTrim(pet.Name) == creatureName then
-				existing += 1
-			end
-		end
-		if existing >= maxAmount then
-			return
-		end
+	if utilMod.IsMaxSummoned(player.Character, creatureName) then
+		return
 	end
 
 	local castTime = utilMod.CreatureCastTime(creatureName)
@@ -522,14 +658,18 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 	end)
 
 	effectMod.SummonCreatureEffect(spawnpoint, creatureName, castTime)
-	
 end)
 
-local spellCastEvent = ReplicatedStorage.Events.SpellCastEvent
 spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
 	local spell = statsMod.SpellInfo[spellname]
 	if not spell then
 		return
+	end
+	if spell.needsUnlocked then
+		local attrname = "Earned_Spell_" .. spell.magicType .. "_" .. spellname
+		if utilMod.GetAttribute(player, attrname) ~= true then
+			return
+		end
 	end
 
 	local castTime = spell.castTime or 3
@@ -541,11 +681,14 @@ spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
 		combatMod.ApplySpell(player, spellname)
 		spellCastEvent:FireClient(player, spellname)
 		fireManaUsedEvent(player, utilMod.GetAttribute(player, "Mana"), utilMod.GetAttribute(player, "MaxMana"))
+
+		local basespellname = statsMod.SpellInfo[spellname] and statsMod.SpellInfo[spellname].spellline
+		local attrname = "Experience_" .. basespellname or ""
+		local currentExp = utilMod.GetAttribute(player, attrname) or 0
+		utilMod.SetAttribute(player, attrname, currentExp + 1)
 	end)
-	
 end)
 
-local petEvent = ReplicatedStorage.Events.PetEvent
 petEvent.OnServerEvent:Connect(
 	function(
 		player: Player,

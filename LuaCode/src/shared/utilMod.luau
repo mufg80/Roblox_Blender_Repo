@@ -29,6 +29,7 @@ export type UtilMod = {
 		pets: { Model },
 		buildings: { Model },
 	},
+	IsMaxSummoned:(char:Model, name: string) -> boolean,
 	GetModelByIDorName: (idOrName: string | number) -> Model?,
 	IsPlayer: (instance: Instance) -> boolean,
 	RemoveSpaces: (input: string) -> string,
@@ -57,7 +58,7 @@ export type UtilMod = {
 	GetAttribute: (model: Model?, attr: string) -> any,
 	SetAttribute: (model: Model?, attr: string, value: any) -> (),
 	MyPets: (char: Model) -> { Model },
-	LeveltoManaCost:(creatureInstance: Instance)-> number,
+	LeveltoManaCost: (creatureInstance: Instance) -> number,
 	CopyStatsToFolder: (target: Instance, stats: { [string]: any }, folderName: string?) -> Folder,
 	GetStatsFromFolder: (instance: Instance, folderName: string?) -> { [string]: any },
 
@@ -72,50 +73,6 @@ export type UtilMod = {
 	RemoveFeralPrefix: (name: string) -> string,
 	ReassignSpawn: (model: Model, spawnPosition: Vector3) -> Vector3,
 }
-
--- ────────────────────────────────────────────────────────────────
--- Caches for fast lookups
--- ────────────────────────────────────────────────────────────────
-
-local characterCache = {} -- [Model] = true (is character)
-local playerFromCharacter = {} -- [Model] = Player (fast GetPlayerFromCharacter replacement)
-local idStringCache = {}
-local function updateCharacterCache()
-	characterCache = {}
-	playerFromCharacter = {}
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player.Character then
-			characterCache[player.Character] = true
-			playerFromCharacter[player.Character] = player
-			idStringCache[player.Character] = tostring(player.UserId)
-		end
-	end
-end
-
--- Initial population
-updateCharacterCache()
-
--- Update on player/character changes
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(char)
-		characterCache[char] = true
-		playerFromCharacter[char] = player
-		idStringCache[char] = tostring(player.UserId)
-	end)
-	player.CharacterRemoving:Connect(function(char)
-		characterCache[char] = nil
-		playerFromCharacter[char] = nil
-		idStringCache[char] = nil
-	end)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-	if player.Character then
-		characterCache[player.Character] = nil
-		playerFromCharacter[player.Character] = nil
-		idStringCache[player.Character] = nil
-	end
-end)
 
 
 --==============================================================================
@@ -132,14 +89,34 @@ function utilMod.LeveltoManaCost(creatureInstance: Instance): number
 	return tenth * statsMod.MaxSpellCost
 end
 
+function utilMod.IsMaxSummoned(char:Model, name: string): boolean
+	-- Check if max is reached
+	local maxAmount = statsMod.MaxCreatures[name]
+	if maxAmount and maxAmount > 0 then
+		local additive:number = utilMod.GetAttribute(char, "Earned_MaxBoost_"..name) and 1 or 0
+		maxAmount = maxAmount + additive
+		local mypets = utilMod.MyPets(char) or {}
+		local existing = 0
+		for _, pet in mypets do
+			if pet and pet.Parent and utilMod.customTrim(pet.Name) == name then
+				existing += 1
+			end
+		end
+		if existing >= maxAmount then
+			return true
+		end
+	end
+	return false
+end
 
 function utilMod.GetId(model: Model): string?
 	if not model then
 		warn("Should not reach me.")
 		return nil
 	end
-	if idStringCache[model] then
-		return idStringCache[model]
+	local player = game.Players:GetPlayerFromCharacter(model)
+	if player then
+		return player.UserId
 	else
 		return model.Name
 	end
@@ -172,7 +149,9 @@ function utilMod.IsPlayerCharacter(instance: Model?): boolean
 	if not instance or not instance:IsA("Model") then
 		return false
 	end
-	return characterCache[instance] == true
+	
+	local player = game.Players:GetPlayerFromCharacter(instance)
+	return player ~= nil
 end
 
 -- ────────────────────────────────────────────────────────────────
@@ -183,7 +162,8 @@ function utilMod.GetPlayerFromCharacter(model: Model?): Player?
 	if not model or not model:IsA("Model") then
 		return nil
 	end
-	return playerFromCharacter[model]
+	local player = game.Players:GetPlayerFromCharacter(model)
+	return player
 end
 
 function utilMod.CreatureCastTime(name: string): number
@@ -198,6 +178,7 @@ function utilMod.CreatureCastTime(name: string): number
 	end
 	return 1
 end
+
 
 -- ────────────────────────────────────────────────────────────────
 -- Safe SetAttribute – supports Player or Model
@@ -298,8 +279,8 @@ function utilMod.IsPlayer(instance: Instance?): boolean
 		return false
 	end
 
-	-- Fast cache check
-	return playerFromCharacter[instance] ~= nil
+	local player = game.Players:GetPlayerFromCharacter(instance)
+	return player ~= nil
 end
 
 -- Sets flags for a model in the "Moving" state

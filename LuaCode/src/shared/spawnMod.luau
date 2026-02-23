@@ -69,10 +69,10 @@ local function spawnFeral()
 	local point = feralSpawnPoints[rand]
 
 	local creature
-	if recyleMod.CheckIfExistsFeral("FeralArtifactGuardian") then
-		creature = recyleMod.ReturnFeral("FeralArtifactGuardian")
+	if recyleMod.CheckIfExistsFeral("FeralDybb") then
+		creature = recyleMod.ReturnFeral("FeralDybb")
 	else
-		local template = ServerStorage.FeralEntities:FindFirstChild("FeralGiantAmoeba")
+		local template = ServerStorage.FeralEntities:FindFirstChild("FeralDybb")
 		--local templates = ServerStorage.FeralEntities:GetChildren()
 
 		-- if not templates then

@@ -5,19 +5,20 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
-local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
 -- other shared mods as needed...
 
 local ResourceBars = require(ReplicatedStorage.Client.ResourceBars)
-local PetHUD = require(ReplicatedStorage.Client.PetHUD)
-local PetCommands = require(ReplicatedStorage.Client.PetCommands)
+local pethudMod = require(ReplicatedStorage.Client.pethudMod)
+local petcommandsMod = require(ReplicatedStorage.Client.petcommandsMod)
 --local MagicClassUI = require(ReplicatedStorage.Client.MagicClassUI)
-local CastFeedback = require(ReplicatedStorage.Client.CastFeedback)
+local castfeedbackMod = require(ReplicatedStorage.Client.castfeedbackMod)
 --local ActionButtonManager = require(ReplicatedStorage.Client.ActionButtonManager)
 --local SpellAndSummonButtons = require(ReplicatedStorage.Client.SpellAndSummonButtons)
-local actionsMod = require(ReplicatedStorage.Client.actionsMod)
-local BuffVisuals = require(ReplicatedStorage.Client.BuffVisuals)
+local actionMod = require(ReplicatedStorage.Client.actionMod)
+local buffvisualsMod = require(ReplicatedStorage.Client.buffvisualsMod)
 local soulcolorMod = require(ReplicatedStorage.Client.soulcolorMod)
+local messageMod = require(ReplicatedStorage.Client.messageMod)
 -- Minimal remaining top-level code (if any)
 -- e.g. wait for guis, initial calls, admin panel...
 
@@ -27,15 +28,15 @@ StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
 -- Init everything
 ResourceBars.Init()
-PetHUD.Init()
-PetCommands.Init()
+pethudMod.Init()
+petcommandsMod.Init()
 --MagicClassUI.Init()
-CastFeedback.Init()
+castfeedbackMod.Init()
 --ActionButtonManager.Init()
 --SpellAndSummonButtons.Init()
-BuffVisuals.Init()
+buffvisualsMod.Init()
 
-actionsMod.Init()
+actionMod.Init()
 soulcolorMod.Init()
 
 -- -- admin area

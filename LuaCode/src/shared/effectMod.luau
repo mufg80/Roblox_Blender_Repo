@@ -69,15 +69,17 @@ function effectMod.DirectDamageEffect(hrp: BasePart, spellName: string): ()
 		return
 	end
 
-	local template = ReplicatedStorage.Effects:FindFirstChild(spellName .. "Effect")
-	if not template then
-		warn("Effect not found: " .. spellName .. "Effect")
-		return
-	end
 
 	local spellinfo = statsMod.SpellInfo[spellName]
 	if not spellinfo then
 		warn("Spell info not found for " .. spellName)
+		return
+	end
+
+	
+	local template = ReplicatedStorage.Effects:FindFirstChild(spellinfo.effectName)
+	if not template then
+		warn("Effect not found: " .. spellName .. "Effect")
 		return
 	end
 
@@ -162,17 +164,18 @@ function effectMod.AOEDamageEffect(hrp: BasePart, spellName: string): ()
 		return
 	end
 
-	local template = ReplicatedStorage.Effects:FindFirstChild(spellName .. "Effect")
-	if not template then
-		warn("Effect not found: " .. spellName .. "Effect")
-		return
-	end
-
 	local spellinfo = statsMod.SpellInfo[spellName]
 	if not spellinfo then
 		warn("Spell info not found for " .. spellName)
 		return
 	end
+	
+	local template = ReplicatedStorage.Effects:FindFirstChild(spellinfo.effectName)
+	if not template then
+		warn("Effect not found: " .. spellName .. "Effect")
+		return
+	end
+
 
 	local spelleffect = template:Clone()
 	spelleffect.Parent = Workspace
@@ -261,7 +264,7 @@ function effectMod.BuffEffects(targets: { Model }, spellName: string)
 		return
 	end
 
-	local template = ReplicatedStorage.Effects:FindFirstChild(spellName .. "Effect")
+	local template = ReplicatedStorage.Effects:FindFirstChild(spellinfo.effectName)
 	if not template then
 		warn("Buff effect template not found: " .. spellName .. "Effect")
 		return

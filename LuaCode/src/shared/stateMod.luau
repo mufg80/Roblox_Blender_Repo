@@ -317,7 +317,7 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 
 			if ownerInstance then
 				local check: Vector3? =
-					pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId)
+					pathMod.GetTargetPet(model, game.Players:GetPlayerFromCharacter(ownerInstance).UserId, random)
 				if check then
 					if not utilMod.GetAttribute(model, "IsMoving") then
 						utilMod.SetFlagsForMoving(model)

@@ -425,7 +425,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		end
 	elseif info.spellType == "areaDamage" then
 		local affected = 0
-		local playersInRange = utilMod.GetEnemyPlayersWithinRange(player, info.range)
+		local playersInRange = utilMod.GetEnemyPlayersWithinRange(player.Character, info.range)
 		local modelsInRange = utilMod.GetEnemyModelsWithinRange(player.Character, info.range)
 
 		for _, plr in playersInRange do
@@ -487,7 +487,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		if info.spellType == "debuff" then
 			local charcontainer = {}
 
-			for _, plr in utilMod.GetEnemyPlayersWithinRange(player, info.range) do
+			for _, plr in utilMod.GetEnemyPlayersWithinRange(player.Character, info.range) do
 				applied = buffMod.BuffDebuffHeal(player.Character, plr.Character, spellname) or applied
 				if applied then
 					table.insert(charcontainer, plr.Character)
@@ -664,7 +664,7 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 		end
 		if applied then
 			buffMod.SelectTargetsForAggro(model, info)
-			mana = utilMod.GetAttribute(mana, "Mana")
+			mana = utilMod.GetAttribute(model, "Mana")
 			utilMod.SetAttribute(model, "Mana", mana - cost)
 			local repevent = ReplicatedStorage.Events.PetManaEvent
 			if repevent then

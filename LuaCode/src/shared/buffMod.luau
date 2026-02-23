@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local recycleMod = require(ReplicatedStorage.Shared.recycleMod)
@@ -25,7 +24,7 @@ function buffMod.TheftSoul(char: Model): boolean
 
 	-- Cache attributes once (avoids double-fetch + potential races)
 	local currentSouls = utilMod.GetAttribute(player, "Souls") or 0
-	local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0  -- fallback if unset
+	local maxSouls = utilMod.GetAttribute(player, "MaxSouls") or 0 -- fallback if unset
 
 	if currentSouls >= maxSouls then
 		return false
@@ -380,11 +379,10 @@ function buffMod.ReclaimPet(char: Model, spellname: string, mypets: { Model }): 
 
 	local currentmana: number = utilMod.GetAttribute(char, "Mana") or 0
 	local maxmana: number = utilMod.GetAttribute(char, "MaxMana") or 100
-	local name = utilMod.customTrim( mypet.Name)
+	local name = utilMod.customTrim(mypet.Name)
 	local creaturecost = utilMod.LeveltoManaCost(name)
 	print(creaturecost)
 	utilMod.SetAttribute(char, "Mana", math.min(currentmana + creaturecost, maxmana))
-
 
 	local maxSouls: number? = utilMod.GetAttribute(char, "MaxSouls")
 	local currentSouls: number = utilMod.GetAttribute(char, "Souls") or 0
@@ -440,8 +438,6 @@ local function FireBuffNotificationEvent(modelInstance: Model, spellname: string
 		local plr = utilMod.GetPlayerFromCharacter(modelInstance)
 		if plr then
 			repstore.Events.BuffDebuffHealEvent:FireClient(plr, plr.UserId, spellname)
-		else
-			warn("should not reach me.")
 		end
 	else
 		local owner: any = utilMod.GetAttribute(modelInstance :: Model, "OwnedBy")
@@ -450,8 +446,6 @@ local function FireBuffNotificationEvent(modelInstance: Model, spellname: string
 			if plr then
 				repstore.Events.BuffDebuffHealEvent:FireClient(plr, (modelInstance :: Model).Name, spellname)
 			end
-		else
-			warn("should not reach me")
 		end
 	end
 end
@@ -510,10 +504,8 @@ function buffMod.BuffDebuffHeal(casterMod: Model, target: Model, spellname: stri
 			ev:Fire(casterMod, spellname)
 		end
 		FireBuffNotificationEvent(target, spellname)
-		if not utilMod.IsPlayerCharacter(target) then
-			buffMod.ApplyBillboardBuffLabel(spellinfo.spellType, spellname, duration, target)
-		end
 
+		buffMod.ApplyBillboardBuffLabel(spellinfo.spellType, spellname, duration, target)
 		while elapsed < duration do
 			task.wait(tickRate)
 			elapsed += tickRate
