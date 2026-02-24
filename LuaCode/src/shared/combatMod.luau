@@ -14,77 +14,72 @@ local combatMod = {}
 
 local random = Random.new(time())
 
-
---==============================================================================
--- Calculates spell damage with level difference, resistances, miss chance, etc.
--- Returns final integer damage (0 = miss/resist)
---==============================================================================
 function combatMod.SpellAttackResult(attackerCreature: Model, defenderCreature: Model, spellName: string): number
-	-- Resolve attacker stats (supports both character model and player folder)
-	local attackerStats = utilMod.GetStatsFromFolder(attackerCreature)
-	if not attackerStats or next(attackerStats) == nil then
-		local plr = Players:GetPlayerFromCharacter(attackerCreature)
-		if plr then
-			attackerStats = utilMod.GetStatsFromFolder(plr)
-		end
-	end
+    -- Resolve attacker stats (supports both character model and player folder)
+    local attackerStats = utilMod.GetStatsFromFolder(attackerCreature)
+    if not attackerStats or next(attackerStats) == nil then
+        local plr = Players:GetPlayerFromCharacter(attackerCreature)
+        if plr then
+            attackerStats = utilMod.GetStatsFromFolder(plr)
+        end
+    end
 
-	-- Resolve defender stats (same fallback logic)
-	local defenderStats = utilMod.GetStatsFromFolder(defenderCreature)
-	if not defenderStats or next(defenderStats) == nil then
-		local plr = Players:GetPlayerFromCharacter(defenderCreature)
-		if plr then
-			defenderStats = utilMod.GetStatsFromFolder(plr)
-		end
-	end
+    -- Resolve defender stats (same fallback logic)
+    local defenderStats = utilMod.GetStatsFromFolder(defenderCreature)
+    if not defenderStats or next(defenderStats) == nil then
+        local plr = Players:GetPlayerFromCharacter(defenderCreature)
+        if plr then
+            defenderStats = utilMod.GetStatsFromFolder(plr)
+        end
+    end
 
-	local spell = statsMod.SpellInfo[spellName]
-	if not spell then
-		spell = statsMod.StaffStats[spellName]
-	end
-	if not attackerStats or not defenderStats or not spell then
-		return 0
-	end
+    -- Unified spell lookup (SpellInfo OR StaffStats)
+    local spell: statsMod.AttackSpell? = statsMod.GetAttackSpell(spellName)
 
-	local attackerLevel: number = attackerStats.level
-	local defenderLevel: number = defenderStats.level
+    if not attackerStats or not defenderStats or not spell then
+        return 0
+    end
 
-	-- Choose appropriate magic defense based on spell type
-	local relevantDefense: number = defenderStats.artificermagicdefense
-	if spell.magicType == "Primordial" then
-		relevantDefense = defenderStats.primordialmagicdefense
-	elseif spell.magicType == "Nature" then
-		relevantDefense = defenderStats.naturemagicdefense
-	end
+    local attackerLevel: number = attackerStats.level
+    local defenderLevel: number = defenderStats.level
 
-	-- Miss chance: base + penalty when attacker is lower level
-	local levelDiff = (defenderLevel - attackerLevel) * 4 * 0.01
-	local levelPenalty = math.clamp(levelDiff + 0.15, 0.0, 0.30) -- 0% → 30%
-	local finalMissChance = math.clamp(spell.missChance + levelPenalty, 0.10, 0.65)
+    -- Choose appropriate magic defense based on spell type
+    local relevantDefense: number = defenderStats.artificermagicdefense
+    if spell.magicType == "Primordial" then
+        relevantDefense = defenderStats.primordialmagicdefense
+    elseif spell.magicType == "Nature" then
+        relevantDefense = defenderStats.naturemagicdefense
+    end
 
-	if random:NextNumber() < finalMissChance then
-		return 0 -- Miss / fully resisted
-	end
+    -- Miss chance: base + penalty when attacker is lower level
+    local levelDiff = (defenderLevel - attackerLevel) * 4 * 0.01
+    local levelPenalty = math.clamp(levelDiff + 0.15, 0.0, 0.30)
+    local finalMissChance = math.clamp(spell.missChance + levelPenalty, 0.10, 0.65)
 
-	-- Base damage before any reductions
-	local base = spell.effectMultiplier * statsMod.MaxSpellDamage
+    if random:NextNumber() < finalMissChance then
+        return 0 -- Miss / fully resisted
+    end
 
-	-- Resistance reduction (random between half and full defense value)
-	local reduction = random:NextNumber(relevantDefense / 2, relevantDefense)
-	local afterResist = base * (1 - reduction)
+    -- Base damage before reductions
+    local base = spell.effectMultiplier * statsMod.MaxSpellDamage
 
-	-- Small bonus/penalty based on level difference
-	local levelBonus = math.clamp((attackerLevel - defenderLevel) * 0.08, -0.3, 0.3)
-	local afterResist1 = afterResist * (1 + levelBonus)
+    -- Resistance reduction (random between half and full defense)
+    local reduction = random:NextNumber(relevantDefense / 2, relevantDefense)
+    local afterResist = base * (1 - reduction)
 
-	-- Random variance (75%–125%)
-	local variance = random:NextNumber(0.75, 1.25)
-	local final = afterResist1 * variance
+    -- Level difference bonus/penalty
+    local levelBonus = math.clamp((attackerLevel - defenderLevel) * 0.08, -0.3, 0.3)
+    local afterResist1 = afterResist * (1 + levelBonus)
 
-	-- Final clamp & rounding
-	local finalmaxed = math.max(final, 1)
-	return math.floor(finalmaxed + 0.5)
+    -- Random variance (75%–125%)
+    local variance = random:NextNumber(0.75, 1.25)
+    local final = afterResist1 * variance
+
+    -- Final clamp & rounding
+    local finalmaxed = math.max(final, 1)
+    return math.floor(finalmaxed + 0.5)
 end
+
 
 --==============================================================================
 -- Checks if a model is within the attack range defined in its stats
@@ -103,7 +98,7 @@ function combatMod.AcceptableDistanceToOpponent(model: Model, enemy: Model): boo
 
 	local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
 	local enemyhrp = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChildWhichIsA("BasePart")
-	if not hrp or not enemyhrp then
+	if not hrp or not enemyhrp or not hrp:IsA("BasePart") or not enemyhrp:IsA("BasePart") then
 		return false
 	end
 
@@ -161,7 +156,7 @@ end
 --==============================================================================
 -- Creates a shallow copy of a creature's stats table (used for safe stat access)
 --==============================================================================
-function combatMod.ShallowTableCopy(name: any): table
+function combatMod.ShallowTableCopy(name: any): {}
 	local trimmed = utilMod.customTrim(tostring(name))
 	local t = statsMod.creatureStats[trimmed]
 	if not t then
@@ -277,7 +272,7 @@ function combatMod.AdjustSpeedOfHumanoid(player:Player, casttime:number):()
 	local char = player.Character
 	if char then
 		local hum = char:FindFirstChild("Humanoid")
-		if hum then
+		if hum and hum:IsA("Humanoid") then
 			hum.WalkSpeed = 4
 			task.spawn(function()
 				task.wait(casttime)
@@ -313,13 +308,13 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		return
 	end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
-	if not hrp then
+	if not hrp or not hrp:IsA("BasePart") then
 		return
 	end
 
 	local height = statsMod.creatureStats[creatureName].height
 
-	local groundY = utilMod.DistancetoGround(spawnpoint)
+	local groundY = utilMod.DistancetoGround(spawnpoint) or 0
 	local mobPos = Vector3.new(spawnpoint.X, groundY + height + 1, spawnpoint.Z)
 	local lookAt = (mobPos - hrp.Position) * 2
 
@@ -371,7 +366,7 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 	end
 
 	local creatureHRP = summonedCreature:FindFirstChild("HumanoidRootPart")
-	if creatureHRP then
+	if creatureHRP and creatureHRP:IsA("BasePart") then
 		creatureHRP.CFrame = CFrame.new(mobPos, mobPos + lookAt)
 		return summonedCreature
 	else
@@ -405,8 +400,15 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		local target = utilMod.GetClosestPlayerSkipAlly(player.Character)
 			or utilMod.GetClosestModelSkipAllyPets(player.Character, "Pets")
 			or utilMod.GetClosestModelSkipAllyPets(player.Character, "Ferals")
-
-		local dis = utilMod.GetDistance(player.Character, target)
+		local dis = math.huge
+		if target and target:IsA("Model") then
+			local hrp = target:FindFirstChild("HumanoidRootPart")
+			if hrp and hrp:IsA("BasePart")then
+				dis = utilMod.GetDistance(player.Character, hrp.Position) or math.huge
+			end
+			
+		end
+		
 		if target and dis and dis < info.range then
 			local isPlayer = false
 			if target:IsA("Player") then
@@ -418,7 +420,11 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 				combatMod.ExecuteSpellDamageToBody(player.Character, target, damage)
 			end)
 			utilMod.SetAttribute(player, "Mana", mana - cost)
-			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart"), spellname)
+			local targhrp = target:FindFirstChild("HumanoidRootPart")
+			if targhrp and targhrp:IsA("BasePart") then
+				effectMod.DirectDamageEffect(targhrp, spellname)
+			end
+			
 			if not isPlayer then
 				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
 			end
@@ -433,7 +439,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 				local dmg = combatMod.SpellAttackResult(player.Character, plr, spellname)
 
 				task.delay(0.5, function()
-					combatMod.ExecuteSpellDamageToBody(player.Character, plr.Character, dmg)
+					combatMod.ExecuteSpellDamageToBody(player.Character, plr, dmg)
 				end)
 				affected += 1
 			end
@@ -453,7 +459,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		if affected > 0 then
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 			local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-			if hrp then
+			if hrp and hrp:IsA("BasePart") then
 				effectMod.AOEDamageEffect(hrp, spellname)
 			end
 		end
@@ -488,9 +494,9 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			local charcontainer = {}
 
 			for _, plr in utilMod.GetEnemyPlayersWithinRange(player.Character, info.range) do
-				applied = buffMod.BuffDebuffHeal(player.Character, plr.Character, spellname) or applied
+				applied = buffMod.BuffDebuffHeal(player.Character, plr, spellname) or applied
 				if applied then
-					table.insert(charcontainer, plr.Character)
+					table.insert(charcontainer, plr)
 				end
 			end
 			for _, mob in utilMod.GetEnemyModelsWithinRange(player.Character, info.range) do
@@ -510,7 +516,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			end
 		end
 		if applied then
-			buffMod.SelectTargetsForAggro(player.Character, info)
+			buffMod.SelectTargetsForAggro(player, info)
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 		end
 	elseif info.spellType == "utility" then
@@ -529,7 +535,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		end
 
 		if applied then
-			buffMod.SelectTargetsForAggro(player.Character, info)
+			buffMod.SelectTargetsForAggro(player, info)
 			mana = utilMod.GetAttribute(player, "Mana")
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 		end
@@ -618,10 +624,13 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 		end
 		local target = combatTargetModel
 
-		local dis = utilMod.GetDistance(
-			model:FindFirstChild("HumanoidRootPart").Position,
-			target:FindFirstChild("HumanoidRootPart").Position
-		)
+		local modhrp = model:FindFirstChild("HumanoidRootPart")
+		local targhrp = target:FindFirstChild("HumanoidRootPart")
+		local dis:number? = nil
+		if modhrp and targhrp and modhrp:IsA("BasePart") and targhrp:IsA("BasePart") then
+			dis = utilMod.GetDistance(modhrp.Position, targhrp.Position)
+		end
+
 		if target and dis and dis < info.range then
 			local isPlayer = false
 			if target:IsA("Player") then
@@ -633,7 +642,11 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 				combatMod.ExecuteSpellDamageToBody(model, target, damage)
 			end)
 			utilMod.SetAttribute(model, "Mana", mana - cost)
-			effectMod.DirectDamageEffect(target:FindFirstChild("HumanoidRootPart"), spellname)
+
+			if targhrp and targhrp:IsA("BasePart") then
+				effectMod.DirectDamageEffect(targhrp, spellname)
+			end
+			
 			if not isPlayer then
 				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
 			end
@@ -685,10 +698,10 @@ export type CombatMod = {
 	SpellAttackResult: (attackerCreature: Model, defenderCreature: Model, spellName: string) -> number,
 	AcceptableDistanceToOpponent: (model: Model, enemy: Model) -> boolean,
 	MeleeAttackResult: (attacker: Instance, defender: Instance) -> number,
-	ShallowTableCopy: (name: any) -> table,
+	ShallowTableCopy: (name: any) -> {},
 	ApplyStaffDamage: (hitPart: BasePart, ownerPlayer: Player, staffType: string) -> boolean,
 	ExecuteSpellDamageToBody: (source: Model, target: Model, damage: number?) -> boolean,
-	ApplyAbility: (player: Player, creatureName: string, recyleMod: any) -> Model?,
+	ApplyAbility:(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3)-> Model?,
 	ApplySpell: (player: Player, spellname: string) -> (),
 	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
 	CalculateAggro: (damageTaken: number) -> number,

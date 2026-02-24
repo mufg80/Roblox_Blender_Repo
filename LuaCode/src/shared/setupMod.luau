@@ -195,7 +195,7 @@ local function setStaffandPets(player: Player, char: Model): ()
 	end
 end
 
-function setupMod.GetMagicType(player: Player): string?
+function setupMod.GetMagicType(player: Player): string
 	local magic = utilMod.GetAttribute(player, "Magic")
 	if magic == statsMod.MagicType.Artificer then
 		return "ArtificerLevel"
@@ -206,7 +206,10 @@ function setupMod.GetMagicType(player: Player): string?
 	if magic == statsMod.MagicType.Nature then
 		return "NatureLevel"
 	end
-	return nil
+	if magic == statsMod.MagicType.None then
+		return "None"
+	end
+	return "Any"
 end
 
 local function setStats(Char: Model, spellname: string?)
@@ -221,8 +224,9 @@ local function setStats(Char: Model, spellname: string?)
 		return
 	end
 	local plr = Players:GetPlayerFromCharacter(Char)
-	local level = plr and utilMod.GetAttribute(plr, setupMod.GetMagicType(plr)) or 1
-	local numberlevel = tonumber(level) * 20
+	local stringtype = setupMod.GetMagicType(plr)
+	local level = (plr and utilMod.GetAttribute(plr,stringtype )) or 1
+	local numberlevel = (tonumber(level) or 1) * 20
 	humanoid.MaxHealth = (baseStats.hitPoints + numberlevel) or humanoid.MaxHealth
 	if humanoid.Health > humanoid.MaxHealth then
 		humanoid.Health = humanoid.MaxHealth
@@ -544,13 +548,13 @@ game.Players.PlayerAdded:Connect(function(player)
 	--utilMod.SetAttribute(player, "Earned_Staff_Nature_LegendaryStaff", true)
 
 	for name, amount in statsMod.MaxCreatures do
-		local name = "Earned_MaxBoost_" .. name
-		utilMod.SetAttribute(player, name, false)
+		local atname = "Earned_MaxBoost_" .. name
+		utilMod.SetAttribute(player, atname, false)
 	end
 
 	for name, type in statsMod.EarnedStaffNames do
-		local name = "Earned_Staff_" .. type .. "_" .. name
-		utilMod.SetAttribute(player, name, false)
+		local atname = "Earned_Staff_" .. type .. "_" .. name
+		utilMod.SetAttribute(player, atname, false)
 	end
 
 	for _, name in statsMod.SpellUpgradeNames do
@@ -614,6 +618,7 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 	end
 
 	-- Check if max is reached
+	if not player.Character then return end
 	if utilMod.IsMaxSummoned(player.Character, creatureName) then
 		return
 	end
@@ -681,7 +686,7 @@ spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
 		end
 		combatMod.ApplySpell(player, spellname)
 		spellCastEvent:FireClient(player, spellname)
-		fireManaUsedEvent(player, utilMod.GetAttribute(player, "Mana"), utilMod.GetAttribute(player, "MaxMana"))
+		fireManaUsedEvent(player)
 
 		local basespellname = statsMod.SpellInfo[spellname] and statsMod.SpellInfo[spellname].spellline
 		local attrname = "Experience_" .. basespellname or ""

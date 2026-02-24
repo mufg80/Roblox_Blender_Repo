@@ -11,7 +11,103 @@ local repstore = game:GetService("ReplicatedStorage")
 
 local buffMod = {}
 
-function buffMod.TheftSoul(char: Model, spellname:string): boolean
+-- Table to track active buff tasks per model+spell
+local activeBuffs: { [string]: { thread: thread, label: ImageLabel } } = {}
+
+-- Table to track running buff/debuff/heal coroutines
+local RUNNING_EFFECTS: { [string]: thread } = {}
+
+local modelBaseStats: { [Model]: { [string]: any } } = {}
+
+export type BuffMod = {
+	Setup: (model: Model, sourceStats: { [string]: any }) -> (),
+	ApplyBillboardBuffLabel: (spelltype: string, spellname: string, duration: number, model: Model) -> (),
+	CheckDistanceOnSpouts: (char: Model, spellname: string) -> boolean,
+	ConvertSpout: (char: Model, spellname: string) -> boolean,
+	ReclaimPet: (char: Model, spellname: string, mypets: { Model }) -> boolean,
+	BuffDebuffHeal: (casterMod: Model, target: Model, spellname: string) -> boolean,
+	SelectTargetsForAggro: (caster: Model, spellinfo: any) -> (),
+	StartBuffLabelTimer: (imageLabel: ImageLabel, duration: number, model: Model, key: string) -> (),
+	TheftSoul: (char: Model, spellname: string) -> boolean,
+}
+
+-- NEW: Setup buff events and stat refresh system on an NPC model
+function buffMod.Setup(model: Model, sourceStats: { [string]: any }):()
+	if not model or not sourceStats then
+		warn("Should not reach me.")
+		return
+	end
+
+	-- Store base stats for later restoration
+	modelBaseStats[model] = utilMod.ShallowTableCopy(sourceStats) -- deep enough for flat stats
+
+	-- Local refresh function
+	local function refreshStats(spellname: string?)
+		local baseStats = utilMod.GetStatsFromFolder(model)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+
+		humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
+		if humanoid.Health > humanoid.MaxHealth then
+			humanoid.Health = humanoid.MaxHealth
+		end
+		humanoid.WalkSpeed = 16 * (baseStats.speed or 1)
+
+		if spellname and statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
+			humanoid.Health =
+				math.min(humanoid.Health + (statsMod.BuffInfo[spellname].hitPoints or 0), humanoid.MaxHealth)
+		end
+	end
+
+	-- Create events if not already present
+	local addEvent = model:FindFirstChild("BuffDebuffEvent")
+	if not addEvent then
+		addEvent = Instance.new("BindableEvent")
+	end
+	if addEvent and addEvent:IsA("BindableEvent") then
+		addEvent.Name = "BuffDebuffEvent"
+		addEvent.Parent = model
+		-- On buff/debuff apply → just refresh
+		addEvent.Event:Connect(function(caster: Model, spellname: string)
+			refreshStats(spellname)
+		end)
+	end
+
+	local removeEvent = model:FindFirstChild("RemoveBuffDebuffEvent")
+	if not removeEvent then
+		removeEvent = Instance.new("BindableEvent")
+	end
+	if removeEvent and removeEvent:IsA("BindableEvent") then
+		removeEvent.Name = "RemoveBuffDebuffEvent"
+		removeEvent.Parent = model
+
+		-- On buff/debuff remove → check if no buffs left → restore base stats
+		removeEvent.Event:Connect(function(caster: Model, spellname: string)
+			local hasAnyBuff = false
+			for attName, _ in pairs(model:GetAttributes()) do
+				if typeof(attName) == "string" and string.sub(attName, 1, 5) == "Buff_" then
+					hasAnyBuff = true
+					break
+				end
+			end
+
+			if not hasAnyBuff then
+				-- No buffs left → restore original base stats
+				utilMod.CopyStatsToFolder(model, modelBaseStats[model])
+			end
+
+			refreshStats()
+		end)
+	end
+
+	-- Initial apply
+	refreshStats()
+end
+
+
+function buffMod.TheftSoul(char: Model, spellname: string): boolean
 	local player = Players:GetPlayerFromCharacter(char)
 	if not player then
 		return false
@@ -42,10 +138,7 @@ function buffMod.TheftSoul(char: Model, spellname:string): boolean
 	-- Play effect safely
 	local anchor = soulToConsume:FindFirstChild("Anchor")
 	if anchor and anchor:IsA("BasePart") then
-		local success, err = pcall(effectMod.SoulGrabbedEffect, anchor.CFrame.Position)
-		if not success then
-			warn("SoulGrabbedEffect failed:", err)
-		end
+		effectMod.SoulGrabbedEffect(anchor.CFrame.Position)
 	end
 
 	-- Despawn fully (Destroy > Parent=nil for cleanup)
@@ -57,97 +150,8 @@ function buffMod.TheftSoul(char: Model, spellname:string): boolean
 	return true
 end
 
--- Table to track active buff tasks per model+spell
-local activeBuffs: { [string]: { thread: thread, label: ImageLabel } } = {}
 
--- Table to track running buff/debuff/heal coroutines
-local RUNNING_EFFECTS: { [string]: thread } = {}
-
-local modelBaseStats: { [Model]: { [string]: any } } = {}
-
-export type BuffMod = {
-	Setup: (model: Model, sourceStats: { [string]: any }) -> (),
-	ApplyBillboardBuffLabel: (
-		spelltype: string,
-		spellname: string,
-		duration: number,
-		caster: Model,
-		model: Model
-	) -> (),
-	CheckDistanceOnSpouts: (char: Model, spellname:string) -> boolean,
-	ConvertSpout: (char: Model, spellname:string) -> boolean,
-	ReclaimPet: (char: Model, spellname: string, mypets: { Model }) -> boolean,
-	BuffDebuffHeal: (casterMod: Model, target: Model, spellname: string) -> boolean,
-	SelectTargetsForAggro: (caster: Player, spellinfo: any) -> (),
-	StartBuffLabelTimer: (imageLabel: ImageLabel, duration: number, model: Model, key: string) -> (),
-}
-
--- NEW: Setup buff events and stat refresh system on an NPC model
-function buffMod.Setup(model: Model, sourceStats: { [string]: any })
-	if not model or not sourceStats then
-		warn("Should not reach me.")
-		return
-	end
-
-	-- Store base stats for later restoration
-	modelBaseStats[model] = utilMod.ShallowTableCopy(sourceStats) -- deep enough for flat stats
-
-	-- Create events if not already present
-	local addEvent = model:FindFirstChild("BuffDebuffEvent") or Instance.new("BindableEvent")
-	addEvent.Name = "BuffDebuffEvent"
-	addEvent.Parent = model
-
-	local removeEvent = model:FindFirstChild("RemoveBuffDebuffEvent") or Instance.new("BindableEvent")
-	removeEvent.Name = "RemoveBuffDebuffEvent"
-	removeEvent.Parent = model
-
-	-- Local refresh function
-	local function refreshStats(spellname: string?)
-		local baseStats = utilMod.GetStatsFromFolder(model)
-		local humanoid = model:FindFirstChildOfClass("Humanoid")
-		if not humanoid then
-			return
-		end
-
-		humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
-		if humanoid.Health > humanoid.MaxHealth then
-			humanoid.Health = humanoid.MaxHealth
-		end
-		humanoid.WalkSpeed = 16 * (baseStats.speed or 1)
-
-		if spellname and statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
-			humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
-		end
-	end
-
-	-- On buff/debuff apply → just refresh
-	addEvent.Event:Connect(function(caster: Model, spellname: string)
-		refreshStats(spellname)
-	end)
-
-	-- On buff/debuff remove → check if no buffs left → restore base stats
-	removeEvent.Event:Connect(function(caster: Model, spellname: string)
-		local hasAnyBuff = false
-		for attName, _ in pairs(model:GetAttributes()) do
-			if typeof(attName) == "string" and string.sub(attName, 1, 5) == "Buff_" then
-				hasAnyBuff = true
-				break
-			end
-		end
-
-		if not hasAnyBuff then
-			-- No buffs left → restore original base stats
-			utilMod.CopyStatsToFolder(model, modelBaseStats[model])
-		end
-
-		refreshStats()
-	end)
-
-	-- Initial apply
-	refreshStats()
-end
-
-function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, duration: number, model: Model)
+function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, duration: number, model: Model):()
 	if not spellname or not spelltype or not duration or not model then
 		warn("Should not reach me.")
 		return
@@ -167,29 +171,37 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 		areaDamage = "DamageLabel",
 	})[spelltype]
 
-	local billboard: BillboardGui? = model:FindFirstChild("BillBoardGUI")
-	if not billboard then
+	local billboard: Instance? = model:FindFirstChild("BillBoardGUI")
+	if not billboard or not billboard:IsA("ScreenGui") then
 		return
 	end
 
-	local templateLabel: ImageLabel? = billboard.Frame.ZZBuffFrame:FindFirstChild(labelName)
+	local templateLabel: Instance? = nil
+	local ZZFrame: Instance?
+	local frame: Instance? = billboard:FindFirstChild("Frame")
+	if frame then
+		ZZFrame = frame:FindFirstChild("ZZBuffFrame")
+		if ZZFrame then
+			templateLabel = ZZFrame:FindFirstChild("labelName")
+		end
+	end
+
 	if not templateLabel then
 		return
 	end
 
 	local imageLabel = templateLabel:Clone()
-	imageLabel.Parent = billboard.Frame.ZZBuffFrame
+	imageLabel.Parent = ZZFrame
 
 	-- Unique key per model + spell
 	local key = model.Name .. "_" .. spellname .. "_" .. billboard.Name
 
 	-- Start the timer (this will also cancel any previous one for the same key)
-	buffMod.StartBuffLabelTimer(imageLabel, duration, model, key)
+	if imageLabel:IsA("ImageLabel") then
+		buffMod.StartBuffLabelTimer(imageLabel, duration, model, key)
+	end
 end
 
--- buffMod.StartBuffLabelTimer
--- Handles only the visual display: showing, blinking in the last 5 seconds, and cleanup.
--- Does NOT handle attribute changes, healing, stat copying, etc.
 function buffMod.StartBuffLabelTimer(imageLabel: ImageLabel, duration: number, model: Model, key: string): ()
 	-- Cancel any existing task for this key (in case of re-application)
 	if not imageLabel or not duration or not model or not key then
@@ -250,7 +262,7 @@ function buffMod.StartBuffLabelTimer(imageLabel: ImageLabel, duration: number, m
 	activeBuffs[key] = { thread = thread, label = imageLabel }
 end
 
-function buffMod.CheckDistanceOnSpouts(char: Model, spellname:string): boolean
+function buffMod.CheckDistanceOnSpouts(char: Model, spellname: string): boolean
 	if not char then
 		warn("Should not reach me.")
 		return false
@@ -274,7 +286,7 @@ function buffMod.CheckDistanceOnSpouts(char: Model, spellname:string): boolean
 	return false
 end
 
-function buffMod.ConvertSpout(char: Model, spellname:string): boolean
+function buffMod.ConvertSpout(char: Model, spellname: string): boolean
 	if not char or not char:IsA("Model") then
 		warn("Should not reach me.")
 		return false
@@ -295,7 +307,7 @@ function buffMod.ConvertSpout(char: Model, spellname:string): boolean
 
 	local spouts: { Instance } = manaPoints:GetChildren()
 	for _, spout: Instance in pairs(spouts) do
-		if spout.Name ~= "ManaSpout" then
+		if spout.Name ~= "ManaSpout" or not spout:IsA("BasePart") then
 			continue
 		end
 
@@ -412,16 +424,19 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 		return false
 	end
 
-	local dataFolder: Folder? = model:FindFirstChild("Data")
-	if not dataFolder then
+	local dataFolder: Instance? = model:FindFirstChild("Data")
+	if not dataFolder or not dataFolder:IsA("Folder") then
 		return false
 	end
+
 	for statName: string, changeValue: number in pairs(buffInfo) do
-		local valueObj: ValueBase? = dataFolder:FindFirstChild(statName)
-		if valueObj and valueObj:IsA("ValueBase") and typeof(valueObj.Value) == "number" then
-			--print("before: " .. valueObj.Name .. " " .. valueObj.Value)
-			valueObj.Value += changeValue * multiplier
-			--print("after: " .. valueObj.Name .. " " .. valueObj.Value)
+		local valueObj: Instance? = dataFolder:FindFirstChild(statName)
+		if valueObj and valueObj:IsA("ValueBase") then
+			if valueObj:IsA("NumberValue") or valueObj:IsA("IntValue") then
+				valueObj.Value += changeValue * multiplier
+			else
+				warn("Can only modify numeric values, got: " .. valueObj.ClassName)
+			end
 		end
 	end
 
@@ -460,10 +475,10 @@ function buffMod.BuffDebuffHeal(casterMod: Model, target: Model, spellname: stri
 		return false
 	end
 	if utilMod.GetAttribute(casterMod, "HasFallen") or utilMod.GetAttribute(target, "HasFallen") then
-		return
+		return false
 	end
 
-	local key: string = utilMod.GetId(target) .. spellname
+	local key: string = (utilMod.GetId(target) or "") .. spellname
 
 	-- Refresh logic: cancel existing coroutine if one exists
 	if RUNNING_EFFECTS[key] then
@@ -499,9 +514,9 @@ function buffMod.BuffDebuffHeal(casterMod: Model, target: Model, spellname: stri
 		local tickRate: number = 1
 
 		-- Tick event
-		local ev: BindableEvent? = target:FindFirstChild("BuffDebuffEvent")
-		if ev and ev:IsA("BindableEvent") and not isHeal then
-			ev:Fire(casterMod, spellname)
+		local evadd: Instance? = target:FindFirstChild("BuffDebuffEvent")
+		if evadd and evadd:IsA("BindableEvent") and not isHeal then
+			evadd:Fire(casterMod, spellname)
 		end
 		FireBuffNotificationEvent(target, spellname)
 
@@ -533,7 +548,7 @@ function buffMod.BuffDebuffHeal(casterMod: Model, target: Model, spellname: stri
 		end
 
 		-- Removal event
-		local ev: BindableEvent? = target:FindFirstChild("RemoveBuffDebuffEvent")
+		local ev: Instance? = target:FindFirstChild("RemoveBuffDebuffEvent")
 		if ev and ev:IsA("BindableEvent") and not isHeal then
 			ev:Fire(casterMod, spellname)
 		end
