@@ -23,11 +23,6 @@ local function ensureFeralCollisionGroup()
 	PhysicsService:RegisterCollisionGroup(FERAL_GROUP_NAME)
 	PhysicsService:CollisionGroupSetCollidable(FERAL_GROUP_NAME, FERAL_GROUP_NAME, false)
 
-	-- Optional: also make ferals collide normally with players & player-owned pets
-	-- (default behavior is already collide unless you set otherwise)
-	-- If you want ferals to pass through players too, uncomment:
-	-- PhysicsService:CollisionGroupSetCollidable(FERAL_GROUP_NAME, "Default", false)
-	-- or use your per-player group names if you have them
 end
 
 -- Main function – call this for each feral/NPC model you spawn
@@ -52,14 +47,10 @@ local function setFeralCollisionGroup(model: Model)
 	if count == 0 then
 		warn("setFeralCollisionGroup: No BaseParts/MeshParts found in model", model:GetFullName())
 	end
-
-	-- Optional debug
-	-- print("Applied FeralCG to", count, "parts in", model.Name)
 end
 
 -- Feral spawning
 local feralSpawnPoints = workspace:WaitForChild("FeralSpawnPoints"):GetChildren()
-
 local function spawnFeral()
 	if #feralSpawnPoints == 0 then
 		return
@@ -69,18 +60,11 @@ local function spawnFeral()
 	local point = feralSpawnPoints[rand]
 
 	local creature
-	if recyleMod.CheckIfExistsFeral("FeralDybb") then
-		creature = recyleMod.ReturnFeral("FeralDybb")
+	local creatureName = statsMod.SpawnableFerals[math.random(1, #statsMod.SpawnableFerals)]
+	if recyleMod.CheckIfExistsFeral(creatureName) then
+		creature = recyleMod.ReturnFeral(creatureName)
 	else
-		local template = ServerStorage.FeralEntities:FindFirstChild("FeralDybb")
-		--local templates = ServerStorage.FeralEntities:GetChildren()
-
-		-- if not templates then
-		-- 	return
-		-- end
-		-- coatarms, flyinggargoyle, grandpo, litheater, stonemanapriest, 
-		--local randomized = math.random(23,23)
-		--local template = templates[randomized]
+		local template = ServerStorage.FeralEntities:FindFirstChild(creatureName)
 		creature = template:Clone()
 		utilMod.InitNPC(creature)
 		creature.Name = utilMod.uniqueName(creature.Name)

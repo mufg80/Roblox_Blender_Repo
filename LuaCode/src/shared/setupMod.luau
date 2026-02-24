@@ -661,6 +661,7 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 end)
 
 spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
+	print(spellname)
 	local spell = statsMod.SpellInfo[spellname]
 	if not spell then
 		return

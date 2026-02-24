@@ -8,6 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local statsMod     = require(ReplicatedStorage.Shared.statsMod)
 local animMod      = require(ReplicatedStorage.Shared.animMod)
+local utilMod = require(ReplicatedStorage.Shared.utilMod)
 
 local tool         : Tool    = script.Parent
 local player       : Player  = Players.LocalPlayer
@@ -114,6 +115,9 @@ end)
 -- ──────────────────────────────────────────────────────────────
 
 tool.Activated:Connect(function()
+	if utilMod.GetAttribute(player, "HasFallen") then
+		return
+	end
 	if not debounce then return end
 	if castFrame.Visible then return end
 

@@ -221,7 +221,7 @@ end
 
 -- Returns the first eligible soul within range that belongs to another player,
 -- or nil if none found or requirements not met.
-function recycleMod.GetEligibleSoul(char: Model): Model?
+function recycleMod.GetEligibleSoul(char: Model, spellname:string): Model?
 	if not char then
 		warn("GetEligibleSoul: character is nil")
 		return nil
@@ -247,7 +247,7 @@ function recycleMod.GetEligibleSoul(char: Model): Model?
     end
 
 	-- Get spell config once
-	local spellInfo = statsMod.SpellInfo and statsMod.SpellInfo.TheftOfSoul
+	local spellInfo = statsMod.SpellInfo and statsMod.SpellInfo[spellname]
 	if not spellInfo then
 		warn("GetEligibleSoul: TheftOfSoul spell info missing in statsMod")
 		return nil
@@ -365,6 +365,7 @@ export type RecycleMod = {
 
     SpawnSoul: (npc: Model) -> (),
     flagAsDead: () -> (),
+    GetEligibleSoul:(char: Model, spellname:string) -> Model?,
 }
 
 return recycleMod :: RecycleMod

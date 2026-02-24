@@ -246,31 +246,39 @@ task.spawn(function()
 			-- Death
 			----------------------------------------------------------------
 			if animTracks.death then
-				if not animTracks.death.IsPlaying and not deathPlayed then
-					deathPlayed = true
+                if not animTracks.death.IsPlaying and not deathPlayed then
+                    deathPlayed = true
 
-					if animTracks.blink then
-						if animTracks.blink.IsPlaying then
-							animTracks.blink:Stop(0.1)
-						end
-					end
-
-					local deathanim: AnimationTrack = animTracks.death
-					deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
-					deathanim.Stopped:Connect(function()
-						local length = deathanim.Length - 0.01
-						deathanim:AdjustSpeed(0)
-						deathanim.TimePosition = length
-						task.wait(2)
-						utilMod.SetAttribute(model, "RecycleMe", true)
-					end)
-				end
-			else
-				warn("Should not reach me.")
-				humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-				humanoid.PlatformStand = true
-				utilMod.SetAttribute(model, "RecycleMe", true)
-			end
+                    for _,idleanim in animTracks.idle do
+                        if idleanim.IsPlaying then
+                            idleanim:Stop(0.1)
+                        end
+                    end
+                     for _,attanim in animTracks.attacks do
+                        if attanim.IsPlaying then
+                            attanim:Stop(0.1)
+                        end
+                    end
+                    if animTracks.move.IsPlaying then
+                        animTracks.move:Stop(.1)
+                    end
+                    local deathanim: AnimationTrack = animTracks.death
+                    deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
+                    deathanim.Stopped:Connect(function()
+                        deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
+                        local length = deathanim.Length - 0.2
+                        deathanim:AdjustSpeed(0)
+                        deathanim.TimePosition = length
+                        task.wait(2)
+                        utilMod.SetAttribute(model, "RecycleMe", true)
+                    end)
+                end
+            else
+                warn("Should not reach me.")
+                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                humanoid.PlatformStand = true
+                utilMod.SetAttribute(model, "RecycleMe", true)
+            end
 		end
 	end
 end)

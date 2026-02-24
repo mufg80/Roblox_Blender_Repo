@@ -9,6 +9,8 @@
 -- Forward-declare all custom types for clarity and reuse
 export type MagicType = "Artificer" | "Primordial" | "Nature" | "None"
 
+export type SpawnableFerals = {string}
+
 export type SpellInfo = {
 	manaCost: number,
 	magicType: MagicType | "Any",
@@ -3053,6 +3055,27 @@ statsMod.CreatureExpWorth = {
 	["FeralGreatTuskedPog"] = 1,
 	["FeralAwakenedTreant"] = 1,
 	["FeralGriffin"] = 1,
+}
+
+statsMod.SpawnableFerals = {
+	"FeralArtifactGuardian",
+	"FeralGrandPo",
+	"FeralCoatArms",
+	"FeralArtifactProtector",
+	"FeralSuitArms",
+	"FeralFlyingGargoyle",
+	"FeralDybb",
+	"FeralBlob",
+	"FeralLithEater",
+	"FeralFossilizedDybb",
+	"FeralGiantAmoeba",
+	"FeralWingedLith",
+	"FeralPog",
+	"FeralWindSpirit",
+	"FeralVenusDybbTrap",
+	"FeralGreatTuskedPog",
+	"FeralAwakenedTreant",
+	"FeralGriffin",
 }
 
 statsMod.Pics = {

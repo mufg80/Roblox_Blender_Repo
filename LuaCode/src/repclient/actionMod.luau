@@ -622,21 +622,21 @@ local function updateButtonStates()
 				utilMod.SetAttribute(player, cdAttr, nil)
 			end
 
-			if spellName == "ConvertSpout" and player.Character then
+			if spell.spellline == "ConvertSpout" and player.Character then
 				if not buffMod.CheckDistanceOnSpouts(player.Character) then
 					disableButton(btn)
 				end
 			end
 
-			if spellName == "ReclaimPet" and player.Character then
+			if spell.spellline == "ReclaimPet" and player.Character then
 				local myPets = utilMod.MyPets and utilMod.MyPets(player.Character) or {}
 				if #myPets == 0 then
 					disableButton(btn)
 				end
 			end
 
-			if spellName == "TheftOfSoul" and player.Character then
-				local eligiblesoul = recycleMod.GetEligibleSoul(player.Character)
+			if spell.spellline == "TheftOfSoul" and player.Character then
+				local eligiblesoul = recycleMod.GetEligibleSoul(player.Character, spellName)
 				if not eligiblesoul then
 					disableButton(btn)
 				end
@@ -922,6 +922,9 @@ local function useItem(button)
 	end
 
 	if itemType == "Staff" then
+		if utilMod.GetAttribute(player, "HasFallen") then
+			return
+		end
 		local tool = character:FindFirstChild(internalName) or character:FindFirstChildWhichIsA("Tool")
 		if tool and tool:IsA("Tool") then
 			tool:Activate()
@@ -1202,7 +1205,7 @@ function actionsMod.Init()
 	player:GetAttributeChangedSignal("ChangedSpells"):Connect(function()
 		local changed = utilMod.GetAttribute(player, "ChangedSpells") or false
 		if changed then
-			updateButtonStates()
+			updateItemData()
 		end
 	end)
 	task.spawn(function()

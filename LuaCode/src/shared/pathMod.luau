@@ -292,6 +292,14 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			end
 			return
 		end
+		if utilMod.GetAttribute(model, "HasFallen") then
+			if connection then
+				-- print("Killing path 2")
+				connection:Disconnect()
+			end
+			activePaths[model] = nil
+			return
+		end
 
 		if not model.Parent then
 			if connection then

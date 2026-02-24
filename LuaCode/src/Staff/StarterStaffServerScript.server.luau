@@ -131,6 +131,9 @@ end
 
 -- Handle incoming fires (with StaffType verification)
 fireRemote.OnServerEvent:Connect(function(player: Player, targetPos: Vector3, receivedType: string)
+	if utilMod.GetAttribute(player, "HasFallen") then
+		return
+	end
 	if typeof(targetPos) ~= "Vector3" or receivedType ~= staffType then
 		return -- Invalid / spoofed
 	end

@@ -515,17 +515,17 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		end
 	elseif info.spellType == "utility" then
 		local applied = false
-		if spellname == "ReclaimPet" then
+		if info.spellline == "ReclaimPet" then
 			if player.Character then
 				local pets = utilMod.MyPets(player.Character)
 				if pets then
 					applied = buffMod.ReclaimPet(player.Character, spellname, pets)
 				end
 			end
-		elseif spellname == "ConvertSpout" then
-			applied = buffMod.ConvertSpout(player.Character)
-		elseif spellname == "TheftOfSoul" then
-			applied = buffMod.TheftSoul(player.Character)
+		elseif spellname == info.spellline then
+			applied = buffMod.ConvertSpout(player.Character, spellname)
+		elseif info.spellline == "TheftOfSoul" then
+			applied = buffMod.TheftSoul(player.Character, spellname)
 		end
 
 		if applied then

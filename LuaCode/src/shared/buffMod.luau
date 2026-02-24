@@ -11,13 +11,13 @@ local repstore = game:GetService("ReplicatedStorage")
 
 local buffMod = {}
 
-function buffMod.TheftSoul(char: Model): boolean
+function buffMod.TheftSoul(char: Model, spellname:string): boolean
 	local player = Players:GetPlayerFromCharacter(char)
 	if not player then
 		return false
 	end
 
-	local soulToConsume = recycleMod.GetEligibleSoul(char)
+	local soulToConsume = recycleMod.GetEligibleSoul(char, spellname)
 	if not soulToConsume then
 		return false
 	end
@@ -74,8 +74,8 @@ export type BuffMod = {
 		caster: Model,
 		model: Model
 	) -> (),
-	CheckDistanceOnSpouts: (char: Model) -> boolean,
-	ConvertSpout: (char: Model) -> boolean,
+	CheckDistanceOnSpouts: (char: Model, spellname:string) -> boolean,
+	ConvertSpout: (char: Model, spellname:string) -> boolean,
 	ReclaimPet: (char: Model, spellname: string, mypets: { Model }) -> boolean,
 	BuffDebuffHeal: (casterMod: Model, target: Model, spellname: string) -> boolean,
 	SelectTargetsForAggro: (caster: Player, spellinfo: any) -> (),
@@ -250,7 +250,7 @@ function buffMod.StartBuffLabelTimer(imageLabel: ImageLabel, duration: number, m
 	activeBuffs[key] = { thread = thread, label = imageLabel }
 end
 
-function buffMod.CheckDistanceOnSpouts(char: Model): boolean
+function buffMod.CheckDistanceOnSpouts(char: Model, spellname:string): boolean
 	if not char then
 		warn("Should not reach me.")
 		return false
@@ -267,14 +267,14 @@ function buffMod.CheckDistanceOnSpouts(char: Model): boolean
 			continue
 		end
 		local dist: number? = utilMod.GetDistance(char, child)
-		if dist and dist < statsMod.SpellInfo.ConvertSpout.range then
+		if dist and dist < statsMod.SpellInfo[spellname].range then
 			return true
 		end
 	end
 	return false
 end
 
-function buffMod.ConvertSpout(char: Model): boolean
+function buffMod.ConvertSpout(char: Model, spellname:string): boolean
 	if not char or not char:IsA("Model") then
 		warn("Should not reach me.")
 		return false
@@ -300,7 +300,7 @@ function buffMod.ConvertSpout(char: Model): boolean
 		end
 
 		local dist: number? = utilMod.GetDistance(char, spout)
-		if dist and dist < statsMod.SpellInfo.ConvertSpout.range then
+		if dist and dist < statsMod.SpellInfo[spellname].range then
 			local magictype: any = utilMod.GetAttribute(char, "Magic") or statsMod.MagicType.None
 			if magictype == statsMod.MagicType.None then
 				return false
