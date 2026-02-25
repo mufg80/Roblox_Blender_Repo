@@ -6,19 +6,27 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
-local statsMod     = require(ReplicatedStorage.Shared.statsMod)
-local animMod      = require(ReplicatedStorage.Shared.animMod)
+local statsMod = require(ReplicatedStorage.Shared.statsMod)
+local animMod = require(ReplicatedStorage.Shared.animMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 
-local tool         : Tool    = script.Parent
-local player       : Player  = Players.LocalPlayer
-local character    : Model   = player.Character or player.CharacterAdded:Wait()
-local humanoid     : Humanoid = character:WaitForChild("Humanoid")
-
+local tool: Tool = script.Parent
+local player: Player = Players.LocalPlayer
+local character: Model = player.Character or player.CharacterAdded:Wait()
+local humanoidInst: Instance? = character:WaitForChild("Humanoid")
+local humanoid = nil
+if humanoidInst and humanoidInst:IsA("Humanoid") then
+	humanoid = humanoidInst
+end
 local camera = workspace.CurrentCamera
 local staffType = tool:GetAttribute("StaffType")
-local stats = statsMod.StaffStats[staffType] or {}
-local staffCooldown = stats.coolDown or 1.0
+
+local stats = nil
+local staffCooldown = nil
+if staffType and typeof(staffType) == "string" and statsMod.StaffStats[staffType] then
+	stats = statsMod.StaffStats[staffType]
+	staffCooldown = stats.CoolDown
+end
 
 local playerGui = player:WaitForChild("PlayerGui")
 local magicGui = playerGui:WaitForChild("MagicGui")
@@ -27,17 +35,18 @@ local castFrame = magicGui:WaitForChild("CastFrame")
 local crosshairGui = playerGui:WaitForChild("CrossHairGui")
 local isCrosshairsVisible: boolean = UserInputService.GamepadEnabled
 
-local verticalOffset   = -100
+local verticalOffset = -100
 local horizontalOffset = 100
 
 -- Single shared RemoteEvent for all staffs
 local REMOTE_NAME = "FireStaff"
-local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME) or (function()
-	local ev = Instance.new("RemoteEvent")
-	ev.Name = REMOTE_NAME
-	ev.Parent = ReplicatedStorage
-	return ev
-end)()
+local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
+	or (function()
+		local ev = Instance.new("RemoteEvent")
+		ev.Name = REMOTE_NAME
+		ev.Parent = ReplicatedStorage
+		return ev
+	end)()
 
 if not staffType or staffType == "" then
 	warn("Tool", tool.Name, "missing 'StaffType' attribute!")
@@ -45,10 +54,10 @@ end
 
 local function updateCrosshairVisibility(equipped: boolean)
 	local label = crosshairGui:FindFirstChild("ImageLabel")
-	if label then
+	if label and label:IsA("ImageLabel") and crosshairGui:IsA("ScreenGui") then
 		label.Position = UDim2.new(0.5, horizontalOffset, 0.5, verticalOffset)
+		crosshairGui.Enabled = (isCrosshairsVisible and equipped)
 	end
-	crosshairGui.Enabled = (isCrosshairsVisible and equipped)
 end
 
 -- Gamepad crosshair visibility
@@ -88,7 +97,7 @@ local function GetAimPosition(maxDistance: number): Vector3
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterDescendantsInstances = { character }
-	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
 	rayParams.IgnoreWater = true
 
 	local result = workspace:Raycast(rayOrigin, rayDirection * maxDistance, rayParams)
@@ -118,8 +127,15 @@ tool.Activated:Connect(function()
 	if utilMod.GetAttribute(player, "HasFallen") then
 		return
 	end
-	if not debounce then return end
-	if castFrame.Visible then return end
+	if not debounce then
+		return
+	end
+	if castFrame and castFrame:IsA("Frame")then
+		if castFrame.Visible == true then
+			return
+		end
+		
+	end
 
 	debounce = false
 	player:SetAttribute("Firing", true)
@@ -156,9 +172,7 @@ end)
 -- Cleanup
 tool.AncestryChanged:Connect(function(_, parent)
 	if parent == nil then
-		print("ancestrychangedfired")
 		animMod.DeactivateHold(humanoid)
-		animMod.DeactivateFire(humanoid)
 		updateCrosshairVisibility(false)
 	end
 end)

@@ -1,5 +1,4 @@
 --!strict
--- ReplicatedStorage.Client.ResourceBars
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,10 +34,13 @@ local function AdjustSouls(soulsLeft: number, maxSouls: number)
 	end
 end
 
--- Public API
-local ResourceBars = {}
+export type ResourceBars = {
+	Init:() -> (),
+}
 
-function ResourceBars.Init()
+local resourceBars = {}
+
+function resourceBars.Init()
 	-- Initial updates
 	ChangeHealth()
 	ChangeMana()
@@ -73,4 +75,4 @@ function ResourceBars.Init()
 
 end
 
-return ResourceBars
+return resourceBars :: ResourceBars

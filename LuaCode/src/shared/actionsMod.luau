@@ -1,8 +1,86 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local petControlMod = require(script.Parent.petControlMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
+
+export type AnimTrackDict = {
+	idle: { AnimationTrack? },
+	delayConnection: RBXScriptConnection?,
+	idleConnection: thread?,
+	move: AnimationTrack?,
+	blink: AnimationTrack?,
+	death: AnimationTrack?,
+	attacks: { AnimationTrack? },
+	cast: AnimationTrack?,
+	favoredAttack: number,
+	moveSpeed: number?,
+	idleSpeed: number?,
+	deathSpeed: number?,
+	castSpeed: number?,
+	attackSpeeds: { number? },
+}
+
+export type MutablePetSync = {
+	lastAttackTime: { value: number },
+
+	homewardBound: boolean,
+
+	lithDefendRandomLoc: { value: Vector3? },
+
+	lithTakeRandomLoc: { value: Vector3? },
+}
+
+export type ActionContext = {
+	-- Core character/model references
+	model: Model,
+	hrp: BasePart, -- HumanoidRootPart
+
+	-- Animation & combat related
+	animTracks: AnimTrackDict, -- or whatever your actual key type is (string? number?)
+	combatTargetModel: Model?,
+
+	-- Movement & direction
+	movingDirection: string,
+
+	-- Ownership & timing
+	ownerInstance: Instance?, -- e.g. Player, Model, etc.
+	lastAttackTime: { value: number }, -- common wrapper pattern
+	ATTACK_COOLDOWN: number,
+
+	-- Spawning / positioning
+	spawnPosition: Vector3?,
+
+	-- Randomness (very common in Roblox combat/AI)
+	random: Random,
+
+	-- Pet / Lith-related flags & positions (assuming boolean or similar)
+	petAttack: boolean?,
+	petTakeLith: boolean?,
+	petDefendLith: boolean?,
+
+	lithTakePosition: Vector3?,
+	lithDefendPosition: Vector3?,
+
+	-- Mutable / shared state references (very typical pattern)
+	lithTakeRandomLoc: Vector3?,
+	lithDefendRandomLoc: Vector3?,
+	homewardBound: boolean?,
+
+	-- Module references (dependency injection style)
+	pathMod: any, -- ideally: typeof(require(pathModule))
+	combatMod: any,
+	utilMod: any,
+
+	-- The pet instance itself
+	pet: petControlMod.PetControlAPI,
+}
+
+export type ActionMod = {
+	PerformActions: (context: ActionContext) -> MutablePetSync,
+}
+
 local actionsMod = {}
 
 local healerCache: { [string]: boolean } = {}
@@ -13,7 +91,7 @@ local healerBuffed: { [string]: number } = {}
 
 -- Unified function to cast any Priest spell (Heal, Buff, Nuke, etc.)
 local function CastPriestSpell(
-	animTracks: { cast: AnimationTrack, castSpeed: number? },
+	animTracks: AnimTrackDict,
 	model: Model,
 	combatMod: any, -- your combat module
 	spellname: string, -- "PriestHeal", "PriestBuff", "PriestNuke", etc.
@@ -25,7 +103,7 @@ local function CastPriestSpell(
 	end
 
 	-- Play the cast animation
-	local trackToPlay: AnimationTrack = animTracks.cast
+	local trackToPlay: AnimationTrack? = animTracks.cast
 	if not trackToPlay then
 		warn("Should not reach me.")
 		return
@@ -48,9 +126,9 @@ local function CastPriestSpell(
 end
 
 local function DecideToBuff(model: Model, mana: number, maxmana: number): boolean
-	if not model or not mana or not maxmana or maxmana == 0 then
+	if not model or not mana or not maxmana or maxmana == 0 or not healerType then
 		warn("Should not reach me.")
-		return
+		return false
 	end
 	local buffSpell = statsMod.SpellInfo[healerType .. "PriestBuff"]
 	local manaCost = buffSpell.manaCost * statsMod.MaxSpellCost
@@ -82,9 +160,9 @@ local function DecideToBuff(model: Model, mana: number, maxmana: number): boolea
 end
 
 local function DecideToHeal(thisModel: Model, mana: number, maxmana: number): boolean
-	if not thisModel or not mana or not maxmana then
+	if not thisModel or not mana or not maxmana or not healerType then
 		warn("Should not reach me.")
-		return
+		return false
 	end
 
 	local party = utilMod.GetPartyMembers(thisModel)
@@ -177,9 +255,9 @@ local function DecideToHeal(thisModel: Model, mana: number, maxmana: number): bo
 end
 
 local function DecideToNuke(thisModel: Model, mana: number, maxmana: number): boolean
-	if not thisModel or not mana or not maxmana then
+	if not thisModel or not mana or not maxmana or not healerType then
 		warn("Should not reach me.")
-		return
+		return false
 	end
 
 	local party = utilMod.GetPartyMembers(thisModel)
@@ -203,7 +281,7 @@ local function DecideToNuke(thisModel: Model, mana: number, maxmana: number): bo
 
 	local manaCost = nukeSpell.manaCost * statsMod.MaxSpellCost
 	local castTime = nukeSpell.castTime or 0
-	local nukeDuration = statsMod.BuffInfo[healerType .. "PriestNuke"].seconds or 0 -- may not have duration
+	--local nukeDuration = statsMod.BuffInfo[healerType .. "PriestNuke"].seconds or 0 -- may not have duration
 
 	-- Early exit: not enough mana to cast
 	if mana < manaCost then
@@ -378,10 +456,10 @@ local function StopMove(animTracks: any)
 	end
 end
 
-local function GetRandomAttack(animTracks: any, random: Random): { anim: AnimationTrack, index: number }
+local function GetRandomAttack(animTracks: any, random: Random): { anim: AnimationTrack, index: number }?
 	if not animTracks or not random then
 		warn("Should not reach me.")
-		return
+		return nil
 	end
 	if #animTracks.attacks == 0 then
 		return nil
@@ -406,10 +484,10 @@ local function NoAttacksPlaying(animTracks: any): boolean
 	return true
 end
 
-local function GetHealerType(name: string): string
+local function GetHealerType(name: string): string?
 	if not name then
 		warn("Should not reach me.")
-		return
+		return nil
 	end
 	local trimmed = utilMod.customTrim(name)
 	if trimmed == "UnkemptDruid" then
@@ -421,12 +499,20 @@ local function GetHealerType(name: string): string
 	else
 		warn("Should not reach me.")
 	end
+	return nil
 end
 
-function actionsMod.PerformActions(context: table)
+function actionsMod.PerformActions(context: ActionContext): MutablePetSync
+	local result: MutablePetSync = {
+		lastAttackTime = { value = 0 },
+		homewardBound = false,
+		lithDefendRandomLoc = { value = Vector3.new(0, 0, 0) },
+		lithTakeRandomLoc = { value = Vector3.new(0, 0, 0) },
+	}
+
 	if not context then
 		warn("Should not reach me.")
-		return
+		return result
 	end
 	local model = context.model
 	local hrp = context.hrp
@@ -439,7 +525,7 @@ function actionsMod.PerformActions(context: table)
 	local spawnPosition = context.spawnPosition
 	local random = context.random
 
-	local petAttack = context.petAttack
+	--local petAttack = context.petAttack
 	local petTakeLith = context.petTakeLith
 	local petDefendLith = context.petDefendLith
 	local lithTakePosition = context.lithTakePosition
@@ -453,7 +539,7 @@ function actionsMod.PerformActions(context: table)
 	local pathMod = context.pathMod
 	local combatMod = context.combatMod
 	local utilMod = context.utilMod
-	local pet = context.pet
+	--local pet = context.pet
 
 	if not healerCache[model.Name] then
 		healerCache[model.Name] = utilMod.IsMobHealer(model)
@@ -478,12 +564,13 @@ function actionsMod.PerformActions(context: table)
 				utilMod.SpinToOwner(model, hrp, combatTargetModel, random)
 				if time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
 					local track = GetRandomAttack(animTracks, random)
-					if not track or not track.anim or not track.index then
+
+					if not track then
 						print("should not reach me.")
 					end
-					if NoAttacksPlaying(animTracks) then
-						--print(model.Name .. " is attacking with attack " .. track.index or 1)
-						track.anim:Play(0.2, 1, animTracks.attackSpeeds[track.index])
+					if track and NoAttacksPlaying(animTracks) then
+						local speed: number? = animTracks.attackSpeeds[track.index or 1]
+						track.anim:Play(0.2, 1, speed or 1)
 						lastAttackWrapper.value = time()
 
 						task.delay(0.5, function()
@@ -510,15 +597,21 @@ function actionsMod.PerformActions(context: table)
 
 					if DecideToHeal(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
-						CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestHeal")
+						CastPriestSpell(animTracks, model, combatMod, healerType or "" .. "PriestHeal")
 						lastAttackWrapper.value = time()
 					elseif DecideToBuff(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
-						CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestBuff")
+						CastPriestSpell(animTracks, model, combatMod, healerType or "" .. "PriestBuff")
 						lastAttackWrapper.value = time()
 					elseif DecideToNuke(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, combatTargetModel, random)
-						CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestNuke", combatTargetModel)
+						CastPriestSpell(
+							animTracks,
+							model,
+							combatMod,
+							healerType or "" .. "PriestNuke",
+							combatTargetModel
+						)
 						lastAttackWrapper.value = time()
 					end
 				end
@@ -609,7 +702,8 @@ function actionsMod.PerformActions(context: table)
 				pathMod.PathfindToPosition(model, spawnPosition, "SpawnPoint")
 			end
 		elseif movingDirection == "MovingToRandom" then
-			local vec = Vector3.new(spawnPosition.X, hrp.Position.Y, spawnPosition.Z)
+			local vec =
+				Vector3.new(spawnPosition and spawnPosition.X, hrp.Position.Y, spawnPosition and spawnPosition.Z)
 
 			if random:NextInteger(1, 10) < 8 then
 				local limit = utilMod.GetAttribute(model, "RangeLimit") or 50
@@ -685,15 +779,16 @@ function actionsMod.PerformActions(context: table)
 				nextCastTime = time() + random:NextInteger(10, 40)
 				utilMod.SetAttribute(model, "IdleCastCoolDown", nextCastTime)
 				lastAttackWrapper.value = time()
-				CastPriestSpell(animTracks, model, combatMod, healerType .. "PriestHeal", nil)
+				CastPriestSpell(animTracks, model, combatMod, healerType or "" .. "PriestHeal", nil)
 			end
 		end
 	end
 
-	context.lithTakeRandomLoc = lithTakeRandomLoc
-	context.lithDefendRandomLoc = lithDefendRandomLoc
-	context.homewardBound = homewardBound
-	context.lastAttackTime = lastAttackWrapper.value
+	result.lastAttackTime.value = lastAttackWrapper.value
+	result.homewardBound = homewardBound ~= false
+	result.lithDefendRandomLoc.value = lithDefendRandomLoc
+	result.lithTakeRandomLoc.value = lithTakeRandomLoc
+	return result
 end
 
 return actionsMod

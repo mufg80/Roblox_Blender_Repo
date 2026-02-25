@@ -5,10 +5,30 @@ local Workspace = game:GetService("Workspace")
 
 local utilMod = require(script.Parent.utilMod)
 
+export type AggroAPI = {
+	-- Call this periodically (e.g. every 0.4–1 s) to refresh proximity, decay, leash & target selection
+	Update: () -> (),
+
+	-- Manually add threat to a specific entity (player UserId, pet/feral Name, etc.)
+	-- amount defaults to 0 if nil (which is a no-op)
+	AddThreat: (id: number | string, amount: number?) -> (),
+
+	-- Returns the internal hate/threat table (for debugging, UI, or advanced logic)
+	-- Keys = attacker ID (UserId number or string name), values = current threat level
+	GetHateList: () -> { [number | string]: number },
+
+	-- Immediately reset all threat data
+	ClearHateList: () -> (),
+
+	-- Returns the current top threat target (if any) + its threat value
+	-- Returns nil, 0 if no valid (non-fallen) targets exist
+	GetTopThreat: () -> Model?,
+}
+
 local aggroMod = {}
 
 -- Inside aggroMod.Setup(model)
-function aggroMod.Setup(model: Model): table
+function aggroMod.Setup(model: Model): AggroAPI?
 	if not model then
 		warn("Should not reach me.")
 		return
@@ -16,9 +36,9 @@ function aggroMod.Setup(model: Model): table
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local hrp = model:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not hrp then
+	if not humanoid or not hrp or not hrp:IsA("BasePart") then
 		warn("[aggroMod] Missing Humanoid or HumanoidRootPart on", model.Name)
-		return {}
+		return nil
 	end
 
 	local hateList: { [number | string]: number } = {}
@@ -36,18 +56,22 @@ function aggroMod.Setup(model: Model): table
 	end)
 
 	-- Threat from taking damage (creator tag)
-	utilMod.SetAttribute(humanoid, "LastHealth", humanoid.Health)
+	humanoid:SetAttribute("LastHealth", humanoid.Health)
 	humanoid.HealthChanged:Connect(function(health: number)
-		local lastHealth = utilMod.GetAttribute(humanoid, "LastHealth")
+		local lastHealth = humanoid:GetAttribute("LastHealth")
+		if typeof(lastHealth) ~= "number" then
+			warn("Should not reach me")
+			return
+		end
 		local damageTaken = lastHealth and (lastHealth - health) or 0
-		utilMod.SetAttribute(humanoid, "LastHealth", health)
+		humanoid:SetAttribute("LastHealth", health)
 
 		if damageTaken > 0 then
 			if humanoid.Health <= 1 then
 				task.wait()
 				if utilMod.GetAttribute(model, "HasFallen") then
 					local creator = humanoid:FindFirstChild("creator") or humanoid:FindFirstChild("Creator")
-					if creator and creator.Value then
+					if creator and creator:IsA("ObjectValue") and creator.Value then
 						local attacker = creator.Value
 						local attackerID = nil
 						if attacker:IsA("Player") then
@@ -55,9 +79,11 @@ function aggroMod.Setup(model: Model): table
 						elseif game.Players:GetPlayerFromCharacter(attacker) ~= nil then
                             attackerID = game.Players:GetPlayerFromCharacter(attacker).UserId
                         else
-							attackerID = utilMod.GetAttribute(attacker, "OwnedBy")
+							if attacker:IsA("Player") then
+								attackerID = utilMod.GetAttribute(attacker, "OwnedBy")
+							end							
 						end
-						if attackerID and attackerID ~= "" and attackerID ~= "None" and attackerID ~= "none" then
+						if attackerID and attackerID ~= 0 then
                             local plr = Players:GetPlayerByUserId(attackerID)
                             if plr then
                                 local event = plr:FindFirstChild("ExpEvent")
@@ -87,7 +113,13 @@ function aggroMod.Setup(model: Model): table
 
 	-- Unified update function
 	local function updateAggro()
-		local aggroRadius = model.Data.aggroRadius.Value
+		local data = model:FindFirstChild("Data")
+		local radius = data and data:FindFirstChild("aggroRadius")
+		local aggroRadius = nil
+		if radius and radius:IsA("NumberValue") then
+			aggroRadius = radius.Value
+		end
+		
 		local aggroSqr = aggroRadius ^ 2
 		local leashSqr = (aggroRadius * 3) ^ 2
 
@@ -177,7 +209,9 @@ function aggroMod.Setup(model: Model): table
 		for id, threat in pairs(hateList) do
 			local target = utilMod.GetModelByIDorName(id)
 			local root = target and (target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso"))
-
+			if not root or not root:IsA("BasePart") then
+				continue
+			end
 			if not root or (root.Position - hrp.Position).Magnitude ^ 2 > leashSqr then
 				hateList[id] = nil
 			elseif target and utilMod.GetAttribute(target, "HasFallen") then
@@ -191,7 +225,7 @@ function aggroMod.Setup(model: Model): table
 		end
 
 		-- === Select highest valid (non-fallen) target ===
-		local bestId = "None"
+		local bestId: string | number = "None"
 		local bestThreat = 0
 
 		for id, threat in pairs(hateList) do
@@ -232,17 +266,18 @@ function aggroMod.Setup(model: Model): table
 			table.clear(hateList)
 		end,
 		GetTopThreat = function()
-			local bestId, best = nil, 0
+			local bestmodel:Model? = nil
+			local best = 0
 			for id, threat in hateList do
 				if threat > best then
 					local target = utilMod.GetModelByIDorName(id)
 					if target and not utilMod.GetAttribute(target, "HasFallen") then
 						best = threat
-						bestId = id
+						bestmodel = target
 					end
 				end
 			end
-			return bestId, best
+			return bestmodel
 		end,
 	}
 end

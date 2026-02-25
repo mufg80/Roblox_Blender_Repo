@@ -1,7 +1,4 @@
 --!strict
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local combatMod = require(game.ReplicatedStorage.Shared.combatMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 
 local testMod = {}
@@ -11,7 +8,7 @@ local isDebugging = false   -- ← change to true when you want debug output
 -- Test version of MeleeAttackResult that uses stats from statsMod.creatureStats table instead of instances.
 -- Returns final integer damage (0 = miss)
 --==============================================================================
-function testMod.MeleeAttackResultWithStats(attackerstats: table, defenderstats: table): number
+function testMod.MeleeAttackResultWithStats(attackerstats: statsMod.CreatureStats, defenderstats: statsMod.CreatureStats): number
     if not attackerstats or not defenderstats or not attackerstats.defense or not defenderstats.defense then
         if isDebugging then
             warn("Should not reach me.")

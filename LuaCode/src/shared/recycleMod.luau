@@ -7,6 +7,25 @@ local effectMod = require(ReplicatedStorage.Shared.effectMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 
+
+
+-- Exported type
+export type RecycleMod = {
+    waittime: number,
+
+    resetNPC: (npc: Model) -> (),
+
+    CheckIfExistsPet: (baseName: string) -> boolean,
+    CheckIfExistsFeral: (baseName: string) -> boolean,
+
+    ReturnPet: (baseName: string) -> Model?,
+    ReturnFeral: (baseName: string) -> Model?,
+
+    SpawnSoul: (npc: Model) -> (),
+    flagAsDead: () -> (),
+    GetEligibleSoul:(char: Model, spellname:string) -> Model?,
+}
+
 local recycleMod = {}
 
 -- Internal state (typed for clarity)
@@ -55,7 +74,7 @@ function recycleMod.resetNPC(npc: Model): ()
 
     -- Reset collision group
     local hrp = npc:FindFirstChild("HumanoidRootPart")
-    if hrp then
+    if hrp and hrp:IsA("BasePart") then
         hrp.CollisionGroup = "default"
     end
 
@@ -155,7 +174,7 @@ function recycleMod.SpawnSoul(npc: Model): ()
 
 
     local rootPart = utilMod.GetRootPart(npc)
-    if not rootPart then
+    if not rootPart or not rootPart:IsA("BasePart") then
         warn("SpawnSoul: NPC missing HumanoidRootPart")
         return
     end
@@ -351,21 +370,5 @@ end
 -- Start the recycling loop
 task.spawn(recycleMod.flagAsDead)
 
--- Exported type
-export type RecycleMod = {
-    waittime: number,
-
-    resetNPC: (npc: Model) -> (),
-
-    CheckIfExistsPet: (baseName: string) -> boolean,
-    CheckIfExistsFeral: (baseName: string) -> boolean,
-
-    ReturnPet: (baseName: string) -> Model?,
-    ReturnFeral: (baseName: string) -> Model?,
-
-    SpawnSoul: (npc: Model) -> (),
-    flagAsDead: () -> (),
-    GetEligibleSoul:(char: Model, spellname:string) -> Model?,
-}
 
 return recycleMod :: RecycleMod

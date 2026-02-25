@@ -2,27 +2,26 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local model: Model = script.Parent
-
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local pathMod = require(ReplicatedStorage.Shared.pathMod)
 local aggroMod = require(ReplicatedStorage.Shared.aggroMod)
-local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local petControlMod = require(ReplicatedStorage.Shared.petControlMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
 local stateMod = require(ReplicatedStorage.Shared.stateMod)
 local actionsMod = require(ReplicatedStorage.Shared.actionsMod)
 
+local model: Model = script.Parent
 local thisMob: string = utilMod.customTrim(model.Name)
 local random = Random.new(utilMod.GetSeedFromName(thisMob))
-
 local MINATTACKDELAY = 0
-local humanoid: Humanoid = model:FindFirstChildOfClass("Humanoid")
-local hrp: BasePart = model:FindFirstChild("HumanoidRootPart")
-
-if not humanoid or not hrp then
-	return
+local humanoid: Instance? = model:FindFirstChildOfClass("Humanoid")
+if not humanoid or not humanoid:IsA("Humanoid") then
+	warn("Should not reach me")
+end
+local hrp: Instance? = model:FindFirstChild("HumanoidRootPart")
+if not hrp or not hrp:IsA("BasePart") then
+	warn("Should not reach me")
 end
 
 local aggro = aggroMod.Setup(model)
@@ -34,26 +33,12 @@ utilMod.CopyStatsToFolder(model, sourceStats)
 buffMod.Setup(model, sourceStats)
 
 -- === Animations ===
+if not humanoid then
+	return
+end
 local animator: Animator? = humanoid:FindFirstChildOfClass("Animator")
 
-export type AnimTrackDict = {
-	idle: { AnimationTrack? },
-	delayConnection: RBXScriptConnection?,
-	idleConnection: thread?,
-	move: AnimationTrack?,
-	blink: AnimationTrack?,
-	death: AnimationTrack?,
-	attacks: { AnimationTrack? },
-	cast: AnimationTrack?,
-	favoredAttack: number,
-	moveSpeed: number?,
-	idleSpeed: number?,
-	deathSpeed: number?,
-	castSpeed: number?,
-	attackSpeeds: { number? },
-}
-
-local animTracks: AnimTrackDict = {
+local animTracks: actionsMod.AnimTrackDict  = {
 	idle = {},
 	delayConnection = nil,
 	idleConnection = nil,
@@ -62,7 +47,7 @@ local animTracks: AnimTrackDict = {
 	death = nil,
 	attacks = {},
 	cast = nil,
-	favoredAttack = nil,
+	favoredAttack = 1,
 	moveSpeed = nil,
 	idleSpeed = nil,
 	deathSpeed = nil,
@@ -72,8 +57,8 @@ local animTracks: AnimTrackDict = {
 
 if animator then
 	local function load(name: string, looped: boolean?): AnimationTrack?
-		local anim: Animation? = model:WaitForChild(name, 5)
-		if anim then
+		local anim: Instance? = model:FindFirstChild(name)
+		if anim and anim:IsA("Animation") then
 			local track: AnimationTrack = animator:LoadAnimation(anim)
 			if looped ~= nil then
 				track.Looped = looped
@@ -82,9 +67,9 @@ if animator then
 		end
 		return nil
 	end
+
 	table.insert(animTracks.idle, load("AwakenedTreantIdleShort", true))
 	table.insert(animTracks.idle, load("AwakenedTreantIdleLong", false))
-	
 
 	animTracks.move = load("AwakenedTreantMove", true)
 	animTracks.death = load("AwakenedTreantFall", false)
@@ -126,14 +111,18 @@ task.spawn(function()
 
 	local lastAttackTime: number = 0
 	local homewardBound: boolean = false
-	local deathPlayed = false
+	local deathPlayed = {value = false}
 
 	-- Main loop for npc state
 	while task.wait(0.03) do
-		local ATTACK_COOLDOWN: number = statsMod.DELAY * model.Data.attackDelay.Value
+		local ATTACK_COOLDOWN = utilMod.GetCooldown(model)
+
 		if ATTACK_COOLDOWN < MINATTACKDELAY then
 			ATTACK_COOLDOWN = MINATTACKDELAY
-			warn("slow anims on "..thisMob)
+			warn("slow anims on " .. thisMob)
+		end
+		if not pet then
+			continue
 		end
 
 		local ownerInstance: Model? = pet.GetOwnerModel()
@@ -152,7 +141,10 @@ task.spawn(function()
 			----------------------------------------------------------------
 			-- Aggro
 			----------------------------------------------------------------
-
+			if not aggro then
+				warn("should not reach me")
+				continue
+			end
 			aggro.Update()
 
 			----------------------------------------------------------------
@@ -171,7 +163,9 @@ task.spawn(function()
 				lithDefendRandomLoc = lithDefendRandomLoc,
 				homewardBound = homewardBound,
 			}
-
+			if not hrp or not hrp:IsA("BasePart") then
+				continue
+			end
 			local context = {
 				hasEnemies = next(aggro.GetHateList()) ~= nil,
 				ownerInstance = ownerInstance,
@@ -233,52 +227,27 @@ task.spawn(function()
 				utilMod = utilMod,
 				pet = pet,
 			}
-
-			actionsMod.PerformActions(actionContext)
+			local actionresult = actionsMod.PerformActions(actionContext)
 
 			-- Sync back mutables
-			lastAttackTime = actionContext.lastAttackTime
-			homewardBound = actionContext.homewardBound
-			lithDefendRandomLoc = actionContext.lithDefendRandomLoc
-			lithTakeRandomLoc = actionContext.lithTakeRandomLoc
+			lastAttackTime = actionresult.lastAttackTime.value
+			homewardBound = actionresult.homewardBound
+			lithDefendRandomLoc = actionresult.lithDefendRandomLoc.value
+			lithTakeRandomLoc = actionresult.lithTakeRandomLoc.value
 		else
 			----------------------------------------------------------------
 			-- Death
 			----------------------------------------------------------------
-			 if animTracks.death then
-                if not animTracks.death.IsPlaying and not deathPlayed then
-                    deathPlayed = true
-
-                    for _,idleanim in animTracks.idle do
-                        if idleanim.IsPlaying then
-                            idleanim:Stop(0.1)
-                        end
-                    end
-                     for _,attanim in animTracks.attacks do
-                        if attanim.IsPlaying then
-                            attanim:Stop(0.1)
-                        end
-                    end
-                    if animTracks.move.IsPlaying then
-                        animTracks.move:Stop(.1)
-                    end
-                    local deathanim: AnimationTrack = animTracks.death
-                    deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
-                    deathanim.Stopped:Connect(function()
-                        deathanim:Play(0.3, 1, animTracks.deathSpeed or 1)
-                        local length = deathanim.Length - 0.2
-                        deathanim:AdjustSpeed(0)
-                        deathanim.TimePosition = length
-                        task.wait(2)
-                        utilMod.SetAttribute(model, "RecycleMe", true)
-                    end)
-                end
-            else
-                warn("Should not reach me.")
-                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-                humanoid.PlatformStand = true
-                utilMod.SetAttribute(model, "RecycleMe", true)
-            end
+			if animTracks.death then
+				combatMod.FallAnimation(model, animTracks, nil, deathPlayed)
+			else
+				warn("Should not reach me.")
+				if humanoid and humanoid:IsA("Humanoid") then
+					humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+					humanoid.PlatformStand = true
+					utilMod.SetAttribute(model, "RecycleMe", true)
+				end
+			end
 		end
 	end
 end)

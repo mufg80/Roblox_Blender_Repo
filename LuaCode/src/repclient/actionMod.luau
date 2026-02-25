@@ -13,9 +13,8 @@ local petFrame = petGui:WaitForChild("PetFrame")
 
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
-local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
-local PetCommands = require(ReplicatedStorage.Client.PetCommands)
+local PetCommands = require(ReplicatedStorage.Client.petcommandsMod)
 local recycleMod = require(ReplicatedStorage.Shared.recycleMod)
 local animMod = require(ReplicatedStorage.Shared.animMod)
 
@@ -29,7 +28,7 @@ local natureTheme = themes:WaitForChild("NatureTheme")
 local noneTheme = themes:WaitForChild("NoneTheme")
 
 local Events = ReplicatedStorage:WaitForChild("Events")
-local CastFeedback = require(ReplicatedStorage.Client.CastFeedback)
+local CastFeedback = require(ReplicatedStorage.Client.castfeedbackMod)
 
 -- Attack Button
 -- DPad Up
@@ -40,6 +39,15 @@ local DefendLithButton = petFrame:WaitForChild("DefendLithButton")
 local FollowMeButton = petFrame:WaitForChild("FollowButton")
 -- DPad Down
 local TakeLithButton = petFrame:WaitForChild("TakeLithButton")
+
+
+
+export type ActionsModule = {
+	Init: () -> (),
+}
+
+
+
 
 local actionsMod = {}
 
@@ -112,7 +120,7 @@ end
 actionsMod.CastColor = nil
 
 -- Helper: Get current level for the active magic type
-local function getLevelForType(magicType)
+local function getLevelForType(magicType: statsMod.MagicType):number
 	if magicType == statsMod.MagicType.Artificer then
 		return utilMod.GetAttribute(player, "ArtificerLevel") or 0
 	elseif magicType == statsMod.MagicType.Primordial then
@@ -461,16 +469,13 @@ local function setupDefaultSelections(force: boolean?)
 		return
 	end
 
-	local level = getLevelForType(magicType)
 	local character = player.Character
-	local backpack = player:WaitForChild("Backpack")
 
 	if not character or not character:FindFirstChild("Humanoid") then
 		warn("Character not ready for default setup")
 		return
 	end
 
-	local staffButton = spellFrame:FindFirstChild("Staff")
 	local creatureButtons = {}
 	local spellButtons = {}
 
@@ -623,7 +628,7 @@ local function updateButtonStates()
 			end
 
 			if spell.spellline == "ConvertSpout" and player.Character then
-				if not buffMod.CheckDistanceOnSpouts(player.Character) then
+				if not buffMod.CheckDistanceOnSpouts(player.Character, internalName) then
 					disableButton(btn)
 				end
 			end
@@ -704,8 +709,6 @@ local function populateSelection(items)
 			child:Destroy()
 		end
 	end
-
-	local gridLayout = selectionFrame:FindFirstChild("UIGridLayout") or error("Add UIGridLayout to SelectionFrame")
 
 	-- Apply theme color to the selection frame background (semi-transparent)
 	if actionsMod.CastColor then
@@ -1226,4 +1229,4 @@ function actionsMod.Init()
 	end)
 end
 
-return actionsMod
+return actionsMod :: ActionsModule

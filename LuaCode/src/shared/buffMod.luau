@@ -171,6 +171,9 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 		areaDamage = "DamageLabel",
 	})[spelltype]
 
+	local labelSpecificName = labelName[spelltype]
+	if not labelSpecificName then return end
+
 	local billboard: Instance? = model:FindFirstChild("BillBoardGUI")
 	if not billboard or not billboard:IsA("ScreenGui") then
 		return
@@ -182,7 +185,7 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 	if frame then
 		ZZFrame = frame:FindFirstChild("ZZBuffFrame")
 		if ZZFrame then
-			templateLabel = ZZFrame:FindFirstChild("labelName")
+			templateLabel = ZZFrame:FindFirstChild("labelSpecificName")
 		end
 	end
 

@@ -1,8 +1,6 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local Players = game:GetService("Players")
 
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local combatMod = require(ReplicatedStorage.Shared.combatMod)

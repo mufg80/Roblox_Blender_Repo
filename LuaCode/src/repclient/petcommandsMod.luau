@@ -1,14 +1,39 @@
 --!strict
--- ReplicatedStorage.Client.PetCommands
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 local petsGui = playerGui:WaitForChild("PetGui")
 
 local PetEvent = ReplicatedStorage.Events.PetEvent
 
-local PetCommands = {}
+-- ────────────────────────────────────────────────────────────────────────────────
+--   Exported public API type
+-- ────────────────────────────────────────────────────────────────────────────────
 
+export type PetCommandsAPI = {
+	-- Initialize button connections & set initial visual state
+	-- Should be called once when the PetGui screen loads
+	Init: () -> (),
+
+	-- Toggle "Follow" mode on/off
+	-- When enabling Follow → automatically disables DefendLith & TakeLith
+	ToggleFollow: () -> (),
+
+	-- Toggle "Attack" mode on/off
+	-- When disabling Attack → automatically disables DefendLith & TakeLith
+	ToggleAttack: () -> (),
+
+	-- Set pet to Defend Lith mode
+	-- Only works if Attack is currently enabled
+	-- Automatically disables Follow & TakeLith
+	DefendLith: () -> (),
+
+	-- Set pet to Take Lith mode
+	-- Only works if Attack is currently enabled
+	-- Automatically disables Follow & DefendLith
+	TakeLith: () -> (),
+}
+
+local petecommandsMod = {}
 -- State
 local state = {
 	IsPetAttacking = true,
@@ -54,7 +79,7 @@ end
 -- ✅ PUBLIC FUNCTIONS
 -- =========================
 
-function PetCommands.ToggleFollow()
+function petecommandsMod.ToggleFollow()
 	state.IsPetFollowing = not state.IsPetFollowing
 
 	if state.IsPetFollowing then
@@ -66,7 +91,7 @@ function PetCommands.ToggleFollow()
 	updateButtonVisuals()
 end
 
-function PetCommands.ToggleAttack()
+function petecommandsMod.ToggleAttack()
 	state.IsPetAttacking = not state.IsPetAttacking
 
 	if not state.IsPetAttacking then
@@ -78,7 +103,7 @@ function PetCommands.ToggleAttack()
 	updateButtonVisuals()
 end
 
-function PetCommands.DefendLith()
+function petecommandsMod.DefendLith()
 	if not state.IsPetAttacking then return end
 
 	state.IsPetDefendingLith = true
@@ -89,7 +114,7 @@ function PetCommands.DefendLith()
 	updateButtonVisuals()
 end
 
-function PetCommands.TakeLith()
+function petecommandsMod.TakeLith()
 	if not state.IsPetAttacking then return end
 
 	state.IsPetTakingLith    = true
@@ -104,13 +129,13 @@ end
 -- INIT (GUI binding only)
 -- =========================
 
-function PetCommands.Init()
+function petecommandsMod.Init()
 	updateButtonVisuals()
 
-	buttons.Follow.MouseButton1Click:Connect(PetCommands.ToggleFollow)
-	buttons.Attack.MouseButton1Click:Connect(PetCommands.ToggleAttack)
-	buttons.DefendLith.MouseButton1Click:Connect(PetCommands.DefendLith)
-	buttons.TakeLith.MouseButton1Click:Connect(PetCommands.TakeLith)
+	buttons.Follow.MouseButton1Click:Connect(petecommandsMod.ToggleFollow)
+	buttons.Attack.MouseButton1Click:Connect(petecommandsMod.ToggleAttack)
+	buttons.DefendLith.MouseButton1Click:Connect(petecommandsMod.DefendLith)
+	buttons.TakeLith.MouseButton1Click:Connect(petecommandsMod.TakeLith)
 end
 
-return PetCommands
+return petecommandsMod :: PetCommandsAPI

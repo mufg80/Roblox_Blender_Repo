@@ -1,18 +1,12 @@
 --!strict
--- ReplicatedStorage.Shared.soulcolorMod
--- Client-side visual feedback for soul ownership via particle color
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 
 -- Configurable colors
 local MY_SOUL_PARTICLE_COLOR = Color3.fromRGB(98, 234, 255) -- your current blue
 local OTHER_SOUL_PARTICLE_COLOR = Color3.fromRGB(255, 70, 70) -- vivid red (adjust as needed)
 
--- You can make red more subtle if preferred:
--- local OTHER_SOUL_PARTICLE_COLOR = Color3.fromRGB(220, 80, 80)
 
 local SOULS_FOLDER_NAME = "Souls"
 local SOUL_PART_NAME = "SoulObject" -- adjust if the model/part has a different name
@@ -21,11 +15,15 @@ local PARTICLE_NAME = "ParticleEmitter"
 local MYSOUL = "OwnedSurfaceAppearance"
 local OTHERSOUL = "OtherSurfaceAppearance"
 
+export type SoulColorMod = {
+	Init:() -> (),
+}
+
 local soulcolorMod = {}
 
 -- Main function to update visual for one soul
 local function updateSoulVisual(soul: Instance)
-	if not soul:IsDescendantOf(workspace) then
+	if not soul or not soul:IsDescendantOf(workspace) then
 		return
 	end
 
@@ -37,6 +35,9 @@ local function updateSoulVisual(soul: Instance)
 
 	-- soulobject
 	local object = soul:FindFirstChild(SOUL_PART_NAME)
+	if not object then
+		return
+	end
 
 	-- Find the ParticleEmitter
 	local particle = anchor:FindFirstChildWhichIsA("ParticleEmitter")
@@ -50,43 +51,48 @@ local function updateSoulVisual(soul: Instance)
 	local isMine = ownedBy == player.UserId
 
 	if isMine then
-		local myappearanceclone = soul:FindFirstChild(MYSOUL) and soul:FindFirstChild(MYSOUL):Clone()
-		if not myappearanceclone then
-			return
-		end
+		local app = soul:FindFirstChild(MYSOUL)
+		if app then
+			local myappearanceclone: Instance? = app:Clone()
+			if not myappearanceclone then
+				return
+			end
+			local hasrightappearance = object:FindFirstChild(MYSOUL)
+			local haswrongappearance = object:FindFirstChild(OTHERSOUL)
 
-		local hasrightappearance = object:FindFirstChild(MYSOUL)
-		local haswrongappearance = object:FindFirstChild(OTHERSOUL)
-
-		if haswrongappearance then
-			haswrongappearance.Parent = nil
-		end
-		if not hasrightappearance then
-			myappearanceclone.Parent = object
+			if haswrongappearance then
+				haswrongappearance.Parent = nil
+			end
+			if not hasrightappearance then
+				myappearanceclone.Parent = object
+			end
 		end
 	else
-		local myappearanceclone = soul:FindFirstChild(OTHERSOUL) and soul:FindFirstChild(OTHERSOUL):Clone()
-		if not myappearanceclone then
-			return
-		end
+		local app = soul:FindFirstChild(OTHERSOUL)
+		if app then
+			local myappearanceclone = app:Clone()
+			if not myappearanceclone then
+				return
+			end
 
-		local hasrightappearance = object:FindFirstChild(OTHERSOUL)
-		local haswrongappearance = object:FindFirstChild(MYSOUL)
+			local hasrightappearance = object:FindFirstChild(OTHERSOUL)
+			local haswrongappearance = object:FindFirstChild(MYSOUL)
 
-		if haswrongappearance then
-			haswrongappearance.Parent = nil
-		end
-		if not hasrightappearance then
-			myappearanceclone.Parent = object
+			if haswrongappearance then
+				haswrongappearance.Parent = nil
+			end
+			if not hasrightappearance then
+				myappearanceclone.Parent = object
+			end
 		end
 	end
 
 	-- Apply color
 	local targetColor = isMine and MY_SOUL_PARTICLE_COLOR or OTHER_SOUL_PARTICLE_COLOR
-
+	local targetseqColor:ColorSequence = ColorSequence.new(targetColor)
 	-- Only change if different (performance + avoids unnecessary replication)
-	if particle.Color ~= targetColor then
-		particle.Color = ColorSequence.new(targetColor)
+	if particle.Color ~= targetseqColor then
+		particle.Color = targetseqColor
 	end
 end
 
@@ -143,4 +149,4 @@ function soulcolorMod.Init()
 	end)
 end
 
-return soulcolorMod
+return soulcolorMod :: SoulColorMod

@@ -1,15 +1,17 @@
 --!strict
--- ReplicatedStorage.Client.BuffVisuals
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 local buffMod = require(ReplicatedStorage.Shared.buffMod)
-local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local statsGui = playerGui:WaitForChild("StatsGui")
+
+export type BuffVisualsMod = {
+	Init:() -> (),
+}
 
 local BuffVisuals = {}
 
@@ -84,7 +86,7 @@ local function onBuffReceived(id: number | string, spellName: string)
 	local uniqueKey = keyPrefix .. "_" .. spellName .. "_" .. parentFrame.Name
 
 	local model = getModelForId(id)
-	if model then
+	if model and label:IsA("ImageLabel") then
 		buffMod.StartBuffLabelTimer(label, duration, model, uniqueKey)
 	end
 end
@@ -93,4 +95,4 @@ function BuffVisuals.Init()
 	ReplicatedStorage.Events.BuffDebuffHealEvent.OnClientEvent:Connect(onBuffReceived)
 end
 
-return BuffVisuals
+return BuffVisuals :: BuffVisualsMod

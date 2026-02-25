@@ -48,7 +48,7 @@ function regenMod.RegenTick()
 
 		local char = party.Character
 		local hrp = utilMod.GetRootPart(char)
-		if not hrp then
+		if not hrp or not hrp:IsA("BasePart") then
 			if isDebugging then
 				print(string.format("[Regen] %s - No root part, skipping", plr.Name))
 			end
@@ -141,7 +141,7 @@ function regenMod.RegenTick()
 			end
 
 			local petHrp = utilMod.GetRootPart(pet)
-			if not petHrp then
+			if not petHrp or not petHrp:IsA("BasePart") then
 				continue
 			end
 

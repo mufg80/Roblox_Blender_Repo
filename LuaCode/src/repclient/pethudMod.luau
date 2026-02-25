@@ -1,5 +1,4 @@
 --!strict
--- ReplicatedStorage.Client.PetHUD
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -11,7 +10,11 @@ local playerGui = player:WaitForChild("PlayerGui")
 local statsGui = playerGui:WaitForChild("StatsGui")
 local guiComponents = ReplicatedStorage:WaitForChild("GUIComponents")
 
-local PetHUD = {}
+export type PetHUD = {
+	Init:() -> (),
+}
+
+local pethudMod = {}
 local activePetConnections = {}  -- [petName] = {healthConn, ancestryConn}
 
 local function createOrUpdatePetFrame(petModel: Model, souls: number?)
@@ -87,17 +90,16 @@ local function updatePetMana(petName: string, mana: number, maxMana: number)
 	inner.Size = UDim2.new(fraction, 0, 1, 0)
 end
 
-function PetHUD.Init()
+function pethudMod.Init():()
 	ReplicatedStorage.Events.SummonEvent.OnClientEvent:Connect(function(petModel: Model?, souls: number?)
 		if not petModel or not petModel:IsA("Model") then
 			warn("Invalid summoned creature received on client")
 			return
-		end
-		
+		end		
 		createOrUpdatePetFrame(petModel, souls)
 	end)
 	
 	ReplicatedStorage.Events.PetManaEvent.OnClientEvent:Connect(updatePetMana)
 end
 
-return PetHUD
+return pethudMod

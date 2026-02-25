@@ -6,6 +6,16 @@ local Workspace = game:GetService("Workspace")
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 
+
+export type EffectMod = {
+	SummonCreatureEffect: (spawnpoint: Vector3, creatureName: string, secs: number) -> (),
+	DirectDamageEffect: (hrp: BasePart, spellName: string) -> (),
+	AOEDamageEffect: (hrp: BasePart, spellName: string) -> (),
+	BuffEffects: (targets: { Model }, spellName: string) -> (),
+	DeBuffEffects: (targets: { Model }, spellName: string) -> (),
+	SoulGrabbedEffect: (pos: Vector3) -> (),
+}
+
 local effectMod = {}
 
 --==============================================================================
@@ -94,7 +104,6 @@ function effectMod.DirectDamageEffect(hrp: BasePart, spellName: string): ()
 
 		local currentPos = hrp.Position
 		local groundY = utilMod.DistancetoGround(currentPos) or 0
-		local yoffset = currentPos.Y - groundY
 
 		-- Apply the same XZ offset as before, but now relative to current HRP position
 		local effectX = currentPos.X + (spellinfo.effectOffsetXZ or 0)
@@ -201,6 +210,7 @@ function effectMod.AOEDamageEffect(hrp: BasePart, spellName: string): ()
 
 		local effectorigin = Vector3.new(effectX, effectY, effectZ)
 		spelleffect:PivotTo(CFrame.new(effectorigin))
+		return false
 	end
 
 	-- Initial placement
@@ -285,7 +295,7 @@ function effectMod.BuffEffects(targets: { Model }, spellName: string)
 
 		if utilMod.IsPlayerCharacter(targetModel) then
 			local magictype = utilMod.GetPlayerType(utilMod.GetPlayerFromCharacter(targetModel))
-			if statsMod.creatureStats[magictype] then
+			if magictype and statsMod.creatureStats[magictype] then
 				creatureWidth = statsMod.creatureStats[magictype].width or 3
 				creatureHeight = statsMod.creatureStats[magictype].height or 6
 			end
@@ -309,7 +319,7 @@ function effectMod.BuffEffects(targets: { Model }, spellName: string)
 
 		-- Position update function (Model pivot stays at ground level)
 		local function updatePosition()
-			if not hrp.Parent or not spelleffect.Parent then
+			if not hrp.Parent or not spelleffect.Parent or not hrp:IsA("BasePart") then
 				return true -- Signal to disconnect
 			end
 
@@ -322,6 +332,7 @@ function effectMod.BuffEffects(targets: { Model }, spellName: string)
 
 			local effectorigin = Vector3.new(effectX, effectY, effectZ)
 			spelleffect:PivotTo(CFrame.new(effectorigin))
+			return false
 		end
 
 		-- Initial placement
@@ -388,16 +399,13 @@ function effectMod.SoulGrabbedEffect(pos: Vector3): ()
 		warn("should not reach me")
 		return
 	end
-	if not typeof(pos) == "Vector3" then
-		warn("Should not reach me.")
-		return
-	end
+
 	local emitterclone: BasePart = ReplicatedStorage.Effects.SoulEmitterPart:Clone()
 	if emitterclone then
 		emitterclone:PivotTo(CFrame.new(pos))
 		emitterclone.Parent = workspace
 		local emitter = emitterclone:FindFirstChild("ParticleEmitter")
-		if emitter then
+		if emitter and emitter:IsA("ParticleEmitter") then
 			emitter:Emit(500)
 			task.delay(0.5, function()
 				emitter.Enabled = false
@@ -412,13 +420,5 @@ function effectMod.SoulGrabbedEffect(pos: Vector3): ()
 	end
 end
 
-export type EffectMod = {
-	SummonCreatureEffect: (spawnpoint: Vector3, creatureName: string, secs: number) -> (),
-	DirectDamageEffect: (hrp: BasePart, spellName: string) -> (),
-	AOEDamageEffect: (hrp: BasePart, spellName: string) -> (),
-	BuffEffects: (targets: { Model }, spellName: string) -> (),
-	DeBuffEffects: (targets: { Model }, spellName: string) -> (),
-	SoulGrabbedEffect: (pos: Vector3) -> (),
-}
 
 return effectMod :: EffectMod

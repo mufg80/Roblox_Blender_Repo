@@ -3,22 +3,46 @@
 local Players = game:GetService("Players")
 
 local utilMod = require(script.Parent.utilMod)
-local pathMod = require(script.Parent.pathMod)
 local statsMod = require(script.Parent.statsMod)
+
+
+export type PetControlAPI = {
+	-- Query current command states (synced from owner's attributes)
+	IsAttackEnabled:   () -> boolean,
+	IsFollowEnabled:   () -> boolean,
+	IsTakeLithEnabled: () -> boolean,
+	IsDefendLithEnabled: () -> boolean,
+
+	-- Get current lith control positions (nil if feature disabled)
+	GetLithTakePosition:  () -> Vector3?,
+	GetLithDefendPosition: () -> Vector3?,
+
+	-- Get / set the pet's designated "home" / return position
+	GetSpawnPoint: () -> Vector3?,
+	SetSpawnPoint: (newPosition: Vector3) -> (),
+
+	-- Force refresh owner → pet state sync (attributes, positions, etc.)
+	-- Usually called after manual attribute changes or teleport/respawn
+	Refresh: () -> (),
+
+	-- Returns the owner's Character model (if owner is still in game)
+	-- Returns nil if no owner or owner has no character
+	GetOwnerModel: () -> Model?,
+}
 
 local petControlMod = {}
 
-function petControlMod.Setup(model: Model): table
+function petControlMod.Setup(model: Model): PetControlAPI?
 	if not model then
 		warn("Should not reach me.")
-		return
+		return nil
 	end
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local hrp = model:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not hrp then
+	if not humanoid or not hrp or not hrp:IsA("BasePart") then
 		warn("[petControlMod] Missing Humanoid or HRP on", model.Name)
-		return {}
+		return nil
 	end
 
 	-- State
@@ -41,17 +65,24 @@ function petControlMod.Setup(model: Model): table
 			return billboard
 		end
 
-		billboard = model:FindFirstChild("BillBoardGUI")
-		if billboard then
+		local billinstance:Instance? = model:FindFirstChild("BillBoardGUI")
+		if billinstance and billinstance:IsA("BillboardGui") then
+			billboard = billinstance
 			return billboard
 		end
 
 		-- Clone from ServerStorage if missing
-		local template = game.ServerStorage:FindFirstChild("BillBoards")
-			and game.ServerStorage.BillBoards:FindFirstChild("BillBoardGUI")
-		if template then
-			billboard = template:Clone()
-			billboard.Parent = model
+		local templatefolder = game.ServerStorage:FindFirstChild("BillBoards")
+		local template = templatefolder and templatefolder:FindFirstChild("BillBoardGUI")
+		if template and template:Isa("BillboardGui") then
+			local billclone = template:Clone()
+			if billclone and billclone:Isa("BillboardGui") then
+				billboard = billclone
+				if billboard then
+					billboard.Parent = model
+				end				
+			end
+			if not billboard then return end
 
 			-- Get the cleaned ability name from the model's name
 			local abilityName = utilMod.customTrim(model.Name)
@@ -86,8 +117,8 @@ function petControlMod.Setup(model: Model): table
 			return
 		end
 
-		local nameLabel: TextLabel = frame:FindFirstChild("AANameLabel")
-		if not nameLabel then
+		local nameLabel: Instance? = frame:FindFirstChild("AANameLabel")
+		if not nameLabel or not nameLabel:IsA("TextLabel") then
 			return
 		end
 
@@ -126,8 +157,8 @@ function petControlMod.Setup(model: Model): table
 			return
 		end
 
-		local inner: Frame = bar:FindFirstChild("InnerFill")
-		if not inner then
+		local inner: Instance? = bar:FindFirstChild("InnerFill")
+		if not inner or not inner:IsA("Frame") then
 			return
 		end
 
@@ -155,12 +186,12 @@ function petControlMod.Setup(model: Model): table
 		end
 
 		local mbar = container:FindFirstChild("ZPetManaMeterBar")
-		if not mbar then
+		if not mbar or not mbar:IsA("Frame") then
 			return
 		end
 
-		local minner: Frame = mbar:FindFirstChild("MInnerFill")
-		if not minner then
+		local minner: Instance? = mbar:FindFirstChild("MInnerFill")
+		if not minner or not minner:IsA("Frame") then
 			return
 		end
 
@@ -214,13 +245,13 @@ function petControlMod.Setup(model: Model): table
 		petDefendlith = utilMod.GetAttribute(player, "PetDefendLith") == true
 
 		if petTakeLith then
-			lithTakePosition = pathMod.GetTakeLithLoc(model, hrp)
+			lithTakePosition = utilMod.GetTakeLithLoc(model, hrp)
 		else
 			lithTakePosition = nil
 		end
 
 		if petDefendlith then
-			lithDefendPosition = pathMod.GetDefendLithLoc(model, hrp)
+			lithDefendPosition = utilMod.GetDefendLithLoc(model, hrp)
 		else
 			lithDefendPosition = nil
 		end
@@ -246,7 +277,7 @@ function petControlMod.Setup(model: Model): table
 			connections,
 			player:GetAttributeChangedSignal("PetTakeLith"):Connect(function()
 				petTakeLith = utilMod.GetAttribute(player, "PetTakeLith") == true
-				lithTakePosition = petTakeLith and pathMod.GetTakeLithLoc(model, hrp) or nil
+				lithTakePosition = petTakeLith and utilMod.GetTakeLithLoc(model, hrp) or nil
 			end)
 		)
 
@@ -254,7 +285,7 @@ function petControlMod.Setup(model: Model): table
 			connections,
 			player:GetAttributeChangedSignal("PetDefendLith"):Connect(function()
 				petDefendlith = utilMod.GetAttribute(player, "PetDefendLith") == true
-				lithDefendPosition = petDefendlith and pathMod.GetDefendLithLoc(model, hrp) or nil
+				lithDefendPosition = petDefendlith and utilMod.GetDefendLithLoc(model, hrp) or nil
 			end)
 		)
 

@@ -8,13 +8,10 @@ local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 -- other shared mods as needed...
 
-local ResourceBars = require(ReplicatedStorage.Client.ResourceBars)
+local ResourceBars = require(ReplicatedStorage.Client.resourcebarsMod)
 local pethudMod = require(ReplicatedStorage.Client.pethudMod)
 local petcommandsMod = require(ReplicatedStorage.Client.petcommandsMod)
---local MagicClassUI = require(ReplicatedStorage.Client.MagicClassUI)
 local castfeedbackMod = require(ReplicatedStorage.Client.castfeedbackMod)
---local ActionButtonManager = require(ReplicatedStorage.Client.ActionButtonManager)
---local SpellAndSummonButtons = require(ReplicatedStorage.Client.SpellAndSummonButtons)
 local actionMod = require(ReplicatedStorage.Client.actionMod)
 local buffvisualsMod = require(ReplicatedStorage.Client.buffvisualsMod)
 local soulcolorMod = require(ReplicatedStorage.Client.soulcolorMod)
@@ -27,6 +24,7 @@ local StarterGui = game:GetService("StarterGui")
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
 -- Init everything
+messageMod.Init()
 ResourceBars.Init()
 pethudMod.Init()
 petcommandsMod.Init()
@@ -58,27 +56,39 @@ end
 
 if Players.LocalPlayer.UserId == 2484051658 then
 	local adminGui: ScreenGui = playerGui:WaitForChild("AdminGui")
-	adminGui.Frame.Visible = true
-	adminGui.closeButton.Visible = true
-	local levelbutton: TextButton = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
-	local typebutton: TextButton = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
-	levelbutton.MouseButton1Click:Connect(function()
-		local level: number? = ReturnLevel()
-		if not level or level > 6 then
-			return
+	if adminGui and adminGui:IsA("ScreenGui") then
+		local frame = adminGui:WaitForChild("Frame")
+		if frame and frame:IsA("Frame") then
+			frame.Visible = true
 		end
-		ReplicatedStorage.Events.AdminEvent:FireServer("LevelUp")
-		task.wait(0.1)
-		levelbutton.Text = "Magic Level: " .. tostring(level + 1)
-	end)
-	typebutton.MouseButton1Click:Connect(function()
-		ReplicatedStorage.Events.AdminEvent:FireServer("IncrementMagic")
-		task.wait(0.1)
-		typebutton.Text = "Magic Type: " .. tostring(utilMod.GetAttribute(player, "Magic"))
-		local level: number? = ReturnLevel()
-		if not level then
-			return
+		local closebut = adminGui:WaitForChild("closeButton")
+		if closebut and closebut:IsA("TextButton") then
+			closebut.Visible = true
 		end
-		levelbutton.Text = "Magic Level: " .. tostring(level)
-	end)
+	end
+	local levelbutton: Instance? = adminGui:WaitForChild("Frame"):WaitForChild("LevelButton")
+	local typebutton: Instance? = adminGui:WaitForChild("Frame"):WaitForChild("TypeButton")
+	if levelbutton and levelbutton:IsA("TextButton") then
+		levelbutton.MouseButton1Click:Connect(function()
+			local level: number? = ReturnLevel()
+			if not level or level > 6 then
+				return
+			end
+			ReplicatedStorage.Events.AdminEvent:FireServer("LevelUp")
+			task.wait(0.1)
+			levelbutton.Text = "Magic Level: " .. tostring(level + 1)
+		end)
+		if typebutton and typebutton:IsA("TextButton") then
+			typebutton.MouseButton1Click:Connect(function()
+				ReplicatedStorage.Events.AdminEvent:FireServer("IncrementMagic")
+				task.wait(0.1)
+				typebutton.Text = "Magic Type: " .. tostring(utilMod.GetAttribute(player, "Magic"))
+				local level: number? = ReturnLevel()
+				if not level then
+					return
+				end
+				levelbutton.Text = "Magic Level: " .. tostring(level)
+			end)
+		end
+	end
 end

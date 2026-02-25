@@ -1,8 +1,6 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local combatMod = require(ReplicatedStorage.Shared.combatMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
@@ -10,11 +8,9 @@ local pathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
 
 -- Exported types for better IntelliSense and type safety
-export type TargetIdentifier = number | string | Model | "SpawnPoint" | "Lith"
+export type TargetIdentifier = number | string | "SpawnPoint" | "Lith"
 
 export type PathMod = {
-	GetTakeLithLoc: (model: Model, hrp: BasePart) -> Vector3?,
-	GetDefendLithLoc: (model: Model, hrp: BasePart) -> Vector3?,
 	GetCurrentTarget: (model: Model) -> Model | nil | "SpawnPoint" | "Lith",
 	PathfindToPosition: (model: Model, targetPosition: Vector3, targetIdOrName: TargetIdentifier) -> boolean,
 	IsPathActive: (model: Model) -> boolean,
@@ -24,159 +20,8 @@ export type PathMod = {
 	CanIPathFindtoPosition: (model: Model, targetPosition: Vector3) -> boolean,
 }
 
-local pathMod: PathMod = {} :: any
+local pathMod = {}
 
-function pathMod.GetTakeLithLoc(model: Model, hrp: BasePart): Vector3?
-	-- Validate inputs
-	if not model or not hrp then
-		warn("Should not reach me.")
-		return nil
-	end
-
-	local ownedById = utilMod.GetAttribute(model, "OwnedBy")
-	if not ownedById or ownedById == "" or ownedById == "None" or ownedById == "none" then
-		warn("Should not reach me.")
-		return nil
-	end
-
-	local plr = game.Players:GetPlayerByUserId(ownedById)
-	if not plr then
-		return nil
-	end
-
-	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
-	if not manaPointsFolder then
-		return nil
-	end
-
-	local points = manaPointsFolder:GetChildren()
-	if #points == 0 then
-		return nil
-	end
-
-	local closestPoint: MeshPart? = nil
-	local closestDist: number = math.huge
-	local playerUserId = plr.UserId
-
-	for _, point in ipairs(points) do
-		-- Skip if it's a ManaSpout or owned by the same player
-		if point.Name == "ManaSpout" then
-			continue
-		end
-		if utilMod.GetAttribute(point, "OwnedBy") == playerUserId then
-			continue
-		end
-
-		local meshPart = point:FindFirstChildOfClass("MeshPart")
-		if not meshPart then
-			continue
-		end
-
-		local dist = utilMod.GetDistance(meshPart.Position, hrp.Position)
-		if dist < closestDist then
-			closestDist = dist
-			closestPoint = meshPart
-		end
-	end
-
-	if closestPoint then
-		return closestPoint.Position
-	else
-		return nil
-	end
-end
-
-function pathMod.GetDefendLithLoc(model: Model, hrp: BasePart): Vector3?
-	-- Validate core inputs
-	if not model or not hrp then
-		return nil
-	end
-
-	local ownedById = utilMod.GetAttribute(model, "OwnedBy")
-	if not ownedById or ownedById == "" or ownedById == "None" or ownedById == "none" then
-		return nil
-	end
-
-	local plr = game.Players:GetPlayerByUserId(ownedById)
-	if not plr then
-		return nil
-	end
-
-	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
-	if not manaPointsFolder then
-		return nil
-	end
-
-	local points = manaPointsFolder:GetChildren()
-	if #points == 0 then
-		return nil
-	end
-
-	local playerUserId: number = plr.UserId
-	local underAttackLiths: { MeshPart } = {}
-	local ownedLiths: { MeshPart } = {}
-
-	-- Collect owned liths and those under attack
-	for _, point in ipairs(points) do
-		if point.Name == "ManaSpout" then
-			continue
-		end
-
-		local meshPart = point:FindFirstChildOfClass("MeshPart")
-		if not meshPart then
-			continue
-		end
-
-		local ownedBy = utilMod.GetAttribute(point, "OwnedBy")
-		if ownedBy ~= playerUserId then
-			continue
-		end
-
-		table.insert(ownedLiths, meshPart)
-
-		local isUnderAttack = utilMod.GetAttribute(point, "IsUnderAttack")
-		if isUnderAttack then
-			table.insert(underAttackLiths, meshPart)
-		end
-	end
-
-	-- Priority 1: Defend liths under attack
-	if #underAttackLiths > 0 then
-		if #underAttackLiths == 1 then
-			return underAttackLiths[1].Position
-		else
-			-- Find closest under-attack lith
-			local closest: MeshPart? = nil
-			local closestDist: number = math.huge
-			for _, mesh in ipairs(underAttackLiths) do
-				local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
-				if dist < closestDist then
-					closestDist = dist
-					closest = mesh
-				end
-			end
-			return closest and closest.Position or nil
-		end
-	end
-
-	-- Priority 2: No attacks → go to closest owned lith
-	if #ownedLiths == 0 then
-		return nil
-	elseif #ownedLiths == 1 then
-		return ownedLiths[1].Position
-	else
-		local closest: MeshPart? = nil
-		local closestDist: number = math.huge
-		for _, mesh in ipairs(ownedLiths) do
-			local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
-			if dist < closestDist then
-				closestDist = dist
-				closest = mesh
-			end
-		end
-		return closest and closest.Position or nil
-	end
-end
 
 -- Internal tracking
 local activePaths: { [Model]: { connection: RBXScriptConnection, targetIdOrName: TargetIdentifier } } = {}
@@ -222,7 +67,7 @@ end
 function pathMod.CanIPathFindtoPosition(model: Model, targetPosition: Vector3): boolean
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
-	if not humanoid or not rootPart then
+	if not humanoid or not rootPart or not rootPart:IsA("BasePart") then
 		activePaths[model] = nil
 		return false
 	end
@@ -239,7 +84,7 @@ function pathMod.CanIPathFindtoPosition(model: Model, targetPosition: Vector3): 
 	if not issafe then
 		return false
 	end
-	local success, err = pcall(function()
+	local success, _err = pcall(function()
 		path:ComputeAsync(rootPart.Position, targetPosOnFloor)
 	end)
 	return success
@@ -254,7 +99,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
-	if not humanoid or not rootPart then
+	if not humanoid or not rootPart or not rootPart:IsA("BasePart") then
 		activePaths[model] = nil
 		return false
 	end
@@ -271,7 +116,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			utilMod.DistancetoGround(targetPosition) or targetPosition.Y,
 			targetPosition.Z
 		)
-	local success, err = pcall(function()
+	local success, _err = pcall(function()
 		path:ComputeAsync(rootPart.Position, targetPosOnFloor)
 	end)
 
@@ -341,7 +186,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			local newPosOnFloor = newPos
 				and Vector3.new(newPos.X, utilMod.DistancetoGround(newPos) or newPos.Y, newPos.Z)
 			local dis = newPos and utilMod.GetDistance(newPos, targetPosition)
-			if dis and dis > 2 then
+			if newPosOnFloor and dis and dis > 2 then
 				if connection then
 					--print("Killing path 5 and recursioning a new path")
 					connection:Disconnect()
@@ -349,7 +194,6 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 				activePaths[model] = nil
 				task.spawn(function()
 					task.wait()
-					local random: Random = Random.new(time())
 					pathMod.PathfindToPosition(model, newPosOnFloor, targetIdOrName)
 				end)
 				return
@@ -378,7 +222,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 	end)
 
 	-- Update the stored connection
-	if activePaths[model] then
+	if connection and activePaths[model] then
 		activePaths[model].connection = connection
 	end
 
@@ -441,7 +285,7 @@ end
 
 function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string, random: Random): Vector3?
 	local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-	if not hrp then
+	if not hrp or not hrp:IsA("BasePart") then
 		return nil
 	end
 
@@ -492,9 +336,11 @@ function pathMod.GetTargetPet(model: Model, targetIdOrName: number | string, ran
 	if not combatMod.AcceptableDistanceToOpponent(model, enemyTarget) then
 		local enemyTable = utilMod.GetStatsFromFolder(enemyTarget)
 		local distanceForAttacker = ((enemyTable and enemyTable.distanceForAttacker) or 4) - 2
-		local direction = (enemyhrp.Position - hrp.Position).Unit
-		local targetPosition = enemyhrp.Position - direction * distanceForAttacker
-		return targetPosition
+		if enemyhrp and enemyhrp:IsA("BasePart") and hrp and hrp:IsA("BasePart") then
+			local direction = (enemyhrp.Position - hrp.Position).Unit
+			local targetPosition = enemyhrp.Position - direction * distanceForAttacker
+			return targetPosition
+		end
 	end
 
 	return nil

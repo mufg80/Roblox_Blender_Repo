@@ -1,7 +1,6 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
 
@@ -15,231 +14,149 @@ local CONTROL_RANGE = 50 -- Player/pet combat range
 local FERALDISTANCE = 60 -- Distance within which ferals annoy and double decay
 local BASE_DECAY = LITHHEALTHCAP * MAXCHANGEPERTICK -- Normal decay amount
 local FERALMULTIPLIER = 3
+
+export type LithModule = {
+	-- Creates or ensures a unique numeric ID for a lith building/instance
+	-- Sets the "Unique" attribute on the building if missing
+	-- Returns the ID (or nil if building is invalid)
+	CreateUnique: (building: Instance) -> number?,
+
+	-- Returns the current control percentage (0–1) for a given lith uniqueId
+	-- Returns 1 if the lith doesn't exist in the internal table (full control default)
+	GetLithControl: (uniqueId: number) -> number?,
+
+	-- (Internal helper exposed — used by adorners/UI)
+	-- Updates the BillboardGUI progress bar + +/− indicator on the building
+	AdjustAdorner: (
+		uniqueId: number,
+		currentControl: number,
+		building: Instance,
+		isPositive: boolean
+	) -> (),
+}
+
 local lithMod = {}
 local liths = {} -- [uniqueId] = currentControl (0 to 5000)
 
 -- Returns: [UserId] = {playerModel: Model?, pets: {Model}}
 local function GetNearbyCombatants(lithPosition: Vector3): { [number]: { playerModel: Model?, pets: { Model } } }
-    local nearby = {}
+	local nearby = {}
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if utilMod.GetAttribute(player, "HasFallen") then continue end
-            local hrp = player.Character.HumanoidRootPart
-            if utilMod.GetDistance(lithPosition, hrp.Position) <= CONTROL_RANGE then
-                nearby[player.UserId] = {
-                    playerModel = player.Character,
-                    pets = {},
-                }
-            end
-        end
-    end
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			if utilMod.GetAttribute(player, "HasFallen") then
+				continue
+			end
+			local hrp = player.Character.HumanoidRootPart
+			if utilMod.GetDistance(lithPosition, hrp.Position) <= CONTROL_RANGE then
+				nearby[player.UserId] = {
+					playerModel = player.Character,
+					pets = {},
+				}
+			end
+		end
+	end
 
-    local petsFolder = workspace:FindFirstChild("Pets")
-    if petsFolder then
-        for _, petModel in ipairs(petsFolder:GetChildren()) do
-            if petModel:IsA("Model") and petModel:FindFirstChild("HumanoidRootPart") then
-                if utilMod.GetAttribute(petModel, "HasFallen") then continue end
-                local hrp = petModel.HumanoidRootPart
-                if utilMod.GetDistance(lithPosition, hrp.Position) <= CONTROL_RANGE then
-                    local ownerUserId = utilMod.GetAttribute(petModel, "OwnedBy")
-                    if typeof(ownerUserId) == "number" then
-                        if not nearby[ownerUserId] then
-                            nearby[ownerUserId] = { playerModel = nil, pets = {} }
-                        end
-                        table.insert(nearby[ownerUserId].pets, petModel)
-                    end
-                end
-            end
-        end
-    end
+	local petsFolder = workspace:FindFirstChild("Pets")
+	if petsFolder then
+		for _, petModel in ipairs(petsFolder:GetChildren()) do
+			if petModel:IsA("Model") and petModel:FindFirstChild("HumanoidRootPart") then
+				if utilMod.GetAttribute(petModel, "HasFallen") then
+					continue
+				end
+				local hrp = petModel.HumanoidRootPart
+				if utilMod.GetDistance(lithPosition, hrp.Position) <= CONTROL_RANGE then
+					local ownerUserId = utilMod.GetAttribute(petModel, "OwnedBy")
+					if typeof(ownerUserId) == "number" then
+						if not nearby[ownerUserId] then
+							nearby[ownerUserId] = { playerModel = nil, pets = {} }
+						end
+						table.insert(nearby[ownerUserId].pets, petModel)
+					end
+				end
+			end
+		end
+	end
 
-    return nearby
+	return nearby
 end
 
 -- Helper: Check if any feral is within annoyance range
 local function HasNearbyFerals(lithPosition: Vector3): boolean
-    local feralsFolder = workspace:FindFirstChild("Ferals")
-    if not feralsFolder then
-        return false
-    end
+	local feralsFolder = workspace:FindFirstChild("Ferals")
+	if not feralsFolder then
+		return false
+	end
 
-    for _, feral in ipairs(feralsFolder:GetChildren()) do
-        if feral:IsA("Model") and feral:FindFirstChild("HumanoidRootPart") then
-            if utilMod.GetAttribute(feral, "HasFallen") then continue end
-            local hrp = feral.HumanoidRootPart
-            if utilMod.GetDistance(lithPosition, hrp.Position) <= FERALDISTANCE then
-                return true
-            end
-        end
-    end
+	for _, feral in ipairs(feralsFolder:GetChildren()) do
+		if feral:IsA("Model") and feral:FindFirstChild("HumanoidRootPart") then
+			if utilMod.GetAttribute(feral, "HasFallen") then
+				continue
+			end
+			local hrp = feral.HumanoidRootPart
+			if utilMod.GetDistance(lithPosition, hrp.Position) <= FERALDISTANCE then
+				return true
+			end
+		end
+	end
 
-    return false
+	return false
 end
 
-function lithMod.AdjustAdorner(uniqueId, currentControl, building, isPositive)
-    local percentage = lithMod.GetLithControl(uniqueId)
-    local billboard = building:FindFirstChild("BillBoardGUI")
-    if not billboard then
-        billboard = ServerStorage.BillBoards.BillBoardGUI:Clone()
-        local plrID = utilMod.GetAttribute(building, "OwnedBy")
-        if typeof(plrID) == "number" then
-            local plr = game.Players:GetPlayerByUserId(plrID)
-            local label = billboard.Frame.AANameLabel
-            if label and plr then
-                label.Text = plr.Name .. "'s Lith"
-            end
-        else
-            local label = billboard.Frame.AANameLabel
-            if label then
-                label.Text = "Errant Lith"
-            end
-        end
-        billboard.Parent = building
-        billboard.ExtentsOffset = Vector3.new(0, 1, 0)
-    end
-    local innerFrame = billboard.Frame.PetFrameContainer.PetMeterBar.InnerFill
-    if innerFrame then
-        innerFrame.Size = UDim2.new(percentage, 0, 1, 0)
-    end
-    local plus = billboard.Frame.ZZBuffFrame.PlusLabel
-    local minus = billboard.Frame.ZZBuffFrame.MinusLabel
-    if isPositive then
-        plus.Visible = true
-        minus.Visible = false
-    else
-        plus.Visible = false
-        minus.Visible = true
-    end
+function lithMod.AdjustAdorner(uniqueId: number, currentControl: number, building: Instance, isPositive: boolean): ()
+	local percentage = lithMod.GetLithControl(uniqueId)
+	local billboard = building:FindFirstChild("BillBoardGUI")
+	if not billboard then
+		billboard = ServerStorage.BillBoards.BillBoardGUI:Clone()
+		if billboard and billboard:IsA("ScreenGui") then
+			billboard.Parent = building
+			billboard.ExtentsOffset = Vector3.new(0, 1, 0)
+		end
+	end
+	if not billboard or not billboard:IsA("ScreenGui") then
+		return
+	end
+	local plrID = building:GetAttribute("OwnedBy")
+	if typeof(plrID) == "number" then
+		local plr = game.Players:GetPlayerByUserId(plrID)
+		local frame = billboard:FindFirstChild("Frame")
+		if frame then
+			local label = frame:FindFirstChild("AANameLabel")
+			if label and label:IsA("TextLabel") then
+				label.Text = plr.Name .. "'s Lith"
+			end
+		end
+	end
+
+	local innerFrame = billboard:FindFirstDescendant("InnerFill")
+	if innerFrame and innerFrame:IsA("Frame") then
+		innerFrame.Size = UDim2.new(percentage, 0, 1, 0)
+	end
+	local plus = billboard:FindFirstDescendant("PlusLabel")
+	local minus = billboard:FindFirstDescendant("MinusLabel")
+	if plus and plus:IsA("ImageLabel") and minus and minus:IsA("ImageLabel") then
+		if isPositive then
+			plus.Visible = true
+			minus.Visible = false
+		else
+			plus.Visible = false
+			minus.Visible = true
+		end
+	end
 end
-
--- Main control tick loop
-task.spawn(function()
-    while task.wait(1) do
-        local manaPoints = workspace:WaitForChild("ManaPoints"):GetChildren()
-        if next(manaPoints) == nil then
-            return
-        end
-
-        for _, building in manaPoints do
-            if building.Name == "ManaSpout" then
-                continue
-            end
-
-            local mesh = building:FindFirstChildOfClass("MeshPart")
-            if not mesh then
-                continue
-            end
-
-            local uniqueId = utilMod.GetAttribute(building, "Unique")
-            if not uniqueId then
-                uniqueId = lithMod.CreateUnique(building)
-                liths[uniqueId] = LITHHEALTHCAP
-                continue
-            end
-
-            local currentControl = liths[uniqueId] or LITHHEALTHCAP
-            local currentOwnerId = utilMod.GetAttribute(building, "OwnedBy") or 0
-
-            local lithPos = mesh.Position
-            local nearbyCombatants = GetNearbyCombatants(lithPos)
-
-            -- === No one nearby → decay logic ===
-            if not next(nearbyCombatants) then
-                if currentOwnerId ~= 0 and currentControl > LITHHEALTHCAP / 3 then
-                    local decayAmount = BASE_DECAY
-
-                    -- Ferals double the decay if nearby
-                    if HasNearbyFerals(lithPos) then
-                        decayAmount = decayAmount * FERALMULTIPLIER
-                    end
-
-                    currentControl = math.max(currentControl - decayAmount, LITHHEALTHCAP / 3)
-                    liths[uniqueId] = currentControl
-                    lithMod.AdjustAdorner(uniqueId, currentControl, building, decayAmount <= 0)
-                end
-                
-                continue
-            end
-
-            -- === Combat active: normal strength-based shift ===
-            local defenderStrength = 0
-            local attackerStrength = 0
-
-            for userId, data in pairs(nearbyCombatants) do
-                local isDefending = (userId == currentOwnerId)
-                if not isDefending and data.playerModel then
-                    local allyId = utilMod.GetAttribute(data.playerModel, "IsAlly")
-                    if typeof(allyId) == "number" and allyId == currentOwnerId then
-                        isDefending = true
-                    end
-                end
-
-                local targetStrength = isDefending and defenderStrength or attackerStrength
-
-                if data.playerModel then
-                    local player = Players:GetPlayerByUserId(userId)
-                    local level = player and utilMod.GetPlayerLevel(player) or 1
-                    targetStrength += level * 6
-                end
-
-                for _, pet in ipairs(data.pets) do
-                    local petKey = utilMod.customTrim(pet.Name)
-                    local petLevel = statsMod.creatureStats[petKey] and statsMod.creatureStats[petKey].level or 1
-                    targetStrength += (petLevel * 4)
-                end
-
-                if isDefending then
-                    defenderStrength = targetStrength
-                else
-                    attackerStrength = targetStrength
-                end
-            end
-            defenderStrength = defenderStrength * 5
-            attackerStrength = attackerStrength * 4.8
-
-            local netAdvantage = defenderStrength - attackerStrength
-            local maxDelta = LITHHEALTHCAP * MAXPLAYERCHANGEPERTICK
-            local change = math.clamp(netAdvantage, -maxDelta, maxDelta)
-            currentControl = math.clamp(currentControl + change, 0, LITHHEALTHCAP)
-            liths[uniqueId] = currentControl
-            lithMod.AdjustAdorner(uniqueId, currentControl, building, change >= 0)
-
-            -- === Building destroyed when control hits 0 ===
-            if currentControl <= 0 then
-                local manaspawnpoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
-
-                for _, point in pairs(manaspawnpoints) do
-                    local pointPos = point.CFrame.Position
-                    if utilMod.GetDistance(pointPos, mesh.Position) < 10 then
-                        utilMod.SetAttribute(point, "HasBuilding", "Spout")
-                        local spoutModel = ServerStorage.Buildings.ManaSpout:Clone() -- now a Model
-                        spoutModel:PivotTo(point.CFrame)
-                        spoutModel.Parent = workspace.ManaPoints
-                    end
-                end
-
-                liths[uniqueId] = nil
-                building:Destroy()
-                continue
-            end
-        end
-    end
-end)
 
 -- Unique ID generator
 local nextUniqueId = 1
 
 function lithMod.CreateUnique(building: Instance): number?
-    if not building then
-        return nil
-    end
+	if not building then
+		return nil
+	end
 
-    utilMod.SetAttribute(building, "Unique", nextUniqueId)
-    nextUniqueId += 1
-    return nextUniqueId - 1
+	building:SetAttribute("Unique", nextUniqueId)
+	nextUniqueId += 1
+	return nextUniqueId - 1
 end
-
 
 -- Mana points (spouts)
 local manaSpawnPoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
@@ -255,10 +172,123 @@ for _, point in manaSpawnPoints do
 	end
 end
 
-
 -- Public: Get current lith control/health
 function lithMod.GetLithControl(uniqueId: number): number?
-    return (liths[uniqueId] or LITHHEALTHCAP) / LITHHEALTHCAP
+	return (liths[uniqueId] or LITHHEALTHCAP) / LITHHEALTHCAP
 end
 
-return lithMod
+-- Main control tick loop
+task.spawn(function()
+	while task.wait(1) do
+		local manaPoints = workspace:WaitForChild("ManaPoints"):GetChildren()
+		if next(manaPoints) == nil then
+			return
+		end
+
+		for _, building in manaPoints do
+			if building.Name == "ManaSpout" then
+				continue
+			end
+
+			local mesh = building:FindFirstChildOfClass("MeshPart")
+			if not mesh then
+				continue
+			end
+
+			local uniqueId = utilMod.GetAttribute(building, "Unique")
+			if not uniqueId then
+				uniqueId = lithMod.CreateUnique(building)
+				liths[uniqueId] = LITHHEALTHCAP
+				continue
+			end
+
+			local currentControl = liths[uniqueId] or LITHHEALTHCAP
+			local currentOwnerId = utilMod.GetAttribute(building, "OwnedBy") or 0
+
+			local lithPos = mesh.Position
+			local nearbyCombatants = GetNearbyCombatants(lithPos)
+
+			-- === No one nearby → decay logic ===
+			if not next(nearbyCombatants) then
+				if currentOwnerId ~= 0 and currentControl > LITHHEALTHCAP / 3 then
+					local decayAmount = BASE_DECAY
+
+					-- Ferals double the decay if nearby
+					if HasNearbyFerals(lithPos) then
+						decayAmount = decayAmount * FERALMULTIPLIER
+					end
+
+					currentControl = math.max(currentControl - decayAmount, LITHHEALTHCAP / 3)
+					liths[uniqueId] = currentControl
+					lithMod.AdjustAdorner(uniqueId, currentControl, building, decayAmount <= 0)
+				end
+
+				continue
+			end
+
+			-- === Combat active: normal strength-based shift ===
+			local defenderStrength = 0
+			local attackerStrength = 0
+
+			for userId, data in pairs(nearbyCombatants) do
+				local isDefending = (userId == currentOwnerId)
+				if not isDefending and data.playerModel then
+					local allyId = utilMod.GetAttribute(data.playerModel, "IsAlly")
+					if typeof(allyId) == "number" and allyId == currentOwnerId then
+						isDefending = true
+					end
+				end
+
+				local targetStrength = isDefending and defenderStrength or attackerStrength
+
+				if data.playerModel then
+					local player = Players:GetPlayerByUserId(userId)
+					local level = player and utilMod.GetPlayerLevel(player) or 1
+					targetStrength += level * 6
+				end
+
+				for _, pet in ipairs(data.pets) do
+					local petKey = utilMod.customTrim(pet.Name)
+					local petLevel = statsMod.creatureStats[petKey] and statsMod.creatureStats[petKey].level or 1
+					targetStrength += (petLevel * 4)
+				end
+
+				if isDefending then
+					defenderStrength = targetStrength
+				else
+					attackerStrength = targetStrength
+				end
+			end
+			defenderStrength = defenderStrength * 5
+			attackerStrength = attackerStrength * 4.8
+
+			local netAdvantage = defenderStrength - attackerStrength
+			local maxDelta = LITHHEALTHCAP * MAXPLAYERCHANGEPERTICK
+			local change = math.clamp(netAdvantage, -maxDelta, maxDelta)
+			currentControl = math.clamp(currentControl + change, 0, LITHHEALTHCAP)
+			liths[uniqueId] = currentControl
+			lithMod.AdjustAdorner(uniqueId, currentControl, building, change >= 0)
+
+			-- === Building destroyed when control hits 0 ===
+			if currentControl <= 0 then
+				local manaspawnpoints = workspace:WaitForChild("ManaSpawnPoints"):GetChildren()
+
+				for _, point in pairs(manaspawnpoints) do
+					local pointPos = point.CFrame.Position
+					if utilMod.GetDistance(pointPos, mesh.Position) < 10 then
+						utilMod.SetAttribute(point, "HasBuilding", "Spout")
+						local spoutModel = ServerStorage.Buildings.ManaSpout:Clone() -- now a Model
+						spoutModel:PivotTo(point.CFrame)
+						spoutModel.Parent = workspace.ManaPoints
+					end
+				end
+
+				liths[uniqueId] = nil
+				building:Destroy()
+				continue
+			end
+		end
+	end
+end)
+
+return lithMod :: LithModule

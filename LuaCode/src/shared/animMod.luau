@@ -12,6 +12,30 @@ local SpellCastAnim = Anims:WaitForChild("SpellCastAnim")
 local StarterStaffAnimation = Anims:WaitForChild("StarterStaffAnimation") -- fire staff
 local StarterStaffHoldAnimation = Anims:WaitForChild("StarterStaffHoldAnimation") -- hold staff
 
+export type AnimAPI = {
+	-- Starts the looped staff holding animation
+	-- Stops fire/cast if playing
+	ActivateHold: (humanoid: Humanoid) -> (),
+
+	-- Stops the hold animation (and fire/cast if somehow still playing)
+	-- Usually called when unequipping weapon or entering another state
+	DeactivateHold: (humanoid: Humanoid) -> (),
+
+	-- Plays the fire (shoot) animation once
+	-- Automatically stops hold animation if active
+	-- When fire finishes → resumes hold animation if isHolding is still true
+	ActivateFire: (humanoid: Humanoid) -> (),
+
+	-- Plays the looped cast/charge animation
+	-- Automatically stops hold animation if active
+	-- Does **not** auto-resume hold when stopped (caller must call DeactivateCast)
+	ActivateCast: (humanoid: Humanoid) -> (),
+
+	-- Stops the cast animation
+	-- If hold was active → automatically resumes the hold animation
+	DeactivateCast: (humanoid: Humanoid) -> (),
+}
+
 local animMod = {}
 
 -- Internal state (per humanoid)
@@ -41,7 +65,7 @@ end
 
 -- ====================== PUBLIC FUNCTIONS ======================
 
-function animMod.ActivateHold(humanoid)
+function animMod.ActivateHold(humanoid): ()
 	if not humanoid or not humanoid:IsA("Humanoid") then return end
 
 	local t = getTracks(humanoid)
@@ -53,7 +77,7 @@ function animMod.ActivateHold(humanoid)
 	t.hold:Play(0.3)
 end
 
-function animMod.DeactivateHold(humanoid)
+function animMod.DeactivateHold(humanoid): ()
 	if not humanoid or not humanoid:IsA("Humanoid") then return end
 
 	local t = getTracks(humanoid)
@@ -64,7 +88,7 @@ function animMod.DeactivateHold(humanoid)
 	if t.cast.IsPlaying then t.cast:Stop(0) end
 end
 
-function animMod.ActivateFire(humanoid)
+function animMod.ActivateFire(humanoid):()
 	if not humanoid or not humanoid:IsA("Humanoid") then return end
 
 	local t = getTracks(humanoid)
@@ -84,7 +108,7 @@ function animMod.ActivateFire(humanoid)
     end)
 end
 
-function animMod.ActivateCast(humanoid)
+function animMod.ActivateCast(humanoid):()
 	if not humanoid or not humanoid:IsA("Humanoid") then return end
 
 	local t = getTracks(humanoid)
@@ -100,7 +124,7 @@ function animMod.ActivateCast(humanoid)
 	t.cast:Play(0.3)
 end
 
-function animMod.DeactivateCast(humanoid)
+function animMod.DeactivateCast(humanoid):()
 	if not humanoid or not humanoid:IsA("Humanoid") then return end
 
 	local t = getTracks(humanoid)

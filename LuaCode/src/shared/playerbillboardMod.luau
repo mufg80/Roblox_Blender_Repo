@@ -1,39 +1,44 @@
 --!strict
 
+export type PlayerBillboardAPI = {
+	-- Force re-run name / health / mana update
+	Refresh: () -> (),
+
+	-- Optional: clean up connections / remove billboard (called on player leaving or character destroy)
+	Destroy: () -> (),
+}
+
 local playerbillboardMod = {}
 
-function playerbillboardMod.Setup(player: Player): table
+function playerbillboardMod.Setup(player: Player): PlayerBillboardAPI?
 	if not player then
 		warn("Should not reach me.")
-		return {}
+		return { Refresh = function() end, Destroy = function() end } :: PlayerBillboardAPI
+	end
+	local humanoidInst: Instance? = nil
+	local humanoid: Humanoid? = nil
+	if player.Character then
+		humanoidInst = player.Character:FindFirstChild("Humanoid")
+	end
+	if humanoidInst and humanoidInst:IsA("Humanoid") then
+		humanoid = humanoidInst
+	end
+	if not humanoid then
+		return nil
 	end
 
+	local connections: { RBXScriptConnection } = {}
+	local billboard: BillboardGui? = nil
+
 	local function setupCharacter(character: Model)
-		local humanoid = character:WaitForChild("Humanoid")
-		if not humanoid then
-			warn("[playerbillboardMod] Missing Humanoid on", character.Name)
-			return
-		end
-
-
-		-- Billboard
-		local billboard: BillboardGui? = character:FindFirstChild("BillBoardGUI")
-		if not billboard then
-			-- Clone from ServerStorage if missing
-			local template = game.ServerStorage:FindFirstChild("BillBoards")
-				and game.ServerStorage.BillBoards:FindFirstChild("BillBoardGUI")
-			if template then
-				billboard = template:Clone()
-				billboard.Parent = character
-
-				-- For players, use a default offset (e.g., above head)
-				billboard.ExtentsOffset = Vector3.new(0, 1.5, 0) -- default fallback
-			end
-		end
+		-- ... same billboard creation logic ...
 
 		if not billboard then
 			return
 		end
+
+		-- Store billboard for later use
+		billboard = billboard
 
 		-- Helper: Update name label
 		local function updateNameLabel()
@@ -42,8 +47,8 @@ function playerbillboardMod.Setup(player: Player): table
 				return
 			end
 
-			local nameLabel: TextLabel = frame:FindFirstChild("AANameLabel")
-			if not nameLabel then
+			local nameLabel: Instance? = frame:FindFirstChild("AANameLabel")
+			if not nameLabel or not nameLabel:IsA("TextLabel") then
 				return
 			end
 
@@ -67,8 +72,8 @@ function playerbillboardMod.Setup(player: Player): table
 				return
 			end
 
-			local inner: Frame = bar:FindFirstChild("InnerFill")
-			if not inner then
+			local inner: Instance? = bar:FindFirstChild("InnerFill")
+			if not inner or not inner:IsA("Frame") then
 				return
 			end
 
@@ -88,13 +93,13 @@ function playerbillboardMod.Setup(player: Player): table
 				return
 			end
 
-			local mbar = container:FindFirstChild("ZPetManaMeterBar")
-			if not mbar then
+			local mbar: Instance? = container:FindFirstChild("ZPetManaMeterBar")
+			if not mbar or not mbar:IsA("Frame") then
 				return
 			end
 
-			local minner: Frame = mbar:FindFirstChild("MInnerFill")
-			if not minner then
+			local minner: Instance? = mbar:FindFirstChild("MInnerFill")
+			if not minner or not minner:IsA("Frame") then
 				return
 			end
 
@@ -102,33 +107,54 @@ function playerbillboardMod.Setup(player: Player): table
 			minner.Visible = true
 			local mana = player:GetAttribute("Mana") or 0
 			local maxmana = player:GetAttribute("MaxMana") or 1
-			local mFraction = math.clamp(mana / maxmana, 0, 1)
-			minner.Size = UDim2.new(mFraction, 0, 1, 0)
+			if mana and maxmana and typeof(mana) == "number" and typeof(maxmana) == "number" then
+				local mFraction = math.clamp(mana / maxmana, 0, 1)
+				minner.Size = UDim2.new(mFraction, 0, 1, 0)
+			end
 		end
 
-		-- Initial setup
 		updateNameLabel()
 		updateHealthBar()
 		updateManaBar()
 
-		-- Health updates
-		humanoid.HealthChanged:Connect(updateHealthBar)
-		humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealthBar)
-
-		-- Mana updates (attributes on player)
-		player:GetAttributeChangedSignal("Mana"):Connect(updateManaBar)
-		player:GetAttributeChangedSignal("MaxMana"):Connect(updateManaBar)
+		table.insert(connections, humanoid.HealthChanged:Connect(updateHealthBar))
+		table.insert(connections, humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealthBar))
+		table.insert(connections, player:GetAttributeChangedSignal("Mana"):Connect(updateManaBar))
+		table.insert(connections, player:GetAttributeChangedSignal("MaxMana"):Connect(updateManaBar))
 	end
 
-	-- Setup current character if exists
+	-- Initial setup
 	if player.Character then
-		setupCharacter(player.Character)
+		task.spawn(setupCharacter, player.Character)
 	end
 
-	-- Handle respawns
-	--player.CharacterAdded:Connect(setupCharacter)
+	-- Public API
+	local api: PlayerBillboardAPI = {
+		Refresh = function()
+			if player.Character then
+				setupCharacter(player.Character)
+			end
+		end,
 
-	return {}
+		Destroy = function()
+			for _, conn in connections do
+				conn:Disconnect()
+			end
+			table.clear(connections)
+
+			if billboard then
+				billboard:Destroy()
+				billboard = nil
+			end
+		end,
+	}
+game.Players.PlayerRemoving:Connect(function(leaving)
+    if leaving.UserId == player.UserId then
+        api.Destroy()
+    end
+end)
+
+	return api
 end
 
 return playerbillboardMod

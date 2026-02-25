@@ -1,12 +1,6 @@
 --!strict
--- ReplicatedStorage.Client.CastFeedback
--- FIXED: Use Color3.fromHex() for hex string from MagicClassUI
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-
-local utilMod = require(ReplicatedStorage.Shared.utilMod)
---local MagicClassUI = require(ReplicatedStorage.Client.MagicClassUI)
 
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -14,11 +8,17 @@ local magicGui = playerGui:WaitForChild("MagicGui")
 local castFrame = magicGui:WaitForChild("CastFrame")
 local innerFill = castFrame:WaitForChild("InnerFill")
 
+export type CastFeedbackMod = {
+	StartCast:(duration: number, castColorhex:string, onComplete: () -> ()) -> (),
+	IsOnCooldown:() -> boolean,
+	Init:() -> (),
+}
+
 local CastFeedback = {}
 local isCasting = false
 
 -- Start cast bar animation
-function CastFeedback.StartCast(duration: number, castColorhex:string, onComplete: () -> ())
+function CastFeedback.StartCast(duration: number, castColorhex:string, onComplete: () -> ()) : ()
 	if isCasting then return end
 	isCasting = true
 
@@ -49,8 +49,9 @@ function CastFeedback.IsOnCooldown(): boolean
 	return isCasting
 end
 
-function CastFeedback.Init()
-	-- No setup needed
+function CastFeedback.Init():()
+	print("Castfeedbackstarting")
 end
 
-return CastFeedback
+
+return CastFeedback :: CastFeedbackMod

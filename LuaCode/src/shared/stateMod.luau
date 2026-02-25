@@ -13,9 +13,9 @@ export type Context = {
 	ownerInstance: Model?,
 	combatTargetModel: Model?,
 	acceptableDistance: boolean?,
-	spawnPosition: Vector3,
+	spawnPosition: Vector3?,
 	hrp: BasePart,
-
+	random: Random,
 	petAttack: boolean,
 	petFollow: boolean,
 	petTakeLith: boolean,
@@ -40,9 +40,16 @@ export type StateResult = {
 
 local healerCache: { [string]: boolean } = {}
 
-local function TravelerAssignment(model, context, spawnPosition, hrp, movingDirection, random):string
+local function TravelerAssignment(
+	model: Model,
+	context: Context,
+	spawnPosition: Vector3,
+	hrp: BasePart,
+	movingDirection: string,
+	random: Random
+): string
 	local lastReassign = utilMod.GetAttribute(model, "LastReassignTime") or 0
-	local reassignInterval = random:NextInteger(30,50)
+	local reassignInterval = random:NextInteger(30, 50)
 
 	-- Only attempt when truly idle / not doing anything else
 	if
@@ -79,9 +86,11 @@ end
 
 -- Main function called every loop from the NPC script
 function stateMod.UpdateState(model: Model, context: Context): StateResult
+	local result: StateResult = { movingDirection = "NotMoving" }
+
 	if not model or not context then
 		warn("Should not reach me.")
-		return
+		return result
 	end
 	local mutable = context.mutable
 
@@ -119,7 +128,8 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 	if petDefendLith and lithDefendPosition and not mutable.lithDefendRandomLoc then
 		while not mutable.lithDefendRandomLoc do
 			mutable.lithDefendRandomLoc = pathMod.GetTargetLith(lithDefendPosition)
-			local issafe = pathMod.CanIPathFindtoPosition(model, mutable.lithDefendRandomLoc)
+			local issafe = mutable.lithDefendRandomLoc
+				and pathMod.CanIPathFindtoPosition(model, mutable.lithDefendRandomLoc)
 			if not issafe then
 				print("not good random position")
 				mutable.lithDefendRandomLoc = nil
@@ -129,13 +139,16 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 	if petTakeLith and lithTakePosition and not mutable.lithTakeRandomLoc then
 		while not mutable.lithTakeRandomLoc do
 			mutable.lithTakeRandomLoc = pathMod.GetTargetLith(lithTakePosition)
-			local issafe = pathMod.CanIPathFindtoPosition(model, mutable.lithTakeRandomLoc)
+			local issafe = mutable.lithTakeRandomLoc
+				and pathMod.CanIPathFindtoPosition(model, mutable.lithTakeRandomLoc)
 			if not issafe then
 				mutable.lithTakeRandomLoc = nil
 			end
 		end
 	end
-
+	if not spawnPosition then
+		return result
+	end
 	if isPet then
 		-- Clear lith caches when following (as in original blink logic and follow mode)
 		if petFollow then
@@ -387,7 +400,7 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 				end
 
 				if utilMod.GetAttribute(model, "StationaryStatus") == "StationaryTraveler" then
-					local dir = TravelerAssignment(model, context, spawnPosition, hrp, movingDirection, random)
+					local _unused = TravelerAssignment(model, context, spawnPosition, hrp, movingDirection, random)
 				end
 			elseif
 				utilMod.GetAttribute(model, "StationaryStatus") == "Roaming"
@@ -429,9 +442,8 @@ function stateMod.UpdateState(model: Model, context: Context): StateResult
 			end
 		end
 	end
-	return {
-		movingDirection = movingDirection,
-	}
+	result.movingDirection = movingDirection
+	return result
 end
 
 return stateMod

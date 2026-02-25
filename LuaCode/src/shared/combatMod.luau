@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
+local actionsMod = require(script.Parent.actionsMod)
 local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
@@ -516,7 +517,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			end
 		end
 		if applied then
-			buffMod.SelectTargetsForAggro(player, info)
+			buffMod.SelectTargetsForAggro(player.Character, info)
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 		end
 	elseif info.spellType == "utility" then
@@ -535,7 +536,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		end
 
 		if applied then
-			buffMod.SelectTargetsForAggro(player, info)
+			buffMod.SelectTargetsForAggro(player.Character, info)
 			mana = utilMod.GetAttribute(player, "Mana")
 			utilMod.SetAttribute(player, "Mana", mana - cost)
 		end
@@ -622,7 +623,6 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 		if not combatTargetModel then
 			return
 		end
-		local target = combatTargetModel
 
 		local modhrp = model:FindFirstChild("HumanoidRootPart")
 		local targhrp = target:FindFirstChild("HumanoidRootPart")
@@ -631,15 +631,15 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 			dis = utilMod.GetDistance(modhrp.Position, targhrp.Position)
 		end
 
-		if target and dis and dis < info.range then
+		if combatTargetModel and dis and dis < info.range then
 			local isPlayer = false
-			if target:IsA("Player") then
-				target = target.Character
+			if combatTargetModel:IsA("Player") then
+				target = combatTargetModel.Character
 				isPlayer = true
 			end
-			local damage = combatMod.SpellAttackResult(model, target, spellname)
+			local damage = combatMod.SpellAttackResult(model, combatTargetModel, spellname)
 			task.delay(0.5, function()
-				combatMod.ExecuteSpellDamageToBody(model, target, damage)
+				combatMod.ExecuteSpellDamageToBody(model, combatTargetModel, damage)
 			end)
 			utilMod.SetAttribute(model, "Mana", mana - cost)
 
@@ -648,7 +648,7 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 			end
 			
 			if not isPlayer then
-				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
+				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, combatTargetModel)
 			end
 		end
 	elseif info.spellType == "areaDamage" then
@@ -694,6 +694,91 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 	end
 end
 
+function combatMod.FallAnimation(
+    model: Model,
+    animTracks: actionsMod.AnimTrackDict,
+    dervanimTracks: actionsMod.AnimTrackDict?,
+    deathPlayedRef: { value: boolean }  -- mutable reference to avoid re-triggering
+)
+	if not animTracks or not animTracks.death then return end
+
+    if deathPlayedRef.value or animTracks.death.IsPlaying then
+        return
+    end
+
+
+    -- ────────────────────────────────────────────────────────────────
+    --  Dervish-specific death handling (only if dervanimTracks exists)
+    -- ────────────────────────────────────────────────────────────────
+    if dervanimTracks and dervanimTracks.death then
+        local deathDerv = dervanimTracks.death
+
+        -- Stop dervish idle animations
+        for _, idleTrack in dervanimTracks.idle do
+            if idleTrack and idleTrack.IsPlaying then
+                idleTrack:Stop(0.1)
+            end
+        end
+
+        -- Play dervish death
+        deathDerv:Play(0.3, 1, dervanimTracks.deathSpeed or 1)
+
+        deathDerv.Stopped:Connect(function()
+            -- Replay once to ensure full playback
+            deathDerv:Play(0.3, 1, dervanimTracks.deathSpeed or 1)
+            
+            local length = deathDerv.Length - 0.1
+            deathDerv:AdjustSpeed(0)
+            deathDerv.TimePosition = length
+            
+            -- Hide dervish model (assuming dervishmodel is stored somewhere)
+            -- If you don't have a global dervishmodel, pass it as a parameter or find it
+            local dervishModel = model:FindFirstChild("DervishPart") -- ← adjust name
+            if dervishModel then
+                dervishModel.Parent = nil
+            end
+        end)
+    end
+
+    -- ────────────────────────────────────────────────────────────────
+    --  Common: stop all main animations
+    -- ────────────────────────────────────────────────────────────────
+    for _, idleAnim in animTracks.idle do
+        if idleAnim and idleAnim.IsPlaying then
+            idleAnim:Stop(0.1)
+        end
+    end
+
+    for _, attackAnim in animTracks.attacks do
+        if attackAnim and attackAnim.IsPlaying then
+            attackAnim:Stop(0.1)
+        end
+    end
+
+    if animTracks.move and animTracks.move.IsPlaying then
+        animTracks.move:Stop(0.1)
+    end
+
+    -- ────────────────────────────────────────────────────────────────
+    --  Play main death animation & freeze near end
+    -- ────────────────────────────────────────────────────────────────
+    local deathAnim = animTracks.death
+    deathAnim:Play(0.3, 1, animTracks.deathSpeed or 1)
+
+    deathAnim.Stopped:Connect(function()
+        -- Replay to reach full length
+        deathAnim:Play(0.3, 1, animTracks.deathSpeed or 1)
+        
+        local freezePoint = deathAnim.Length - 0.2
+        deathAnim:AdjustSpeed(0)
+        deathAnim.TimePosition = freezePoint
+        
+        -- Wait a bit then recycle
+        task.wait(2)
+        utilMod.SetAttribute(model, "RecycleMe", true)
+    end)
+end
+
 export type CombatMod = {
 	SpellAttackResult: (attackerCreature: Model, defenderCreature: Model, spellName: string) -> number,
 	AcceptableDistanceToOpponent: (model: Model, enemy: Model) -> boolean,
@@ -707,6 +792,7 @@ export type CombatMod = {
 	CalculateAggro: (damageTaken: number) -> number,
 	ApplyPriestSpell: (model: Model, target: Model, spellname: string) -> (),
 	AdjustSpeedOfHumanoid: (player:Player, casttime:number)-> (),
+	FallAnimation:(model: Model, animTracks: actionsMod.AnimTrackDict, dervanimTracks: actionsMod.AnimTrackDict?, deathPlayedRef: { value: boolean } ) -> (),
 }
 
 return combatMod :: CombatMod

@@ -1,4 +1,4 @@
--- --!strict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
@@ -9,7 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Debris = game:GetService("Debris")
 
 export type PartyInfo = {
-	Player: Player,
+	Player: Player?,
 	Character: Model?,
 	pets: { Model },
 	buildings: { Model },
@@ -31,7 +31,7 @@ export type UtilMod = {
 	getValue: (child: ValueBase) -> any,
 	SetAttribute: (instance: Player | Model?, attr: string, value: any) -> (),
 	GetAttribute: (instance: Player | Model?, attr: string) -> any,
-
+	ReassignSpawn:(model: Model, spawnPosition: Vector3) -> Vector3,
 	SetFlagsForMoving: (model: Model) -> (),
 	SetFlagsForCombat: (model: Model) -> (),
 	SetFlagsForDeath: (model: Model) -> (),
@@ -72,13 +72,16 @@ export type UtilMod = {
 	GetClosestPlayerSkipAlly: (char: Model?) -> Model?,
 	GetClosestModelSkipAllyPets: (playerChar: Model, folderName: "Pets" | "Ferals") -> Model?,
 
-	GetPartyMembers: (model: Instance) -> PartyInfo | {},
+	GetPartyMembers: (model: Instance) -> PartyInfo,
 
 	GetEnemyModelsWithinRange: (char: Model, range: number) -> { Model },
 	GetEnemyPlayersWithinRange: (char: Model, range: number) -> { Model },
 	IsEnemyInRange: (char: Model, range: number) -> boolean,
 
 	MyPets: (char: Model) -> { Model },
+	GetCooldown:(model: Model) -> number,
+	GetTakeLithLoc:(model: Model, hrp: BasePart) -> Vector3?,
+	GetDefendLithLoc:(model: Model, hrp: BasePart) -> Vector3?,
 }
 
 local utilMod = {}
@@ -102,7 +105,7 @@ function utilMod.IsMaxSummoned(char: Model, name: string): boolean
 	if maxAmount and maxAmount > 0 then
 		local additive: number = utilMod.GetAttribute(char, "Earned_MaxBoost_" .. name) and 1 or 0
 		maxAmount = maxAmount + additive
-		local mypets = utilMod.MyPets(char) or {}
+		local mypets = utilMod.MyPets(char)
 		local existing = 0
 		for _, pet in mypets do
 			if pet and pet.Parent and utilMod.customTrim(pet.Name) == name then
@@ -329,7 +332,7 @@ end
 function utilMod.GetAcceptableDistanceForCaster(combatTargetModel: Model?, model: Model): boolean
 	local targetHRP = combatTargetModel and combatTargetModel:FindFirstChild("HumanoidRootPart")
 	local myhrp = model and model:FindFirstChild("HumanoidRootPart")
-	if not myhrp or not targetHRP then
+	if not myhrp or not targetHRP or not myhrp:IsA("BasePart") or not targetHRP:IsA("BasePart") then
 		return false
 	end
 	return utilMod.GetDistance(myhrp.Position, targetHRP.Position) < 45
@@ -873,14 +876,15 @@ function utilMod.GetClosestModelSkipAllyPets(playerChar: Model, folderName: "Pet
 	return closest
 end
 
-function utilMod.GetPartyMembers(model: Instance): {
-	{
-		Player: Player,
-		Character: Model?,
-		pets: { Model },
-		buildings: { Model },
+function utilMod.GetPartyMembers(model: Instance): PartyInfo
+
+	local info:PartyInfo = {
+		Player = nil,
+		Character = nil,
+		pets = {},
+		buildings = {},
 	}
-}
+
 	local player: Player?
 
 	-- Case 1: The instance is the Player itself
@@ -909,20 +913,16 @@ function utilMod.GetPartyMembers(model: Instance): {
 
 	-- If we couldn't find a player at all
 	if not player then
-		return {}
+		return info
 	end
 
 	-- Get the player's current character (may be nil if not spawned)
 	local character = player.Character
 	if not character then
-		return {
-			Player = player,
-			Character = nil,
-			pets = {},
-			buildings = {},
-		}
+		info.Player = player
+		return info
 	end
-
+	info.Character = player.Character
 	-- Get all owned pet models
 	local petModels = utilMod.MyPets(character) or {}
 
@@ -940,12 +940,9 @@ function utilMod.GetPartyMembers(model: Instance): {
 	end
 
 	-- Return the complete party member entry
-	return {
-		Player = player,
-		Character = character,
-		pets = petModels,
-		buildings = buildings,
-	}
+	info.pets = petModels
+	info.buildings = buildings
+	return info
 end
 
 function utilMod.GetEnemyModelsWithinRange(char: Model, range: number): { Model }
@@ -1407,6 +1404,192 @@ function utilMod.ReassignSpawn(model: Model, spawnPosition: Vector3): Vector3
 	local chosen = possibleSpawns[randomIndex]
 
 	return chosen
+end
+
+local MIN_ATTACK_DELAY = 0.3  -- example value; set to whatever your game needs
+local BASE_DELAY = statsMod.DELAY or 1  -- fallback if statsMod.DELAY is missing
+
+function utilMod.GetCooldown(model: Model): number
+	if not model then
+		warn("[utilMod.GetCooldown] Model is nil")
+		return math.max(BASE_DELAY, MIN_ATTACK_DELAY)
+	end
+
+	local cooldown = BASE_DELAY
+
+	-- Try to find the Data folder
+	local dataFolder = model:FindFirstChild("Data")
+	if dataFolder and dataFolder:IsA("Folder") then
+		local delayValue = dataFolder:FindFirstChild("attackDelay")  -- or "AttackDelay", "DelayMultiplier", etc.
+
+		if delayValue then
+			if delayValue:IsA("NumberValue") then
+				cooldown = BASE_DELAY * delayValue.Value
+			else
+				warn(`[utilMod.GetCooldown] Expected NumberValue for "attackDelay" in {model:GetFullName()}, got {delayValue.ClassName}`)
+			end
+		end
+	end
+
+	-- Always enforce minimum delay (prevents animation glitches / too-fast attacks)
+	if cooldown < MIN_ATTACK_DELAY then
+		cooldown = MIN_ATTACK_DELAY
+	end
+
+	return cooldown
+end
+
+
+function utilMod.GetTakeLithLoc(model: Model, hrp: BasePart): Vector3?
+	-- Validate inputs
+	if not model or not hrp then
+		warn("Should not reach me.")
+		return nil
+	end
+
+	local ownedById = utilMod.GetAttribute(model, "OwnedBy")
+	if not ownedById or ownedById == "" or ownedById == "None" or ownedById == "none" then
+		warn("Should not reach me.")
+		return nil
+	end
+
+	local plr = game.Players:GetPlayerByUserId(ownedById)
+	if not plr then
+		return nil
+	end
+
+	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
+	if not manaPointsFolder then
+		return nil
+	end
+
+	local points = manaPointsFolder:GetChildren()
+	if #points == 0 then
+		return nil
+	end
+
+	local closestPoint: MeshPart? = nil
+	local closestDist: number = math.huge
+	local playerUserId = plr.UserId
+
+	for _, point in ipairs(points) do
+		-- Skip if it's a ManaSpout or owned by the same player
+		if point.Name == "ManaSpout" then
+			continue
+		end
+		if utilMod.GetAttribute(point, "OwnedBy") == playerUserId then
+			continue
+		end
+
+		local meshPart = point:FindFirstChildOfClass("MeshPart")
+		if not meshPart then
+			continue
+		end
+
+		local dist = utilMod.GetDistance(meshPart.Position, hrp.Position)
+		if dist and dist < closestDist then
+			closestDist = dist
+			closestPoint = meshPart
+		end
+	end
+
+	if closestPoint then
+		return closestPoint.Position
+	else
+		return nil
+	end
+end
+
+function utilMod.GetDefendLithLoc(model: Model, hrp: BasePart): Vector3?
+	-- Validate core inputs
+	if not model or not hrp then
+		return nil
+	end
+
+	local ownedById = utilMod.GetAttribute(model, "OwnedBy")
+	if not ownedById or ownedById == "" or ownedById == "None" or ownedById == "none" then
+		return nil
+	end
+
+	local plr = game.Players:GetPlayerByUserId(ownedById)
+	if not plr then
+		return nil
+	end
+
+	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
+	if not manaPointsFolder then
+		return nil
+	end
+
+	local points = manaPointsFolder:GetChildren()
+	if #points == 0 then
+		return nil
+	end
+
+	local playerUserId: number = plr.UserId
+	local underAttackLiths: { MeshPart } = {}
+	local ownedLiths: { MeshPart } = {}
+
+	-- Collect owned liths and those under attack
+	for _, point in ipairs(points) do
+		if point.Name == "ManaSpout" then
+			continue
+		end
+
+		local meshPart = point:FindFirstChildOfClass("MeshPart")
+		if not meshPart then
+			continue
+		end
+
+		local ownedBy = utilMod.GetAttribute(point, "OwnedBy")
+		if ownedBy ~= playerUserId then
+			continue
+		end
+
+		table.insert(ownedLiths, meshPart)
+
+		local isUnderAttack = utilMod.GetAttribute(point, "IsUnderAttack")
+		if isUnderAttack then
+			table.insert(underAttackLiths, meshPart)
+		end
+	end
+
+	-- Priority 1: Defend liths under attack
+	if #underAttackLiths > 0 then
+		if #underAttackLiths == 1 then
+			return underAttackLiths[1].Position
+		else
+			-- Find closest under-attack lith
+			local closest: MeshPart? = nil
+			local closestDist: number = math.huge
+			for _, mesh in ipairs(underAttackLiths) do
+				local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
+				if dist and dist < closestDist then
+					closestDist = dist
+					closest = mesh
+				end
+			end
+			return closest and closest.Position or nil
+		end
+	end
+
+	-- Priority 2: No attacks → go to closest owned lith
+	if #ownedLiths == 0 then
+		return nil
+	elseif #ownedLiths == 1 then
+		return ownedLiths[1].Position
+	else
+		local closest: MeshPart? = nil
+		local closestDist: number = math.huge
+		for _, mesh in ipairs(ownedLiths) do
+			local dist = utilMod.GetDistance(hrp.Position, mesh.Position)
+			if dist and dist < closestDist then
+				closestDist = dist
+				closest = mesh
+			end
+		end
+		return closest and closest.Position or nil
+	end
 end
 
 return utilMod :: UtilMod
