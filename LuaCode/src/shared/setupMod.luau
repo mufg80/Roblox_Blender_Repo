@@ -226,13 +226,17 @@ local function setStats(Char: Model, spellname: string?)
 	local plr = Players:GetPlayerFromCharacter(Char)
 	local stringtype = setupMod.GetMagicType(plr)
 	local level = (plr and utilMod.GetAttribute(plr,stringtype )) or 1
-	local numberlevel = (tonumber(level) or 1) * 20
-	humanoid.MaxHealth = (baseStats.hitPoints + numberlevel) or humanoid.MaxHealth
+	local maxHealth = statsMod.playerHealth["Level"..tostring(level)]
+	humanoid.MaxHealth = maxHealth or humanoid.MaxHealth
 	if humanoid.Health > humanoid.MaxHealth then
 		humanoid.Health = humanoid.MaxHealth
 	end
 
+	local maxMana = statsMod.playerMana["Level"..tostring(level)]
+	utilMod.SetAttribute(plr, "MaxMana", maxMana)
+
 	if spellname and statsMod.BuffInfo[spellname] and statsMod.BuffInfo[spellname].hitPoints then
+		humanoid.MaxHealth =humanoid.MaxHealth + statsMod.BuffInfo[spellname].hitPoints
 		humanoid.Health = math.min(humanoid.Health + statsMod.BuffInfo[spellname].hitPoints, humanoid.MaxHealth)
 	end
 
@@ -358,20 +362,16 @@ local function CharacterAdded(character: Model)
 		local sourceStats
 		if magic == statsMod.MagicType.None then
 			sourceStats = combatMod.ShallowTableCopy("PlayerNone")
-			utilMod.SetAttribute(player, "MaxMana", 20)
 		elseif magic == statsMod.MagicType.Artificer then
 			sourceStats = combatMod.ShallowTableCopy("PlayerArtificer")
-			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
 			local message = "You have selected Artificer magic!"
 			ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
 		elseif magic == statsMod.MagicType.Primordial then
 			sourceStats = combatMod.ShallowTableCopy("PlayerPrimordial")
-			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
 			local message = "You have selected Primordial magic!"
 			ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
 		elseif magic == statsMod.MagicType.Nature then
 			sourceStats = combatMod.ShallowTableCopy("PlayerNature")
-			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
 			local message = "You have selected Nature magic!"
 			ReplicatedStorage.Events.MessageEvent:FireClient(player, message, 2)
 		end
@@ -386,21 +386,18 @@ local function CharacterAdded(character: Model)
 	-- Level changes → mana cap
 	player:GetAttributeChangedSignal("ArtificerLevel"):Connect(function()
 		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Artificer then
-			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "ArtificerLevel") * 20)
 			setStats(player.Character, nil)
 		end
 	end)
 
 	player:GetAttributeChangedSignal("PrimordialLevel"):Connect(function()
 		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Primordial then
-			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "PrimordialLevel") * 20)
 			setStats(player.Character, nil)
 		end
 	end)
 
 	player:GetAttributeChangedSignal("NatureLevel"):Connect(function()
 		if utilMod.GetAttribute(player, "Magic") == statsMod.MagicType.Nature then
-			utilMod.SetAttribute(player, "MaxMana", utilMod.GetAttribute(player, "NatureLevel") * 20)
 			setStats(player.Character, nil)
 		end
 	end)
@@ -409,9 +406,7 @@ local function CharacterAdded(character: Model)
 	player:GetAttributeChangedSignal("Mana"):Connect(function()
 		local mana = utilMod.GetAttribute(player, "Mana")
 		local maxMana = utilMod.GetAttribute(player, "MaxMana")
-		if mana and maxMana and mana > maxMana then
-			utilMod.SetAttribute(player, "Mana", maxMana)
-		end
+		ReduceMana(player)
 
 		if mana == maxMana and utilMod.GetAttribute(player, "HasFallen") then
 			utilMod.SetAttribute(player, "HasFallen", false)
@@ -460,20 +455,19 @@ local function CharacterAdded(character: Model)
 		warn("DataStores disabled")
 	end
 
-	-- Dev/test: force Artificer + level 7
 
 	setupDevTesting(player)
 	task.wait(10)
-	local messages = {
-		"Welcome to the world of Oblivion Now, " .. player.Name .. "!",
-		"Defeat creatures to gain experience and level up your magic.",
-		"Equip staffs to enhance your abilities.",
-		"Summon pets to fight alongside you.",
-	}
+	-- local messages = {
+	-- 	"Welcome to the world of Oblivion Now, " .. player.Name .. "!",
+	-- 	"Defeat creatures to gain experience and level up your magic.",
+	-- 	"Equip staffs to enhance your abilities.",
+	-- 	"Summon pets to fight alongside you.",
+	-- }
 
-	for _, msg in ipairs(messages) do
-		ReplicatedStorage.Events.MessageEvent:FireClient(player, msg, 2)
-	end
+	-- for _, msg in ipairs(messages) do
+	-- 	ReplicatedStorage.Events.MessageEvent:FireClient(player, msg, 2)
+	-- end
 end
 
 game.Players.PlayerAdded:Connect(function(player)
@@ -704,7 +698,8 @@ petEvent.OnServerEvent:Connect(
 		utilMod.SetAttribute(player, "PetAttack", commands.Attacking)
 		utilMod.SetAttribute(player, "PetTakeLith", commands.TakingLith)
 		utilMod.SetAttribute(player, "PetDefendLith", commands.DefendingLith)
-	end
-)
+	end)
+
+
 
 return setupMod

@@ -116,7 +116,7 @@ local messageMod = {
 	end,
 }
 function messageMod.Init(): ()
-	print("MessageModInitialized")
+	--print("MessageModInitialized")
 end
 
 return messageMod :: MessageMod

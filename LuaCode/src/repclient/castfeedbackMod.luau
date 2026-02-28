@@ -50,7 +50,7 @@ function CastFeedback.IsOnCooldown(): boolean
 end
 
 function CastFeedback.Init():()
-	print("Castfeedbackstarting")
+	--print("Castfeedbackstarting")
 end
 
 

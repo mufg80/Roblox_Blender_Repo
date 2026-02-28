@@ -17,7 +17,7 @@ local OwnedBuildingMaxProximity = 30
 local OwnedPetMaxProximity = 20
 local ManaRegenForPetsPerTick = 10
 local PetMultiplyerIfBuildingExist = 3
-local PetHealthRegen = 2
+local PetHealthRegen = 10
 local PlayerIsGhostManaRegen = 20
 local DeadPlayerBuildingProximity = 15
 

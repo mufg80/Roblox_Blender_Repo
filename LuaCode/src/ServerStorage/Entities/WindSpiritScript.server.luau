@@ -306,7 +306,13 @@ task.spawn(function()
 			----------------------------------------------------------------
 
 			if animTracks.death then
-				combatMod.FallAnimation(model, animTracks, dervanimTracks, deathPlayed)
+				local args:combatMod.FallAnimArgs = {
+					model = model,
+					animTracks = animTracks,
+					dervanimTracks = dervanimTracks,
+					deathPlayedRef = deathPlayed
+				}
+				combatMod.FallAnimation(args)
 			else
 				warn("Should not reach me.")
 				if humanoid and humanoid:IsA("Humanoid") then

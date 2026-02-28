@@ -57,7 +57,7 @@ local function fireBullet(player: Player, targetPos: Vector3): ()
 	local bullet: Instance = bulletTemplate:Clone()
 	if bullet and bullet:IsA("Model") and bullet.PrimaryPart then
 		bullet:SetAttribute("Owner", player.UserId)
-		bullet.PrimaryPart.CFrame.Position = muzzle.Position + Vector3.new(0, 1, 0)
+		bullet.PrimaryPart:PivotTo(CFrame.new(muzzle.Position + Vector3.new(0, 1, 0)))
 		bullet.Parent = workspace
 
 		-- Trajectory calc

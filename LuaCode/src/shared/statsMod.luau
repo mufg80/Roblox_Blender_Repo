@@ -14,6 +14,10 @@ export type AttackSpell = {
 	effectMultiplier: number,
 }
 
+export type PlayerHealth = {[string]:number}
+
+export type PlayerMana = {[string]:number}
+
 export type SpellInfo = {
 	magicType: string,
 	missChance: number,
@@ -134,6 +138,8 @@ export type StatsMod = {
 	InitStats: { [string]: { [string]: any } },
 
 	EarnedStaffNames: { [string]: MagicType },
+	playerMana:PlayerMana,
+	playerHealth:PlayerHealth,
 }
 
 local statsMod: StatsMod = {} :: any
@@ -1205,7 +1211,7 @@ statsMod.SpellInfo = {
 		spellline = "NaturesDefenders",
 	},
 	ArtificerPriestHeal = {
-		manaCost = 0.3,
+		manaCost = 0.1,
 		magicType = "any",
 		spellType = "heal",
 		missChance = 0.2,
@@ -1223,7 +1229,7 @@ statsMod.SpellInfo = {
 		spellline = "ArtificerPriestHeal",
 	},
 	PrimordialPriestHeal = {
-		manaCost = 0.3,
+		manaCost = 0.1,
 		magicType = "any",
 		spellType = "heal",
 		missChance = 0.2,
@@ -1241,7 +1247,7 @@ statsMod.SpellInfo = {
 		spellline = "PrimordialPriestHeal",
 	},
 	NaturePriestHeal = {
-		manaCost = 0.3,
+		manaCost = 0.1,
 		magicType = "any",
 		spellType = "heal",
 		missChance = 0.2,
@@ -1259,7 +1265,7 @@ statsMod.SpellInfo = {
 		spellline = "NaturePriestHeal",
 	},
 	ArtificerPriestBuff = {
-		manaCost = 0.3,
+		manaCost = 0.15,
 		magicType = "any",
 		spellType = "buff",
 		missChance = 0.2,
@@ -1277,7 +1283,7 @@ statsMod.SpellInfo = {
 		spellline = "ArtificerPriestBuff",
 	},
 	PrimordialPriestBuff = {
-		manaCost = 0.3,
+		manaCost = 0.15,
 		magicType = "any",
 		spellType = "buff",
 		missChance = 0.2,
@@ -1295,7 +1301,7 @@ statsMod.SpellInfo = {
 		spellline = "PrimordialPriestBuff",
 	},
 	NaturePriestBuff = {
-		manaCost = 0.3,
+		manaCost = 0.15,
 		magicType = "any",
 		spellType = "buff",
 		missChance = 0.2,
@@ -1313,7 +1319,7 @@ statsMod.SpellInfo = {
 		spellline = "NaturePriestBuff",
 	},
 	ArtificerPriestNuke = {
-		manaCost = 0.4,
+		manaCost = 0.2,
 		magicType = "any",
 		spellType = "damage",
 		missChance = 0.2,
@@ -1349,7 +1355,7 @@ statsMod.SpellInfo = {
 		spellline = "PrimordialPriestNuke",
 	},
 	NaturePriestNuke = {
-		manaCost = 0.1,
+		manaCost = 0.2,
 		magicType = "any",
 		spellType = "damage",
 		missChance = 0.2,
@@ -1908,16 +1914,16 @@ statsMod.StaffStats = {
 
 statsMod.creatureMana = {
 	["UnkemptDruid"] = {
-		MaxMana = 50,
-		Mana = 25,
+		MaxMana = 150,
+		Mana = 115,
 	},
 	["MudPriest"] = {
-		MaxMana = 50,
-		Mana = 25,
+		MaxMana = 150,
+		Mana = 115,
 	},
 	["StoneManaPriest"] = {
-		MaxMana = 50,
-		Mana = 25,
+		MaxMana = 150,
+		Mana = 115,
 	},
 }
 
@@ -3683,6 +3689,7 @@ statsMod.InitStats = {
 	},
 }
 
+-- For one function only where it needs either staff or spell info
 function statsMod.GetAttackSpell(spellName: string): AttackSpell?
 	local attack: AttackSpell = { effectMultiplier = 0, magicType = "None", missChance = 0 }
 	if statsMod.SpellInfo[spellName] then
@@ -3699,5 +3706,25 @@ function statsMod.GetAttackSpell(spellName: string): AttackSpell?
 	end
 	return nil
 end
+
+statsMod.playerHealth = {
+	["Level1"] = 50,
+	["Level2"] = 100,
+	["Level3"] = 150,
+	["Level4"] = 225,
+	["Level5"] = 300,
+	["Level6"] = 400,
+	["Level7"] = 450
+}
+
+statsMod.playerMana = {
+	["Level1"] = 50,
+	["Level2"] = 100,
+	["Level3"] = 150,
+	["Level4"] = 225,
+	["Level5"] = 300,
+	["Level6"] = 400,
+	["Level7"] = 450
+}
 
 return statsMod :: StatsMod

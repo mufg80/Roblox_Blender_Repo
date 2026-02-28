@@ -65,18 +65,18 @@ function petControlMod.Setup(model: Model): PetControlAPI?
 			return billboard
 		end
 
-		local billinstance:Instance? = model:FindFirstChild("BillBoardGUI")
+		local billinstance:Instance? = model:FindFirstChild("BillboardGui")
 		if billinstance and billinstance:IsA("BillboardGui") then
 			billboard = billinstance
-			return billboard
+			return billinstance
 		end
 
 		-- Clone from ServerStorage if missing
 		local templatefolder = game.ServerStorage:FindFirstChild("BillBoards")
-		local template = templatefolder and templatefolder:FindFirstChild("BillBoardGUI")
-		if template and template:Isa("BillboardGui") then
+		local template = templatefolder and templatefolder:FindFirstChild("BillboardGui")
+		if template and template:IsA("BillboardGui") then
 			local billclone = template:Clone()
-			if billclone and billclone:Isa("BillboardGui") then
+			if billclone and billclone:IsA("BillboardGui") then
 				billboard = billclone
 				if billboard then
 					billboard.Parent = model

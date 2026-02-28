@@ -216,7 +216,7 @@ function pathMod.PathfindToPosition(model: Model, targetPosition: Vector3, targe
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
 				humanoid.Jump = true
 			end
-			utilMod.TempMarker(waypoint.Position) -- commented out as in original
+			--utilMod.TempMarker(waypoint.Position) -- commented out as in original
 			humanoid:MoveTo(waypoint.Position)
 		end
 	end)

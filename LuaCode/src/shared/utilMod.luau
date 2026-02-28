@@ -877,72 +877,70 @@ function utilMod.GetClosestModelSkipAllyPets(playerChar: Model, folderName: "Pet
 end
 
 function utilMod.GetPartyMembers(model: Instance): PartyInfo
+    local info: PartyInfo = {
+        Player = nil,
+        Character = nil,
+        pets = {},
+        buildings = {},
+    }
 
-	local info:PartyInfo = {
-		Player = nil,
-		Character = nil,
-		pets = {},
-		buildings = {},
-	}
+    local player: Player?
 
-	local player: Player?
+    -- 1. Resolve the owning Player
+    if model:IsA("Player") then
+        player = model
 
-	-- Case 1: The instance is the Player itself
-	if model:IsA("Player") then
-		player = model
+    elseif model:IsA("Model") then
+        -- Most likely: it's the character
+        player = utilMod.GetPlayerFromCharacter(model)
 
-	-- Case 2: The instance is a character Model
-	elseif model:IsA("Model") then
-		-- First try the standard way (character with Humanoid)
-		local test = utilMod.GetPlayerFromCharacter(model)
+        -- Fallback: it's probably a pet
+        if not player then
+            local ownedByUserId = model:GetAttribute("OwnedBy")  -- cleaner than utilMod.GetAttribute if you have it
+            if typeof(ownedByUserId) == "number" then
+                player = Players:GetPlayerByUserId(ownedByUserId)
+            end
+        end
+    else
+        error(`GetPartyMembers expected Player or Model, got {model.ClassName}`)
+    end
 
-		if test then
-			player = test
-		end
+    if not player then
+        return info
+    end
 
-		-- If still no player, check if this model is a pet with the OwnedBy attribute
-		if not player then
-			local ownedByUserId = utilMod.GetAttribute(model, "OwnedBy")
-			if typeof(ownedByUserId) == "number" then
-				player = Players:GetPlayerByUserId(ownedByUserId)
-			end
-		end
-	else
-		error("GetPartyMembers: Expected Player or Model instance, got " .. model.ClassName)
-	end
+    info.Player = player
 
-	-- If we couldn't find a player at all
-	if not player then
-		return info
-	end
+    -- 2. Character (optional — may be nil)
+    info.Character = player.Character
 
-	-- Get the player's current character (may be nil if not spawned)
-	local character = player.Character
-	if not character then
-		info.Player = player
-		return info
-	end
-	info.Character = player.Character
-	-- Get all owned pet models
-	local petModels = utilMod.MyPets(character) or {}
+    -- 3. Pets — only makes sense if character exists
+    if info.Character then
+        local petModels = utilMod.MyPets(info.Character)
+        if typeof(petModels) == "table" then
+            -- Optional safety: filter to only Models
+            for _, pet in petModels do
+                if pet:IsA("Model") then
+                    table.insert(info.pets, pet)
+                end
+            end
+        end
+    end
 
-	-- Get all owned buildings from workspace.ManaPoints
-	local buildings = {}
-	local manaPointsFolder = workspace:FindFirstChild("ManaPoints")
+    -- 4. Buildings (also Models)
+    local manaPoints = workspace:FindFirstChild("ManaPoints")
+    if manaPoints and manaPoints:IsA("Folder") then
+        for _, child in manaPoints:GetChildren() do
+            if child:IsA("Model") then
+                local ownedBy = child:GetAttribute("OwnedBy")
+                if typeof(ownedBy) == "number" and ownedBy == player.UserId then
+                    table.insert(info.buildings, child)
+                end
+            end
+        end
+    end
 
-	if manaPointsFolder and manaPointsFolder:IsA("Folder") then
-		for _, building in manaPointsFolder:GetChildren() do
-			local ownedBy = utilMod.GetAttribute(building, "OwnedBy")
-			if typeof(ownedBy) == "number" and ownedBy == player.UserId then
-				table.insert(buildings, building)
-			end
-		end
-	end
-
-	-- Return the complete party member entry
-	info.pets = petModels
-	info.buildings = buildings
-	return info
+    return info
 end
 
 function utilMod.GetEnemyModelsWithinRange(char: Model, range: number): { Model }
@@ -1088,7 +1086,7 @@ function utilMod.CopyStatsToFolder(target: Instance, stats: { [string]: any }, f
 	local foldername: string = folderName or "Data"
 	local folder: Instance? = target:FindFirstChild(foldername)
 	if not folder then
-		folder = Instance:new("Folder")
+		folder = Instance.new("Folder")
 	end
 	if folder and folder:IsA("Folder") then
 		folder.Name = foldername

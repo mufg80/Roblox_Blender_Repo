@@ -6,7 +6,6 @@ local Workspace = game:GetService("Workspace")
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 
-
 export type EffectMod = {
 	SummonCreatureEffect: (spawnpoint: Vector3, creatureName: string, secs: number) -> (),
 	DirectDamageEffect: (hrp: BasePart, spellName: string) -> (),
@@ -15,6 +14,7 @@ export type EffectMod = {
 	DeBuffEffects: (targets: { Model }, spellName: string) -> (),
 	SoulGrabbedEffect: (pos: Vector3) -> (),
 }
+
 
 local effectMod = {}
 
@@ -419,6 +419,7 @@ function effectMod.SoulGrabbedEffect(pos: Vector3): ()
 		end
 	end
 end
+
 
 
 return effectMod :: EffectMod

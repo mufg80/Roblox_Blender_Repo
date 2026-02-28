@@ -11,7 +11,33 @@ local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
 
-local combatMod = {}
+export type FallAnimArgs = {	
+    model: Model,
+    animTracks: actionsMod.AnimTrackDict,
+    dervanimTracks: actionsMod.AnimTrackDict?,
+    deathPlayedRef: { value: boolean }  -- mutable reference to avoid re-triggering
+}
+
+export type CombatMod = {
+	SpellAttackResult: (attackerCreature: Model, defenderCreature: Model, spellName: string) -> number,
+	AcceptableDistanceToOpponent: (model: Model, enemy: Model) -> boolean,
+	MeleeAttackResult: (attacker: Instance, defender: Instance) -> number,
+	ShallowTableCopy: (name: any) -> {},
+	ApplyStaffDamage: (hitPart: BasePart, ownerPlayer: Player, staffType: string) -> boolean,
+	ExecuteSpellDamageToBody: (source: Model, target: Model, damage: number?) -> boolean,
+	ApplyAbility:(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3)-> Model?,
+	ApplySpell: (player: Player, spellname: string) -> (),
+	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
+	CalculateAggro: (damageTaken: number) -> number,
+	ApplyPriestSpell: (model: Model, target: Model, spellname: string, combatTargetModel: Model?) ->(),
+	AdjustSpeedOfHumanoid: (player:Player, casttime:number)-> (),
+	FallAnimation:(args: FallAnimArgs ) -> (),
+}
+
+
+local combatMod = {} :: CombatMod
+
+
 
 local random = Random.new(time())
 
@@ -529,7 +555,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 					applied = buffMod.ReclaimPet(player.Character, spellname, pets)
 				end
 			end
-		elseif spellname == info.spellline then
+		elseif info.spellline == "ConvertSpout" then
 			applied = buffMod.ConvertSpout(player.Character, spellname)
 		elseif info.spellline == "TheftOfSoul" then
 			applied = buffMod.TheftSoul(player.Character, spellname)
@@ -599,7 +625,7 @@ function combatMod.CalculateAggro(damageTaken: number): number
 	return damageTaken * 1.5 + 30
 end
 
-function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string, combatTargetModel: Model?)
+function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string, combatTargetModel: Model?):()
 	local ownedby = utilMod.GetAttribute(model, "OwnedBy")
 	local plrOwner = ownedby and game.Players:GetPlayerByUserId(ownedby)
 	if not plrOwner or not plrOwner.Character then
@@ -694,15 +720,10 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 	end
 end
 
-function combatMod.FallAnimation(
-    model: Model,
-    animTracks: actionsMod.AnimTrackDict,
-    dervanimTracks: actionsMod.AnimTrackDict?,
-    deathPlayedRef: { value: boolean }  -- mutable reference to avoid re-triggering
-)
-	if not animTracks or not animTracks.death then return end
+function combatMod.FallAnimation(args: FallAnimArgs): ()
+	if not args.animTracks or not args.animTracks.death then return end
 
-    if deathPlayedRef.value or animTracks.death.IsPlaying then
+    if args.deathPlayedRef.value or args.animTracks.death.IsPlaying then
         return
     end
 
@@ -710,22 +731,22 @@ function combatMod.FallAnimation(
     -- ────────────────────────────────────────────────────────────────
     --  Dervish-specific death handling (only if dervanimTracks exists)
     -- ────────────────────────────────────────────────────────────────
-    if dervanimTracks and dervanimTracks.death then
-        local deathDerv = dervanimTracks.death
+    if args.dervanimTracks and args.dervanimTracks.death then
+        local deathDerv = args.dervanimTracks.death
 
         -- Stop dervish idle animations
-        for _, idleTrack in dervanimTracks.idle do
+        for _, idleTrack in args.dervanimTracks.idle do
             if idleTrack and idleTrack.IsPlaying then
                 idleTrack:Stop(0.1)
             end
         end
 
         -- Play dervish death
-        deathDerv:Play(0.3, 1, dervanimTracks.deathSpeed or 1)
+        deathDerv:Play(0.3, 1, args.dervanimTracks.deathSpeed or 1)
 
         deathDerv.Stopped:Connect(function()
             -- Replay once to ensure full playback
-            deathDerv:Play(0.3, 1, dervanimTracks.deathSpeed or 1)
+            deathDerv:Play(0.3, 1, args.dervanimTracks.deathSpeed or 1)
             
             local length = deathDerv.Length - 0.1
             deathDerv:AdjustSpeed(0)
@@ -733,7 +754,7 @@ function combatMod.FallAnimation(
             
             -- Hide dervish model (assuming dervishmodel is stored somewhere)
             -- If you don't have a global dervishmodel, pass it as a parameter or find it
-            local dervishModel = model:FindFirstChild("DervishPart") -- ← adjust name
+            local dervishModel = args.model:FindFirstChild("DervishPart") -- ← adjust name
             if dervishModel then
                 dervishModel.Parent = nil
             end
@@ -743,31 +764,31 @@ function combatMod.FallAnimation(
     -- ────────────────────────────────────────────────────────────────
     --  Common: stop all main animations
     -- ────────────────────────────────────────────────────────────────
-    for _, idleAnim in animTracks.idle do
+    for _, idleAnim in args.animTracks.idle do
         if idleAnim and idleAnim.IsPlaying then
             idleAnim:Stop(0.1)
         end
     end
 
-    for _, attackAnim in animTracks.attacks do
+    for _, attackAnim in args.animTracks.attacks do
         if attackAnim and attackAnim.IsPlaying then
             attackAnim:Stop(0.1)
         end
     end
 
-    if animTracks.move and animTracks.move.IsPlaying then
-        animTracks.move:Stop(0.1)
+    if args.animTracks.move and args.animTracks.move.IsPlaying then
+        args.animTracks.move:Stop(0.1)
     end
 
     -- ────────────────────────────────────────────────────────────────
     --  Play main death animation & freeze near end
     -- ────────────────────────────────────────────────────────────────
-    local deathAnim = animTracks.death
-    deathAnim:Play(0.3, 1, animTracks.deathSpeed or 1)
+    local deathAnim = args.animTracks.death
+    deathAnim:Play(0.3, 1, args.animTracks.deathSpeed or 1)
 
     deathAnim.Stopped:Connect(function()
         -- Replay to reach full length
-        deathAnim:Play(0.3, 1, animTracks.deathSpeed or 1)
+        deathAnim:Play(0.3, 1, args.animTracks.deathSpeed or 1)
         
         local freezePoint = deathAnim.Length - 0.2
         deathAnim:AdjustSpeed(0)
@@ -775,24 +796,11 @@ function combatMod.FallAnimation(
         
         -- Wait a bit then recycle
         task.wait(2)
-        utilMod.SetAttribute(model, "RecycleMe", true)
+        utilMod.SetAttribute(args.model, "RecycleMe", true)
     end)
 end
 
-export type CombatMod = {
-	SpellAttackResult: (attackerCreature: Model, defenderCreature: Model, spellName: string) -> number,
-	AcceptableDistanceToOpponent: (model: Model, enemy: Model) -> boolean,
-	MeleeAttackResult: (attacker: Instance, defender: Instance) -> number,
-	ShallowTableCopy: (name: any) -> {},
-	ApplyStaffDamage: (hitPart: BasePart, ownerPlayer: Player, staffType: string) -> boolean,
-	ExecuteSpellDamageToBody: (source: Model, target: Model, damage: number?) -> boolean,
-	ApplyAbility:(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3)-> Model?,
-	ApplySpell: (player: Player, spellname: string) -> (),
-	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
-	CalculateAggro: (damageTaken: number) -> number,
-	ApplyPriestSpell: (model: Model, target: Model, spellname: string) -> (),
-	AdjustSpeedOfHumanoid: (player:Player, casttime:number)-> (),
-	FallAnimation:(model: Model, animTracks: actionsMod.AnimTrackDict, dervanimTracks: actionsMod.AnimTrackDict?, deathPlayedRef: { value: boolean } ) -> (),
-}
 
-return combatMod :: CombatMod
+
+
+return combatMod

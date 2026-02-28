@@ -83,6 +83,12 @@ export type ActionMod = {
 
 local actionsMod = {}
 
+local priestkey = {
+	["MudPriest"] = {Heal = "PrimordialPriestHeal", Nuke = "PrimordialPriestNuke", Buff = "PrimordialPriestBuff"},
+	["UnkemptDruid"] = {Heal = "NaturePriestHeal", Nuke = "NaturePriestNuke", Buff = "NaturePriestBuff"},
+	["StonePriest"] = {Heal = "ArtificerPriestHeal", Nuke = "ArtificerPriestNuke", Buff = "ArtificerPriestBuff"},
+}
+
 local healerCache: { [string]: boolean } = {}
 local healerType: string? = nil
 local healerHealed: { [string]: number } = {}
@@ -110,7 +116,7 @@ local function CastPriestSpell(
 	end
 	trackToPlay:Play(0.3, 1, animTracks.castSpeed or 1)
 
-	--print("Cast " .. spellname .. " - Pet")
+	print("Cast " .. spellname .. " - Pet")
 
 	-- Delay the actual spell application (simulates cast time / impact)
 	task.delay(0.5, function()
@@ -597,19 +603,22 @@ function actionsMod.PerformActions(context: ActionContext): MutablePetSync
 
 					if DecideToHeal(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
-						CastPriestSpell(animTracks, model, combatMod, healerType or "" .. "PriestHeal")
+						local sname = priestkey[utilMod.customTrim(model.Name)].Heal
+						CastPriestSpell(animTracks, model, combatMod,sname)
 						lastAttackWrapper.value = time()
 					elseif DecideToBuff(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
-						CastPriestSpell(animTracks, model, combatMod, healerType or "" .. "PriestBuff")
+						local sname = priestkey[utilMod.customTrim(model.Name)].Buff
+						CastPriestSpell(animTracks, model, combatMod, sname)
 						lastAttackWrapper.value = time()
 					elseif DecideToNuke(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, combatTargetModel, random)
+						local sname = priestkey[utilMod.customTrim(model.Name)].Buff
 						CastPriestSpell(
 							animTracks,
 							model,
 							combatMod,
-							healerType or "" .. "PriestNuke",
+							sname,
 							combatTargetModel
 						)
 						lastAttackWrapper.value = time()
@@ -779,7 +788,16 @@ function actionsMod.PerformActions(context: ActionContext): MutablePetSync
 				nextCastTime = time() + random:NextInteger(10, 40)
 				utilMod.SetAttribute(model, "IdleCastCoolDown", nextCastTime)
 				lastAttackWrapper.value = time()
-				CastPriestSpell(animTracks, model, combatMod, healerType or "" .. "PriestHeal", nil)
+				local sname = priestkey[utilMod.customTrim(model.Name)].Heal
+				CastPriestSpell(animTracks, model, combatMod, sname, nil)
+			elseif DecideToBuff(model, mana, maxMana)
+			and time() > nextCastTime
+			and time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
+				nextCastTime = time() + random:NextInteger(10, 40)
+				utilMod.SetAttribute(model, "IdleCastCoolDown", nextCastTime)
+				lastAttackWrapper.value = time()
+				local sname = priestkey[utilMod.customTrim(model.Name)].Buff
+				CastPriestSpell(animTracks, model, combatMod, sname, nil)
 			end
 		end
 	end

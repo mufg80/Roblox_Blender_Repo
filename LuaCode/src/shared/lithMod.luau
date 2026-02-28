@@ -105,22 +105,26 @@ end
 
 function lithMod.AdjustAdorner(uniqueId: number, currentControl: number, building: Instance, isPositive: boolean): ()
 	local percentage = lithMod.GetLithControl(uniqueId)
-	local billboard = building:FindFirstChild("BillBoardGUI")
-	if not billboard then
-		billboard = ServerStorage.BillBoards.BillBoardGUI:Clone()
-		if billboard and billboard:IsA("ScreenGui") then
-			billboard.Parent = building
-			billboard.ExtentsOffset = Vector3.new(0, 1, 0)
+	local billboard = building:FindFirstChild("BillboardGui")
+	if not billboard then		
+		local billy = ServerStorage:FindFirstChild("BillBoards"):FindFirstChild("BillboardGui")
+		if billy and billy:IsA("BillboardGui") then
+			local clone = billy:Clone()
+			if clone then
+				billboard = clone
+				clone.Parent = building
+				clone.ExtentsOffset = Vector3.new(0, 1, 0)
+			end
 		end
 	end
-	if not billboard or not billboard:IsA("ScreenGui") then
+	if not billboard or not billboard:IsA("BillboardGui") then
 		return
 	end
 	local plrID = building:GetAttribute("OwnedBy")
 	if typeof(plrID) == "number" then
 		local plr = game.Players:GetPlayerByUserId(plrID)
 		local frame = billboard:FindFirstChild("Frame")
-		if frame then
+		if plr and frame then
 			local label = frame:FindFirstChild("AANameLabel")
 			if label and label:IsA("TextLabel") then
 				label.Text = plr.Name .. "'s Lith"
@@ -128,12 +132,12 @@ function lithMod.AdjustAdorner(uniqueId: number, currentControl: number, buildin
 		end
 	end
 
-	local innerFrame = billboard:FindFirstDescendant("InnerFill")
+	local innerFrame = billboard:FindFirstChild("InnerFill", true)
 	if innerFrame and innerFrame:IsA("Frame") then
 		innerFrame.Size = UDim2.new(percentage, 0, 1, 0)
 	end
-	local plus = billboard:FindFirstDescendant("PlusLabel")
-	local minus = billboard:FindFirstDescendant("MinusLabel")
+	local plus = billboard:FindFirstChild("PlusLabel", true)
+	local minus = billboard:FindFirstChild("MinusLabel", true)
 	if plus and plus:IsA("ImageLabel") and minus and minus:IsA("ImageLabel") then
 		if isPositive then
 			plus.Visible = true

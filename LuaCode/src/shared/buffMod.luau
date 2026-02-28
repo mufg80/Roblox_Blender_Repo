@@ -32,7 +32,7 @@ export type BuffMod = {
 }
 
 -- NEW: Setup buff events and stat refresh system on an NPC model
-function buffMod.Setup(model: Model, sourceStats: { [string]: any }):()
+function buffMod.Setup(model: Model, sourceStats: { [string]: any }): ()
 	if not model or not sourceStats then
 		warn("Should not reach me.")
 		return
@@ -106,7 +106,6 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any }):()
 	refreshStats()
 end
 
-
 function buffMod.TheftSoul(char: Model, spellname: string): boolean
 	local player = Players:GetPlayerFromCharacter(char)
 	if not player then
@@ -150,8 +149,7 @@ function buffMod.TheftSoul(char: Model, spellname: string): boolean
 	return true
 end
 
-
-function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, duration: number, model: Model):()
+function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, duration: number, model: Model): ()
 	if not spellname or not spelltype or not duration or not model then
 		warn("Should not reach me.")
 		return
@@ -172,7 +170,9 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 	})[spelltype]
 
 	local labelSpecificName = labelName[spelltype]
-	if not labelSpecificName then return end
+	if not labelSpecificName then
+		return
+	end
 
 	local billboard: Instance? = model:FindFirstChild("BillBoardGUI")
 	if not billboard or not billboard:IsA("ScreenGui") then
@@ -310,7 +310,7 @@ function buffMod.ConvertSpout(char: Model, spellname: string): boolean
 
 	local spouts: { Instance } = manaPoints:GetChildren()
 	for _, spout: Instance in pairs(spouts) do
-		if spout.Name ~= "ManaSpout" or not spout:IsA("BasePart") then
+		if spout.Name ~= "ManaSpout" or not spout:IsA("Model") then
 			continue
 		end
 
@@ -424,6 +424,7 @@ local function ApplyStatChanges(model: Model, spellname: string, multiplier: num
 
 	local buffInfo: any = statsMod.BuffInfo[spellname]
 	if not buffInfo then
+		warn("Should not reach me")
 		return false
 	end
 
