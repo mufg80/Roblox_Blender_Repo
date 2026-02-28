@@ -84,9 +84,9 @@ export type ActionMod = {
 local actionsMod = {}
 
 local priestkey = {
-	["MudPriest"] = {Heal = "PrimordialPriestHeal", Nuke = "PrimordialPriestNuke", Buff = "PrimordialPriestBuff"},
-	["UnkemptDruid"] = {Heal = "NaturePriestHeal", Nuke = "NaturePriestNuke", Buff = "NaturePriestBuff"},
-	["StonePriest"] = {Heal = "ArtificerPriestHeal", Nuke = "ArtificerPriestNuke", Buff = "ArtificerPriestBuff"},
+	["MudPriest"] = { Heal = "PrimordialPriestHeal", Nuke = "PrimordialPriestNuke", Buff = "PrimordialPriestBuff" },
+	["UnkemptDruid"] = { Heal = "NaturePriestHeal", Nuke = "NaturePriestNuke", Buff = "NaturePriestBuff" },
+	["StonePriest"] = { Heal = "ArtificerPriestHeal", Nuke = "ArtificerPriestNuke", Buff = "ArtificerPriestBuff" },
 }
 
 local healerCache: { [string]: boolean } = {}
@@ -156,8 +156,16 @@ local function DecideToBuff(model: Model, mana: number, maxmana: number): boolea
 	local lastBuffTime = healerBuffed[modelName] or 0
 	local cooldownEnd = lastBuffTime + castTime + durationTime + 10
 
+	local incombat = utilMod.GetAttribute(model, "InCombat")
+
 	if os.clock() < cooldownEnd then
 		return false
+	end
+
+	if incombat and incombat ~= true then
+		if mana < maxmana * 0.9 then
+			return false
+		end
 	end
 
 	-- All conditions met: Buff will be cast, store the current time
@@ -347,19 +355,19 @@ local function DecideToNuke(thisModel: Model, mana: number, maxmana: number): bo
 	end
 
 	-- Priority 2: Group health below 50% → Nuke if mana is decent (50%+)
-	if groupHealthPercent < 0.6 and manaPercent >= 0.5 then
+	if groupHealthPercent < 0.6 and manaPercent >= 0.3 then
 		healerNuked[modelName] = time()
 		return true
 	end
 
 	-- Priority 3: Group health below 80% → Nuke conservatively if mana is high (70%+)
-	if groupHealthPercent < 0.75 and manaPercent >= 0.7 then
+	if groupHealthPercent < 0.75 and manaPercent >= 0.5 then
 		healerNuked[modelName] = time()
 		return true
 	end
 
 	-- Priority 4: Everything is mostly fine (80%+ health) → Only nuke if mana is very high (90%+)
-	if groupHealthPercent < 0.9 and manaPercent >= 0.8 then
+	if groupHealthPercent < 0.9 and manaPercent >= 0.7 then
 		healerNuked[modelName] = time()
 		return true
 	end
@@ -604,7 +612,7 @@ function actionsMod.PerformActions(context: ActionContext): MutablePetSync
 					if DecideToHeal(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
 						local sname = priestkey[utilMod.customTrim(model.Name)].Heal
-						CastPriestSpell(animTracks, model, combatMod,sname)
+						CastPriestSpell(animTracks, model, combatMod, sname)
 						lastAttackWrapper.value = time()
 					elseif DecideToBuff(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, ownerInstance, random)
@@ -613,14 +621,8 @@ function actionsMod.PerformActions(context: ActionContext): MutablePetSync
 						lastAttackWrapper.value = time()
 					elseif DecideToNuke(model, mana, maxMana) then
 						utilMod.SpinToOwner(model, hrp, combatTargetModel, random)
-						local sname = priestkey[utilMod.customTrim(model.Name)].Buff
-						CastPriestSpell(
-							animTracks,
-							model,
-							combatMod,
-							sname,
-							combatTargetModel
-						)
+						local sname = priestkey[utilMod.customTrim(model.Name)].Nuke
+						CastPriestSpell(animTracks, model, combatMod, sname, combatTargetModel)
 						lastAttackWrapper.value = time()
 					end
 				end
@@ -790,9 +792,11 @@ function actionsMod.PerformActions(context: ActionContext): MutablePetSync
 				lastAttackWrapper.value = time()
 				local sname = priestkey[utilMod.customTrim(model.Name)].Heal
 				CastPriestSpell(animTracks, model, combatMod, sname, nil)
-			elseif DecideToBuff(model, mana, maxMana)
-			and time() > nextCastTime
-			and time() - lastAttackWrapper.value >= ATTACK_COOLDOWN then
+			elseif
+				DecideToBuff(model, mana, maxMana)
+				and time() > nextCastTime
+				and time() - lastAttackWrapper.value >= ATTACK_COOLDOWN
+			then
 				nextCastTime = time() + random:NextInteger(10, 40)
 				utilMod.SetAttribute(model, "IdleCastCoolDown", nextCastTime)
 				lastAttackWrapper.value = time()

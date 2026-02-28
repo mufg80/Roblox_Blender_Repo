@@ -6,6 +6,7 @@ local recyleMod = require(ReplicatedStorage.Shared.recycleMod)
 local utilMod = require(ReplicatedStorage.Shared.utilMod)
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
 
+local index = 1
 local spawnMod = {}
 
 local FERAL_GROUP_NAME = "FeralCG"
@@ -60,7 +61,7 @@ local function spawnFeral()
 	local point = feralSpawnPoints[rand]
 
 	local creature
-	local creatureName = statsMod.SpawnableFerals[math.random(1, #statsMod.SpawnableFerals)]
+	local creatureName = statsMod.SpawnableFerals[index]
 	if recyleMod.CheckIfExistsFeral(creatureName) then
 		creature = recyleMod.ReturnFeral(creatureName)
 	else
@@ -89,6 +90,12 @@ local function spawnFeral()
 		creatureHRP.CFrame = offsetCFrame
 	else
 		warn("Feral missing HRP:", creature.Name)
+	end
+
+	if index >= #statsMod.SpawnableFerals then
+		index = 1
+	else
+		index += 1
 	end
 end
 

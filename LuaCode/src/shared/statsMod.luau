@@ -1319,7 +1319,7 @@ statsMod.SpellInfo = {
 		spellline = "NaturePriestBuff",
 	},
 	ArtificerPriestNuke = {
-		manaCost = 0.2,
+		manaCost = 0.05,
 		magicType = "any",
 		spellType = "damage",
 		missChance = 0.2,
@@ -1337,7 +1337,7 @@ statsMod.SpellInfo = {
 		spellline = "ArtificerPriestNuke",
 	},
 	PrimordialPriestNuke = {
-		manaCost = 0.2,
+		manaCost = 0.05,
 		magicType = "any",
 		spellType = "damage",
 		missChance = 0.2,
@@ -1355,7 +1355,7 @@ statsMod.SpellInfo = {
 		spellline = "PrimordialPriestNuke",
 	},
 	NaturePriestNuke = {
-		manaCost = 0.2,
+		manaCost = 0.05,
 		magicType = "any",
 		spellType = "damage",
 		missChance = 0.2,

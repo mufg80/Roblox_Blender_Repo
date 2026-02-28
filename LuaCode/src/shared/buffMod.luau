@@ -48,6 +48,9 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any }): ()
 		if not humanoid then
 			return
 		end
+		if baseStats.hitPoints <= 1 then
+			print("low")
+		end
 
 		humanoid.MaxHealth = baseStats.hitPoints or humanoid.MaxHealth
 		if humanoid.Health > humanoid.MaxHealth then
@@ -167,15 +170,15 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 		heal = "HealLabel",
 		damage = "DamageLabel",
 		areaDamage = "DamageLabel",
-	})[spelltype]
+	})
 
 	local labelSpecificName = labelName[spelltype]
 	if not labelSpecificName then
 		return
 	end
 
-	local billboard: Instance? = model:FindFirstChild("BillBoardGUI")
-	if not billboard or not billboard:IsA("ScreenGui") then
+	local billboard: Instance? = model:FindFirstChild("BillboardGui")
+	if not billboard or not billboard:IsA("BillboardGui") then
 		return
 	end
 
@@ -185,7 +188,7 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 	if frame then
 		ZZFrame = frame:FindFirstChild("ZZBuffFrame")
 		if ZZFrame then
-			templateLabel = ZZFrame:FindFirstChild("labelSpecificName")
+			templateLabel = ZZFrame:FindFirstChild(labelSpecificName)
 		end
 	end
 
@@ -523,6 +526,9 @@ function buffMod.BuffDebuffHeal(casterMod: Model, target: Model, spellname: stri
 			evadd:Fire(casterMod, spellname)
 		end
 		FireBuffNotificationEvent(target, spellname)
+		if isDebuff then
+			print("debuffing")
+		end
 
 		buffMod.ApplyBillboardBuffLabel(spellinfo.spellType, spellname, duration, target)
 		while elapsed < duration do
