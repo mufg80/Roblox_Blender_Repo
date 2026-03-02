@@ -82,6 +82,7 @@ export type UtilMod = {
 	GetCooldown:(model: Model) -> number,
 	GetTakeLithLoc:(model: Model, hrp: BasePart) -> Vector3?,
 	GetDefendLithLoc:(model: Model, hrp: BasePart) -> Vector3?,
+	GetEnemyBuilding:(player: Player, casterPos: Vector3, range: number) -> Model?,
 }
 
 local utilMod = {}
@@ -1588,6 +1589,47 @@ function utilMod.GetDefendLithLoc(model: Model, hrp: BasePart): Vector3?
 		end
 		return closest and closest.Position or nil
 	end
+end
+
+-- New utility function: Finds and returns the closest enemy building within range
+-- Returns Model (target) or nil if none eligible
+-- Reusable on server (for casting) and client (for UI highlighting)
+function utilMod.GetEnemyBuilding(player: Player, casterPos: Vector3, range: number): Model?
+	if not player or typeof(casterPos) ~= "Vector3" or typeof(range) ~= "number" or range <= 0 then
+		return nil
+	end
+	
+	local folder = workspace:FindFirstChild("ManaPoints")
+	if not folder or not folder:IsA("Folder") then
+		return nil
+	end
+	
+	local closestBuilding: Model? = nil
+	local minDist = math.huge
+	
+	for _, building in folder:GetChildren() do
+		if not building:IsA("Model") then
+			continue
+		end
+		
+		local primary = building.PrimaryPart
+		if not primary or not primary:IsA("BasePart") then
+			continue
+		end
+		
+		local ownedBy = building:GetAttribute("OwnedBy")
+		if not ownedBy or ownedBy == player.UserId then
+			continue
+		end
+		
+		local distance = (casterPos - primary.Position).Magnitude
+		if distance < range and distance < minDist then
+			minDist = distance
+			closestBuilding = building
+		end
+	end
+	
+	return closestBuilding
 end
 
 return utilMod :: UtilMod

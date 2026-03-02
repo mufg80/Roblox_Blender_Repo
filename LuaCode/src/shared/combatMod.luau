@@ -11,11 +11,11 @@ local buffMod = require(game.ReplicatedStorage.Shared.buffMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
 
-export type FallAnimArgs = {	
-    model: Model,
-    animTracks: actionsMod.AnimTrackDict,
-    dervanimTracks: actionsMod.AnimTrackDict?,
-    deathPlayedRef: { value: boolean }  -- mutable reference to avoid re-triggering
+export type FallAnimArgs = {
+	model: Model,
+	animTracks: actionsMod.AnimTrackDict,
+	dervanimTracks: actionsMod.AnimTrackDict?,
+	deathPlayedRef: { value: boolean }, -- mutable reference to avoid re-triggering
 }
 
 export type CombatMod = {
@@ -25,88 +25,84 @@ export type CombatMod = {
 	ShallowTableCopy: (name: any) -> {},
 	ApplyStaffDamage: (hitPart: BasePart, ownerPlayer: Player, staffType: string) -> boolean,
 	ExecuteSpellDamageToBody: (source: Model, target: Model, damage: number?) -> boolean,
-	ApplyAbility:(player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3)-> Model?,
+	ApplyAbility: (player: Player, creatureName: string, recyleMod: any, spawnpoint: Vector3) -> Model?,
 	ApplySpell: (player: Player, spellname: string) -> (),
 	ApplyMeleeDamage: (attackerModel: Model, targetModel: Model) -> boolean,
 	CalculateAggro: (damageTaken: number) -> number,
-	ApplyPriestSpell: (model: Model, target: Model, spellname: string, combatTargetModel: Model?) ->(),
-	AdjustSpeedOfHumanoid: (player:Player, casttime:number)-> (),
-	FallAnimation:(args: FallAnimArgs ) -> (),
+	ApplyPriestSpell: (model: Model, target: Model, spellname: string, combatTargetModel: Model?) -> (),
+	AdjustSpeedOfHumanoid: (player: Player, casttime: number) -> (),
+	FallAnimation: (args: FallAnimArgs) -> (),
 }
 
-
 local combatMod = {} :: CombatMod
-
-
 
 local random = Random.new(time())
 
 function combatMod.SpellAttackResult(attackerCreature: Model, defenderCreature: Model, spellName: string): number
-    -- Resolve attacker stats (supports both character model and player folder)
-    local attackerStats = utilMod.GetStatsFromFolder(attackerCreature)
-    if not attackerStats or next(attackerStats) == nil then
-        local plr = Players:GetPlayerFromCharacter(attackerCreature)
-        if plr then
-            attackerStats = utilMod.GetStatsFromFolder(plr)
-        end
-    end
+	-- Resolve attacker stats (supports both character model and player folder)
+	local attackerStats = utilMod.GetStatsFromFolder(attackerCreature)
+	if not attackerStats or next(attackerStats) == nil then
+		local plr = Players:GetPlayerFromCharacter(attackerCreature)
+		if plr then
+			attackerStats = utilMod.GetStatsFromFolder(plr)
+		end
+	end
 
-    -- Resolve defender stats (same fallback logic)
-    local defenderStats = utilMod.GetStatsFromFolder(defenderCreature)
-    if not defenderStats or next(defenderStats) == nil then
-        local plr = Players:GetPlayerFromCharacter(defenderCreature)
-        if plr then
-            defenderStats = utilMod.GetStatsFromFolder(plr)
-        end
-    end
+	-- Resolve defender stats (same fallback logic)
+	local defenderStats = utilMod.GetStatsFromFolder(defenderCreature)
+	if not defenderStats or next(defenderStats) == nil then
+		local plr = Players:GetPlayerFromCharacter(defenderCreature)
+		if plr then
+			defenderStats = utilMod.GetStatsFromFolder(plr)
+		end
+	end
 
-    -- Unified spell lookup (SpellInfo OR StaffStats)
-    local spell: statsMod.AttackSpell? = statsMod.GetAttackSpell(spellName)
+	-- Unified spell lookup (SpellInfo OR StaffStats)
+	local spell: statsMod.AttackSpell? = statsMod.GetAttackSpell(spellName)
 
-    if not attackerStats or not defenderStats or not spell then
-        return 0
-    end
+	if not attackerStats or not defenderStats or not spell then
+		return 0
+	end
 
-    local attackerLevel: number = attackerStats.level
-    local defenderLevel: number = defenderStats.level
+	local attackerLevel: number = attackerStats.level
+	local defenderLevel: number = defenderStats.level
 
-    -- Choose appropriate magic defense based on spell type
-    local relevantDefense: number = defenderStats.artificermagicdefense
-    if spell.magicType == "Primordial" then
-        relevantDefense = defenderStats.primordialmagicdefense
-    elseif spell.magicType == "Nature" then
-        relevantDefense = defenderStats.naturemagicdefense
-    end
+	-- Choose appropriate magic defense based on spell type
+	local relevantDefense: number = defenderStats.artificermagicdefense
+	if spell.magicType == "Primordial" then
+		relevantDefense = defenderStats.primordialmagicdefense
+	elseif spell.magicType == "Nature" then
+		relevantDefense = defenderStats.naturemagicdefense
+	end
 
-    -- Miss chance: base + penalty when attacker is lower level
-    local levelDiff = (defenderLevel - attackerLevel) * 4 * 0.01
-    local levelPenalty = math.clamp(levelDiff + 0.15, 0.0, 0.30)
-    local finalMissChance = math.clamp(spell.missChance + levelPenalty, 0.10, 0.65)
+	-- Miss chance: base + penalty when attacker is lower level
+	local levelDiff = (defenderLevel - attackerLevel) * 4 * 0.01
+	local levelPenalty = math.clamp(levelDiff + 0.15, 0.0, 0.30)
+	local finalMissChance = math.clamp(spell.missChance + levelPenalty, 0.10, 0.65)
 
-    if random:NextNumber() < finalMissChance then
-        return 0 -- Miss / fully resisted
-    end
+	if random:NextNumber() < finalMissChance then
+		return 0 -- Miss / fully resisted
+	end
 
-    -- Base damage before reductions
-    local base = spell.effectMultiplier * statsMod.MaxSpellDamage
+	-- Base damage before reductions
+	local base = spell.effectMultiplier * statsMod.MaxSpellDamage
 
-    -- Resistance reduction (random between half and full defense)
-    local reduction = random:NextNumber(relevantDefense / 2, relevantDefense)
-    local afterResist = base * (1 - reduction)
+	-- Resistance reduction (random between half and full defense)
+	local reduction = random:NextNumber(relevantDefense / 2, relevantDefense)
+	local afterResist = base * (1 - reduction)
 
-    -- Level difference bonus/penalty
-    local levelBonus = math.clamp((attackerLevel - defenderLevel) * 0.08, -0.3, 0.3)
-    local afterResist1 = afterResist * (1 + levelBonus)
+	-- Level difference bonus/penalty
+	local levelBonus = math.clamp((attackerLevel - defenderLevel) * 0.08, -0.3, 0.3)
+	local afterResist1 = afterResist * (1 + levelBonus)
 
-    -- Random variance (75%–125%)
-    local variance = random:NextNumber(0.75, 1.25)
-    local final = afterResist1 * variance
+	-- Random variance (75%–125%)
+	local variance = random:NextNumber(0.75, 1.25)
+	local final = afterResist1 * variance
 
-    -- Final clamp & rounding
-    local finalmaxed = math.max(final, 1)
-    return math.floor(finalmaxed + 0.5)
+	-- Final clamp & rounding
+	local finalmaxed = math.max(final, 1)
+	return math.floor(finalmaxed + 0.5)
 end
-
 
 --==============================================================================
 -- Checks if a model is within the attack range defined in its stats
@@ -294,8 +290,10 @@ function combatMod.ExecuteSpellDamageToBody(source: Model, target: Model, damage
 	return true
 end
 
-function combatMod.AdjustSpeedOfHumanoid(player:Player, casttime:number):()
-	if not player or not casttime or casttime < .1 then return end
+function combatMod.AdjustSpeedOfHumanoid(player: Player, casttime: number): ()
+	if not player or not casttime or casttime < 0.1 then
+		return
+	end
 	local char = player.Character
 	if char then
 		local hum = char:FindFirstChild("Humanoid")
@@ -360,7 +358,10 @@ function combatMod.ApplyAbility(player: Player, creatureName: string, recyleMod:
 		summonedCreature.Parent = workspace:WaitForChild("Pets")
 		utilMod.SetAttribute(player, "Mana", mana - cost)
 	end
-	if utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("WindSpirit") and utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("GiantAmoeba")  then
+	if
+		utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("WindSpirit")
+		and utilMod.customTrim(summonedCreature.Name) ~= utilMod.customTrim("GiantAmoeba")
+	then
 		for _, part in pairs(summonedCreature:GetDescendants()) do
 			if part:IsA("MeshPart") then
 				part.Transparency = 1
@@ -430,12 +431,11 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 		local dis = math.huge
 		if target and target:IsA("Model") then
 			local hrp = target:FindFirstChild("HumanoidRootPart")
-			if hrp and hrp:IsA("BasePart")then
+			if hrp and hrp:IsA("BasePart") then
 				dis = utilMod.GetDistance(player.Character, hrp.Position) or math.huge
 			end
-			
 		end
-		
+
 		if target and dis and dis < info.range then
 			local isPlayer = false
 			if target:IsA("Player") then
@@ -451,7 +451,7 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			if targhrp and targhrp:IsA("BasePart") then
 				effectMod.DirectDamageEffect(targhrp, spellname)
 			end
-			
+
 			if not isPlayer then
 				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, target)
 			end
@@ -559,6 +559,8 @@ function combatMod.ApplySpell(player: Player, spellname: string)
 			applied = buffMod.ConvertSpout(player.Character, spellname)
 		elseif info.spellline == "TheftOfSoul" then
 			applied = buffMod.TheftSoul(player.Character, spellname)
+		elseif info.spellline == "LithBane" then
+			applied = buffMod.LithBane(player.Character, spellname)
 		end
 
 		if applied then
@@ -625,7 +627,7 @@ function combatMod.CalculateAggro(damageTaken: number): number
 	return damageTaken * 1.5 + 30
 end
 
-function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string, combatTargetModel: Model?):()
+function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: string, combatTargetModel: Model?): ()
 	local ownedby = utilMod.GetAttribute(model, "OwnedBy")
 	local plrOwner = ownedby and game.Players:GetPlayerByUserId(ownedby)
 	if not plrOwner or not plrOwner.Character then
@@ -646,23 +648,18 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 	end
 
 	if info.spellType == "damage" then
-		if not combatTargetModel then
+		if not combatTargetModel or not combatTargetModel:IsA("Model") then
 			return
 		end
 
 		local modhrp = model:FindFirstChild("HumanoidRootPart")
-		local targhrp = target:FindFirstChild("HumanoidRootPart")
-		local dis:number? = nil
-		if modhrp and targhrp and modhrp:IsA("BasePart") and targhrp:IsA("BasePart") then
+		local targhrp = combatTargetModel:FindFirstChild("HumanoidRootPart")
+		local dis: number? = nil
+		if modhrp and modhrp:IsA("BasePart") and targhrp and targhrp:IsA("BasePart") then
 			dis = utilMod.GetDistance(modhrp.Position, targhrp.Position)
 		end
 
 		if combatTargetModel and dis and dis < info.range then
-			local isPlayer = false
-			if combatTargetModel:IsA("Player") then
-				target = combatTargetModel.Character
-				isPlayer = true
-			end
 			local damage = combatMod.SpellAttackResult(model, combatTargetModel, spellname)
 			task.delay(0.5, function()
 				combatMod.ExecuteSpellDamageToBody(model, combatTargetModel, damage)
@@ -672,10 +669,13 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 			if targhrp and targhrp:IsA("BasePart") then
 				effectMod.DirectDamageEffect(targhrp, spellname)
 			end
-			
-			if not isPlayer then
-				buffMod.ApplyBillboardBuffLabel(info.spellType, spellname, statsMod.BuffInfo[spellname].seconds, combatTargetModel)
-			end
+
+			buffMod.ApplyBillboardBuffLabel(
+				info.spellType,
+				spellname,
+				statsMod.BuffInfo[spellname].seconds,
+				combatTargetModel
+			)
 		end
 	elseif info.spellType == "areaDamage" then
 		warn("Should not reach me.")
@@ -721,86 +721,84 @@ function combatMod.ApplyPriestSpell(model: Model, target: Model, spellname: stri
 end
 
 function combatMod.FallAnimation(args: FallAnimArgs): ()
-	if not args.animTracks or not args.animTracks.death then return end
+	if not args.animTracks or not args.animTracks.death then
+		return
+	end
 
-    if args.deathPlayedRef.value or args.animTracks.death.IsPlaying then
-        return
-    end
+	if args.deathPlayedRef.value or args.animTracks.death.IsPlaying then
+		return
+	end
 
+	-- ────────────────────────────────────────────────────────────────
+	--  Dervish-specific death handling (only if dervanimTracks exists)
+	-- ────────────────────────────────────────────────────────────────
+	if args.dervanimTracks and args.dervanimTracks.death then
+		local deathDerv = args.dervanimTracks.death
 
-    -- ────────────────────────────────────────────────────────────────
-    --  Dervish-specific death handling (only if dervanimTracks exists)
-    -- ────────────────────────────────────────────────────────────────
-    if args.dervanimTracks and args.dervanimTracks.death then
-        local deathDerv = args.dervanimTracks.death
+		-- Stop dervish idle animations
+		for _, idleTrack in args.dervanimTracks.idle do
+			if idleTrack and idleTrack.IsPlaying then
+				idleTrack:Stop(0.1)
+			end
+		end
 
-        -- Stop dervish idle animations
-        for _, idleTrack in args.dervanimTracks.idle do
-            if idleTrack and idleTrack.IsPlaying then
-                idleTrack:Stop(0.1)
-            end
-        end
+		-- Play dervish death
+		deathDerv:Play(0.3, 1, args.dervanimTracks.deathSpeed or 1)
 
-        -- Play dervish death
-        deathDerv:Play(0.3, 1, args.dervanimTracks.deathSpeed or 1)
+		deathDerv.Stopped:Connect(function()
+			-- Replay once to ensure full playback
+			deathDerv:Play(0.3, 1, args.dervanimTracks.deathSpeed or 1)
 
-        deathDerv.Stopped:Connect(function()
-            -- Replay once to ensure full playback
-            deathDerv:Play(0.3, 1, args.dervanimTracks.deathSpeed or 1)
-            
-            local length = deathDerv.Length - 0.1
-            deathDerv:AdjustSpeed(0)
-            deathDerv.TimePosition = length
-            
-            -- Hide dervish model (assuming dervishmodel is stored somewhere)
-            -- If you don't have a global dervishmodel, pass it as a parameter or find it
-            local dervishModel = args.model:FindFirstChild("DervishPart") -- ← adjust name
-            if dervishModel then
-                dervishModel.Parent = nil
-            end
-        end)
-    end
+			local length = deathDerv.Length - 0.1
+			deathDerv:AdjustSpeed(0)
+			deathDerv.TimePosition = length
 
-    -- ────────────────────────────────────────────────────────────────
-    --  Common: stop all main animations
-    -- ────────────────────────────────────────────────────────────────
-    for _, idleAnim in args.animTracks.idle do
-        if idleAnim and idleAnim.IsPlaying then
-            idleAnim:Stop(0.1)
-        end
-    end
+			-- Hide dervish model (assuming dervishmodel is stored somewhere)
+			-- If you don't have a global dervishmodel, pass it as a parameter or find it
+			local dervishModel = args.model:FindFirstChild("DervishPart") -- ← adjust name
+			if dervishModel then
+				dervishModel.Parent = nil
+			end
+		end)
+	end
 
-    for _, attackAnim in args.animTracks.attacks do
-        if attackAnim and attackAnim.IsPlaying then
-            attackAnim:Stop(0.1)
-        end
-    end
+	-- ────────────────────────────────────────────────────────────────
+	--  Common: stop all main animations
+	-- ────────────────────────────────────────────────────────────────
+	for _, idleAnim in args.animTracks.idle do
+		if idleAnim and idleAnim.IsPlaying then
+			idleAnim:Stop(0.1)
+		end
+	end
 
-    if args.animTracks.move and args.animTracks.move.IsPlaying then
-        args.animTracks.move:Stop(0.1)
-    end
+	for _, attackAnim in args.animTracks.attacks do
+		if attackAnim and attackAnim.IsPlaying then
+			attackAnim:Stop(0.1)
+		end
+	end
 
-    -- ────────────────────────────────────────────────────────────────
-    --  Play main death animation & freeze near end
-    -- ────────────────────────────────────────────────────────────────
-    local deathAnim = args.animTracks.death
-    deathAnim:Play(0.3, 1, args.animTracks.deathSpeed or 1)
+	if args.animTracks.move and args.animTracks.move.IsPlaying then
+		args.animTracks.move:Stop(0.1)
+	end
 
-    deathAnim.Stopped:Connect(function()
-        -- Replay to reach full length
-        deathAnim:Play(0.3, 1, args.animTracks.deathSpeed or 1)
-        
-        local freezePoint = deathAnim.Length - 0.2
-        deathAnim:AdjustSpeed(0)
-        deathAnim.TimePosition = freezePoint
-        
-        -- Wait a bit then recycle
-        task.wait(2)
-        utilMod.SetAttribute(args.model, "RecycleMe", true)
-    end)
+	-- ────────────────────────────────────────────────────────────────
+	--  Play main death animation & freeze near end
+	-- ────────────────────────────────────────────────────────────────
+	local deathAnim = args.animTracks.death
+	deathAnim:Play(0.3, 1, args.animTracks.deathSpeed or 1)
+
+	deathAnim.Stopped:Connect(function()
+		-- Replay to reach full length
+		deathAnim:Play(0.3, 1, args.animTracks.deathSpeed or 1)
+
+		local freezePoint = deathAnim.Length - 0.2
+		deathAnim:AdjustSpeed(0)
+		deathAnim.TimePosition = freezePoint
+
+		-- Wait a bit then recycle
+		task.wait(2)
+		utilMod.SetAttribute(args.model, "RecycleMe", true)
+	end)
 end
-
-
-
 
 return combatMod

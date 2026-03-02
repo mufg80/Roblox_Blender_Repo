@@ -479,6 +479,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "ArtificerExperience", 1)
 	utilMod.SetAttribute(player, "PrimordialExperience", 1)
 	utilMod.SetAttribute(player, "NatureExperience", 1)
+	utilMod.SetAttribute(player, "LithDamage", 0)
 
 
 	local ExpEvent = Instance.new("BindableEvent")
@@ -660,7 +661,6 @@ summonEvent.OnServerEvent:Connect(function(player: Player, creatureName: string)
 end)
 
 spellCastEvent.OnServerEvent:Connect(function(player: Player, spellname: string)
-	print(spellname)
 	local spell = statsMod.SpellInfo[spellname]
 	if not spell then
 		return

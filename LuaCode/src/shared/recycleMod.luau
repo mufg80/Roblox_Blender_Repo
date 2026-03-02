@@ -33,6 +33,10 @@ recycleMod.thedead = {}          -- [petName] = timestamp when flagged dead
 recycleMod.theferaldead = {}     -- [feralName] = timestamp when flagged dead
 recycleMod.waittime = 2          -- seconds to wait before recycling
 
+-- NEW: Effect cleanup tracking
+recycleMod.trackedEffects = {}       -- [effectInstance] = creationTime (tick())
+
+
 ----------------------------------------------------------------
 -- Helper: reset an NPC back to its default state
 ----------------------------------------------------------------
@@ -313,35 +317,46 @@ function recycleMod.GetEligibleSoul(char: Model, spellname:string): Model?
 end
 
 ----------------------------------------------------------------
--- FLAG DEAD LOOP (recycles dead pets/ferals after waittime)
+-- FLAG DEAD LOOP + AUTO EFFECT CLEANUP BY NAME + PARTICLE CHECK
 ----------------------------------------------------------------
 function recycleMod.flagAsDead(): ()
+    local EFFECT_MAX_LIFETIME = 20          -- change this number to adjust timeout (seconds)
+    local EFFECT_NAME_SUFFIX   = "Effect"   -- matches names ending with this
+
+    -- We keep track of when we first saw each qualifying effect model
+    local seenEffects = {}   -- [modelInstance] = firstSeenTime
+
     while true do
+        local now = time()
+
+        -- ────────────────────────────────────────────────
+        -- Existing NPC recycling logic (pets + ferals)
+        -- ────────────────────────────────────────────────
         local petsFolder = workspace:WaitForChild("Pets")
         local feralsFolder = workspace:WaitForChild("Ferals")
 
         -- Track new dead pets
         for _, pet in petsFolder:GetChildren() do
             if utilMod.GetAttribute(pet, "RecycleMe") and not recycleMod.thedead[pet.Name] then
-                recycleMod.thedead[pet.Name] = time()
+                recycleMod.thedead[pet.Name] = now
             end
         end
 
         -- Track new dead ferals
         for _, feral in feralsFolder:GetChildren() do
             if utilMod.GetAttribute(feral, "RecycleMe") and not recycleMod.theferaldead[feral.Name] then
-                recycleMod.theferaldead[feral.Name] = time()
+                recycleMod.theferaldead[feral.Name] = now
             end
         end
 
         -- Recycle pets
         for name, t in pairs(recycleMod.thedead) do
-            if time() - t > recycleMod.waittime then
+            if now - t > recycleMod.waittime then
                 local npc = petsFolder:FindFirstChild(name)
                 if npc then
                     local storagePets = ServerStorage:FindFirstChild("Pets")
                     if storagePets then
-                        recycleMod.SpawnSoul(npc)  -- only for player pets
+                        recycleMod.SpawnSoul(npc)
                         npc.Parent = storagePets
                     end
                 end
@@ -349,9 +364,9 @@ function recycleMod.flagAsDead(): ()
             end
         end
 
-        -- Recycle ferals (no soul spawn)
+        -- Recycle ferals
         for name, t in pairs(recycleMod.theferaldead) do
-            if time() - t > recycleMod.waittime then
+            if now - t > recycleMod.waittime then
                 local npc = feralsFolder:FindFirstChild(name)
                 if npc then
                     local storageFerals = ServerStorage:FindFirstChild("Ferals")
@@ -360,6 +375,47 @@ function recycleMod.flagAsDead(): ()
                     end
                 end
                 recycleMod.theferaldead[name] = nil
+            end
+        end
+
+        -- ────────────────────────────────────────────────
+        -- Auto-detect and timeout visual effects in workspace.Effects
+        -- ────────────────────────────────────────────────
+
+        local container = workspace:FindFirstChild("Effects") or workspace
+
+        -- Phase 1: discover newly appeared qualifying effects
+        for _, obj in container:GetChildren() do
+            if obj:IsA("Model") and obj.Name:match(EFFECT_NAME_SUFFIX .. "$") then
+                -- Check if it has at least one ParticleEmitter descendant
+                local hasParticle = false
+                for _, desc in obj:GetDescendants() do
+                    if desc:IsA("ParticleEmitter") then
+                        hasParticle = true
+                        break
+                    end
+                end
+
+                if hasParticle and not seenEffects[obj] then
+                    seenEffects[obj] = now
+                    -- optional debug (uncomment if testing):
+                    -- print("Started tracking effect model:", obj:GetFullName())
+                end
+            end
+        end
+
+        -- Phase 2: check tracked effects for timeout
+        for effectModel, firstSeen in pairs(seenEffects) do
+            if now - firstSeen >= EFFECT_MAX_LIFETIME then
+                if effectModel.Parent then
+                    warn(string.format(
+                        "[Effect Auto-Cleanup] Removed lingering effect model after %d s: %s",
+                        EFFECT_MAX_LIFETIME,
+                        effectModel:GetFullName()
+                    ))
+                    effectModel:Destroy()
+                end
+                seenEffects[effectModel] = nil
             end
         end
 

@@ -40,14 +40,9 @@ local FollowMeButton = petFrame:WaitForChild("FollowButton")
 -- DPad Down
 local TakeLithButton = petFrame:WaitForChild("TakeLithButton")
 
-
-
 export type ActionsModule = {
 	Init: () -> (),
 }
-
-
-
 
 local actionsMod = {}
 
@@ -120,7 +115,7 @@ end
 actionsMod.CastColor = nil
 
 -- Helper: Get current level for the active magic type
-local function getLevelForType(magicType: statsMod.MagicType):number
+local function getLevelForType(magicType: statsMod.MagicType): number
 	if magicType == statsMod.MagicType.Artificer then
 		return utilMod.GetAttribute(player, "ArtificerLevel") or 0
 	elseif magicType == statsMod.MagicType.Primordial then
@@ -332,7 +327,7 @@ local function updateItemData()
 	local bonusItems = actionsMod.GetEarnedBonusItems()
 	local bonusForPath = bonusItems[pathName] or { staffs = {}, abilities = {}, spells = {} }
 
-	for _,spell in bonusItems.Any.spells do
+	for _, spell in bonusItems.Any.spells do
 		table.insert(bonusForPath.spells, spell)
 	end
 
@@ -368,7 +363,6 @@ local function updateItemData()
 			})
 		end
 	end
-
 
 	-- Bonus Spells
 	for _, spell in ipairs(bonusForPath.spells) do
@@ -425,8 +419,135 @@ player:GetAttributeChangedSignal("HasFallen"):Connect(function()
 	updateItemData()
 end)
 
--- Setup default selections if all slots empty (or force = true)
+-- -- Setup default selections if all slots empty (or force = true)
+-- local function setupDefaultSelections(force: boolean?)
+-- 	if force then
+-- 		for _, btn in ipairs(actionsMod.buttons) do
+-- 			btn.NameLabel.Text = btn.Name
+-- 			if btn:IsA("ImageButton") then
+-- 				btn.Image = "rbxassetid://0"
+-- 			end
+-- 			btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+-- 			btn.BackgroundTransparency = 0
+-- 			btn.ImageTransparency = 0.6
+-- 			btn.NameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+-- 			btn:SetAttribute("SelectedItem", nil)
+-- 			btn:SetAttribute("ItemType", nil)
+-- 			btn:SetAttribute("InternalName", nil)
+-- 		end
+
+-- 		local character = player.Character
+-- 		local backpack = player:WaitForChild("Backpack")
+-- 		if character then
+-- 			for _, tool in ipairs(character:GetChildren()) do
+-- 				if tool:IsA("Tool") and tool.Name:match("^StarterStaff") then
+-- 					tool.Parent = backpack
+-- 				end
+-- 			end
+-- 		end
+-- 	else
+-- 		local allEmpty = true
+-- 		for _, btn in ipairs(actionsMod.buttons) do
+-- 			if btn:GetAttribute("InternalName") ~= nil then
+-- 				allEmpty = false
+-- 				break
+-- 			end
+-- 		end
+-- 		-- dont return here needs wrong magic types removed if they exist
+
+-- 		-- force == true is working as intended dont change that functionality
+-- 		-- even with false supplied as parameter, the function should still remove any creatures or spells from another magic type (if the player switched)
+-- 		-- use the intername of the button for the spell or creature
+-- 		-- statsMod.SpellInfo[name].magicType can be "Any" or can be players magicType variable for spells
+-- 		-- statsMod.creatureStats[name].magicType for creature buttons, there is no Any for this, must match
+-- 		-- No need to replace with new creature/spell buttons if force == false, removing wrong type is sufficient
+-- 		-- once cleaned up then can return
+-- 		if not allEmpty then
+-- 			return
+-- 		end
+-- 	end
+
+-- 	local magicType = utilMod.GetAttribute(player, "Magic")
+-- 	if magicType == statsMod.MagicType.None then
+-- 		return
+-- 	end
+
+-- 	local character = player.Character
+
+-- 	if not character or not character:FindFirstChild("Humanoid") then
+-- 		warn("Character not ready for default setup")
+-- 		return
+-- 	end
+
+-- 	local creatureButtons = {}
+-- 	local spellButtons = {}
+
+-- 	for _, btn in ipairs(actionsMod.buttons) do
+-- 		local cat = getCategory(btn.Name)
+-- 		if cat == "Creatures" then
+-- 			table.insert(creatureButtons, btn)
+-- 		elseif cat == "Spells" then
+-- 			table.insert(spellButtons, btn)
+-- 		end
+-- 	end
+
+-- 	table.sort(creatureButtons, function(a, b)
+-- 		return a.Name < b.Name
+-- 	end)
+-- 	table.sort(spellButtons, function(a, b)
+-- 		return a.Name < b.Name
+-- 	end)
+
+-- 	local numCreatureSlots = #creatureButtons
+-- 	local unlockedCreatures = actionsMod.itemData.Creatures
+-- 	for i = 1, math.min(2, numCreatureSlots, #unlockedCreatures) do
+-- 		local item = unlockedCreatures[i]
+-- 		local btn = creatureButtons[i]
+-- 		btn.NameLabel.Text = item.Name or "?"
+-- 		if btn:IsA("ImageButton") then
+-- 			btn.Image = item.Icon or "rbxassetid://0"
+-- 		end
+-- 		btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+-- 		btn.BackgroundTransparency = 0
+-- 		btn.ImageTransparency = 0
+-- 		local tempcolor = btn.BackgroundColor3
+-- 		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+-- 		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+-- 		btn:SetAttribute("SelectedItem", item.Name)
+-- 		btn:SetAttribute("ItemType", item.Type)
+-- 		btn:SetAttribute("InternalName", item.InternalName or "")
+-- 	end
+
+-- 	local numSpellSlots = #spellButtons
+-- 	local unlockedSpells = actionsMod.itemData.Spells
+-- 	for i = 1, math.min(7, numSpellSlots, #unlockedSpells) do
+-- 		local item = unlockedSpells[i]
+-- 		local btn = spellButtons[i]
+-- 		btn.NameLabel.Text = item.Name or "?"
+-- 		if btn:IsA("ImageButton") then
+-- 			btn.Image = item.Icon or "rbxassetid://0"
+-- 		end
+-- 		btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
+-- 		btn.BackgroundTransparency = 0
+-- 		btn.ImageTransparency = 0
+-- 		local tempcolor = btn.BackgroundColor3
+-- 		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
+-- 		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+-- 		btn:SetAttribute("SelectedItem", item.Name)
+-- 		btn:SetAttribute("ItemType", item.Type)
+-- 		btn:SetAttribute("InternalName", item.InternalName or "")
+-- 	end
+-- end
+
+-- Setup default selections if all slots empty (force = true)
+-- or force cleanup of wrong magic type items (force = false/nil)
 local function setupDefaultSelections(force: boolean?)
+	local playerMagic = utilMod.GetAttribute(player, "Magic")
+	if playerMagic == statsMod.MagicType.None then
+		return  -- No magic type → nothing to do
+	end
+
+	-- Force mode: full reset + populate defaults
 	if force then
 		for _, btn in ipairs(actionsMod.buttons) do
 			btn.NameLabel.Text = btn.Name
@@ -442,6 +563,7 @@ local function setupDefaultSelections(force: boolean?)
 			btn:SetAttribute("InternalName", nil)
 		end
 
+		-- Move starter staffs back to backpack
 		local character = player.Character
 		local backpack = player:WaitForChild("Backpack")
 		if character then
@@ -451,26 +573,59 @@ local function setupDefaultSelections(force: boolean?)
 				end
 			end
 		end
+
+		-- Fall through to populate defaults below
 	else
-		local allEmpty = true
+		-- Non-force mode: only clean up wrong magic types, then early return
+		local cleanedAny = false
+
 		for _, btn in ipairs(actionsMod.buttons) do
-			if btn:GetAttribute("InternalName") ~= nil then
-				allEmpty = false
-				break
+			local internalName = btn:GetAttribute("InternalName")
+			if typeof(internalName) ~= "string" or internalName == "" then
+				continue
+			end
+
+			local cat = getCategory(btn.Name)
+			local isValid = false
+
+			if cat == "Spells" then
+				local spellData = statsMod.SpellInfo[internalName]
+				if spellData then
+					local spellType = spellData.magicType
+					isValid = (spellType == "Any") or (spellType == playerMagic)
+				end
+			elseif cat == "Creatures" then
+				local creatureData = statsMod.creatureStats[internalName]
+				if creatureData then
+					isValid = (creatureData.magicType == playerMagic)
+				end
+			end
+
+			if not isValid then
+				-- Remove wrong type
+				btn.NameLabel.Text = btn.Name
+				if btn:IsA("ImageButton") then
+					btn.Image = "rbxassetid://0"
+				end
+				btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				btn.BackgroundTransparency = 0
+				btn.ImageTransparency = 0.6
+				btn.NameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+				btn:SetAttribute("SelectedItem", nil)
+				btn:SetAttribute("ItemType", nil)
+				btn:SetAttribute("InternalName", nil)
+
+				cleanedAny = true
 			end
 		end
-		if not allEmpty then
-			return
-		end
-	end
 
-	local magicType = utilMod.GetAttribute(player, "Magic")
-	if magicType == statsMod.MagicType.None then
+		-- After cleanup, we don't auto-fill defaults in non-force mode
 		return
 	end
 
+	-- Only reached in force = true mode (or if we decide to fill after cleanup in future)
+	-- Populate default creatures & spells
 	local character = player.Character
-
 	if not character or not character:FindFirstChild("Humanoid") then
 		warn("Character not ready for default setup")
 		return
@@ -488,18 +643,16 @@ local function setupDefaultSelections(force: boolean?)
 		end
 	end
 
-	table.sort(creatureButtons, function(a, b)
-		return a.Name < b.Name
-	end)
-	table.sort(spellButtons, function(a, b)
-		return a.Name < b.Name
-	end)
+	table.sort(creatureButtons, function(a, b) return a.Name < b.Name end)
+	table.sort(spellButtons, function(a, b) return a.Name < b.Name end)
 
+	-- Fill creatures (up to 2)
+	local unlockedCreatures = actionsMod.itemData.Creatures or {}
 	local numCreatureSlots = #creatureButtons
-	local unlockedCreatures = actionsMod.itemData.Creatures
 	for i = 1, math.min(2, numCreatureSlots, #unlockedCreatures) do
 		local item = unlockedCreatures[i]
 		local btn = creatureButtons[i]
+
 		btn.NameLabel.Text = item.Name or "?"
 		if btn:IsA("ImageButton") then
 			btn.Image = item.Icon or "rbxassetid://0"
@@ -507,19 +660,23 @@ local function setupDefaultSelections(force: boolean?)
 		btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
 		btn.BackgroundTransparency = 0
 		btn.ImageTransparency = 0
+
 		local tempcolor = btn.BackgroundColor3
-		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
-		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+		local brightness = tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114
+		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0,0,0) or Color3.fromRGB(255,255,255)
+
 		btn:SetAttribute("SelectedItem", item.Name)
 		btn:SetAttribute("ItemType", item.Type)
 		btn:SetAttribute("InternalName", item.InternalName or "")
 	end
 
+	-- Fill spells (up to 7)
+	local unlockedSpells = actionsMod.itemData.Spells or {}
 	local numSpellSlots = #spellButtons
-	local unlockedSpells = actionsMod.itemData.Spells
 	for i = 1, math.min(7, numSpellSlots, #unlockedSpells) do
 		local item = unlockedSpells[i]
 		local btn = spellButtons[i]
+
 		btn.NameLabel.Text = item.Name or "?"
 		if btn:IsA("ImageButton") then
 			btn.Image = item.Icon or "rbxassetid://0"
@@ -527,9 +684,11 @@ local function setupDefaultSelections(force: boolean?)
 		btn.BackgroundColor3 = Color3.fromHex(actionsMod.CastColor)
 		btn.BackgroundTransparency = 0
 		btn.ImageTransparency = 0
+
 		local tempcolor = btn.BackgroundColor3
-		local brightness = (tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114)
-		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+		local brightness = tempcolor.R * 0.299 + tempcolor.G * 0.587 + tempcolor.B * 0.114
+		btn.NameLabel.TextColor3 = (brightness > 0.5) and Color3.fromRGB(0,0,0) or Color3.fromRGB(255,255,255)
+
 		btn:SetAttribute("SelectedItem", item.Name)
 		btn:SetAttribute("ItemType", item.Type)
 		btn:SetAttribute("InternalName", item.InternalName or "")
@@ -644,6 +803,17 @@ local function updateButtonStates()
 				local eligiblesoul = recycleMod.GetEligibleSoul(player.Character, spellName)
 				if not eligiblesoul then
 					disableButton(btn)
+				end
+			end
+
+			if spell.spellline == "LithBane" and player.Character then
+				local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+				local range: number? = statsMod.SpellInfo[spellName] and statsMod.SpellInfo[spellName].range
+				if hrp and hrp:IsA("BasePart") and range and range > 0 then
+					local eligibleLith = utilMod.GetEnemyBuilding(player, hrp.Position, range)
+					if not eligibleLith then
+						disableButton(btn)
+					end
 				end
 			end
 

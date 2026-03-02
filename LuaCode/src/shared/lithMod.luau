@@ -33,6 +33,7 @@ export type LithModule = {
 		building: Instance,
 		isPositive: boolean
 	) -> (),
+	LithBaneDamage: (player: Player, building: Model, spellName: string) -> (),
 }
 
 local lithMod = {}
@@ -106,8 +107,8 @@ end
 function lithMod.AdjustAdorner(uniqueId: number, currentControl: number, building: Instance, isPositive: boolean): ()
 	local percentage = lithMod.GetLithControl(uniqueId)
 	local billboard = building:FindFirstChild("BillboardGui")
-	if not billboard then		
-		local billy = ServerStorage:FindFirstChild("BillBoards"):FindFirstChild("BillboardGui")
+	if not billboard then
+		local billy = ServerStorage and ServerStorage:FindFirstChild("BillboardGui", true)
 		if billy and billy:IsA("BillboardGui") then
 			local clone = billy:Clone()
 			if clone then
@@ -294,5 +295,73 @@ task.spawn(function()
 		end
 	end
 end)
+
+-- Applies LithBane damage to a building and updates global/player tracking
+-- Does **not** return anything (void), fails silently with warnings where appropriate
+function lithMod.LithBaneDamage(player: Player, building: Model, spellName: string): ()
+	if not player or not player:IsDescendantOf(game) then
+		warn("LithBaneDamage → Invalid or destroyed player")
+		return
+	end
+
+	if not building or not building:IsDescendantOf(workspace) then
+		warn("LithBaneDamage → Invalid or destroyed building")
+		return
+	end
+
+	local spellinfo = statsMod.SpellInfo[spellName]
+	if not spellinfo then
+		warn("LithBaneDamage → No spell info for", spellName)
+		return
+	end
+
+	local multiplier = spellinfo.effectMultiplier
+	if typeof(multiplier) ~= "number" or multiplier <= 0 then
+		warn("LithBaneDamage → Invalid effectMultiplier for", spellName)
+		return
+	end
+
+	local damage = multiplier * statsMod.MaxSpellDamage
+	if damage <= 0 then
+		warn("LithBaneDamage → Calculated damage ≤ 0 for", spellName)
+		return
+	end
+
+	local uniqueId = building:GetAttribute("Unique")
+	if typeof(uniqueId) ~= "number" then
+		warn("LithBaneDamage → Building missing valid Unique attribute", building:GetFullName())
+		return
+	end
+
+	if not liths or typeof(liths) ~= "table" then
+		warn("LithBaneDamage → Global 'liths' table is missing or invalid")
+		return
+	end
+
+	local currentHealth = liths[uniqueId]
+	if typeof(currentHealth) ~= "number" then
+		warn("LithBaneDamage → No valid health entry for building Unique =", uniqueId)
+		return
+	end
+
+	local newHealth = math.max(0, currentHealth - damage)
+	liths[uniqueId] = newHealth
+
+	local damageapplied = currentHealth - newHealth 
+	
+
+	-- Apply damage
+	liths[uniqueId] = currentHealth - damage
+
+	-- Update player's total damage dealt (LithDamage stat)
+	local currentPlayerDamage = utilMod.GetAttribute(player, "LithDamage") or 0
+	if typeof(currentPlayerDamage) ~= "number" then
+		currentPlayerDamage = 0
+	end
+
+	utilMod.SetAttribute(player, "LithDamage", currentPlayerDamage + damageapplied)
+
+end
+
 
 return lithMod :: LithModule

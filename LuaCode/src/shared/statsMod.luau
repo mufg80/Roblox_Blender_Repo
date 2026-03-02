@@ -234,10 +234,65 @@ statsMod.SpellUpgradeNames = {
 	"RegenerateI",
 	"RootI",
 	"NaturesDefendersI",
+	"LithBaneI",
 }
 
 -- Spell configuration
 statsMod.SpellInfo = {
+	LithBaneI = {
+		manaCost = 0.2,
+		magicType = "Any",
+		spellType = "utility",
+		missChance = 0,
+		range = 30,
+		cooldown = 5,
+		numberTargets = 1,
+		aggro = 10,
+		effectMultiplier = 2,
+		castTime = 5,
+		needsUnlocked = false,
+		effectTime = 5,
+		effectOffsetXZ = 0,
+		effectName = "LithBaneEffect",
+		printedName = "Lith Bane I",
+		spellline = "LithBane",
+	},
+	LithBaneII = {
+		manaCost = 0.2,
+		magicType = "Any",
+		spellType = "utility",
+		missChance = 0,
+		range = 30,
+		cooldown = 5,
+		numberTargets = 1,
+		aggro = 10,
+		effectMultiplier = 3,
+		castTime = 5,
+		needsUnlocked = true,
+		effectTime = 5,
+		effectOffsetXZ = 0,
+		effectName = "LithBaneEffect",
+		printedName = "Lith Bane II",
+		spellline = "LithBane",
+	},
+	LithBaneIII = {
+		manaCost = 0.2,
+		magicType = "Any",
+		spellType = "utility",
+		missChance = 0,
+		range = 30,
+		cooldown = 5,
+		numberTargets = 1,
+		aggro = 10,
+		effectMultiplier = 4,
+		castTime = 5,
+		needsUnlocked = true,
+		effectTime = 5,
+		effectOffsetXZ = 0,
+		effectName = "LithBaneEffect",
+		printedName = "Lith Bane III",
+		spellline = "LithBane",
+	},
 	ConvertSpoutI = {
 		manaCost = 0.2,
 		magicType = "Any",
@@ -1258,7 +1313,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
 		castTime = 3,
 		needsUnlocked = false,
-		effectTime = 5,
+		effectTime = 9,
 		effectOffsetXZ = 0,
 		effectName = "NaturePriestHealEffect",
 		printedName = "Priest Heal",
@@ -1312,7 +1367,7 @@ statsMod.SpellInfo = {
 		effectMultiplier = 0,
 		castTime = 3,
 		needsUnlocked = false,
-		effectTime = 5,
+		effectTime = 9,
 		effectOffsetXZ = 0,
 		effectName = "NaturePriestBuffEffect",
 		printedName = "Priest Buff",
@@ -1400,7 +1455,7 @@ statsMod.MagicLevels = {
 		Level5 = {
 			staffs = {},
 			abilities = { "ArtifactProtector" },
-			spells = {},
+			spells = {"LithBaneI"},
 		},
 		Level6 = {
 			staffs = {},
@@ -1437,7 +1492,7 @@ statsMod.MagicLevels = {
 		Level5 = {
 			staffs = {},
 			abilities = { "FossilizedDybb" },
-			spells = {},
+			spells = {"LithBaneI"},
 		},
 		Level6 = {
 			staffs = {},
@@ -1474,7 +1529,7 @@ statsMod.MagicLevels = {
 		Level5 = {
 			staffs = {},
 			abilities = { "VenusDybbTrap" },
-			spells = {},
+			spells = {"LithBaneI"},
 		},
 		Level6 = {
 			staffs = {},
@@ -3161,6 +3216,7 @@ statsMod.Pics = {
 	["areaDamage"] = "rbxassetid://96646824024287",
 	["buff"] = "rbxassetid://71067845760444",
 }
+
 statsMod.EarnedStaffNames = {
 	["PistonRod"] = "Artificer",
 	["BrassCogWand"] = "Artificer",

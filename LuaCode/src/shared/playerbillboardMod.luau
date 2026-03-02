@@ -1,3 +1,4 @@
+local ServerStorage = game:GetService("ServerStorage")
 --!strict
 
 export type PlayerBillboardAPI = {
@@ -34,11 +35,18 @@ function playerbillboardMod.Setup(player: Player): PlayerBillboardAPI?
 		-- ... same billboard creation logic ...
 
 		if not billboard then
+			local temp = ServerStorage:FindFirstChild("BillboardGui", true)
+			if temp and temp:IsA("BillboardGui") then
+				local clone = temp:Clone()
+				clone.Parent = character
+				clone.ExtentsOffsetWorldSpace = Vector3.new(0,1.5,0)
+				billboard = clone
+			end
+		end
+		if not billboard or not billboard:IsA("BillboardGui") then
+			warn("should not reach me")
 			return
 		end
-
-		-- Store billboard for later use
-		billboard = billboard
 
 		-- Helper: Update name label
 		local function updateNameLabel()
@@ -148,11 +156,11 @@ function playerbillboardMod.Setup(player: Player): PlayerBillboardAPI?
 			end
 		end,
 	}
-game.Players.PlayerRemoving:Connect(function(leaving)
-    if leaving.UserId == player.UserId then
-        api.Destroy()
-    end
-end)
+	game.Players.PlayerRemoving:Connect(function(leaving)
+		if leaving.UserId == player.UserId then
+			api.Destroy()
+		end
+	end)
 
 	return api
 end

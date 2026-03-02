@@ -6,6 +6,7 @@ local utilMod = require(game.ReplicatedStorage.Shared.utilMod)
 local statsMod = require(game.ReplicatedStorage.Shared.statsMod)
 local recycleMod = require(ReplicatedStorage.Shared.recycleMod)
 local effectMod = require(ReplicatedStorage.Shared.effectMod)
+local lithMod = require(ReplicatedStorage.Shared.lithMod)
 local serverStorage = game:GetService("ServerStorage")
 local repstore = game:GetService("ReplicatedStorage")
 
@@ -29,6 +30,7 @@ export type BuffMod = {
 	SelectTargetsForAggro: (caster: Model, spellinfo: any) -> (),
 	StartBuffLabelTimer: (imageLabel: ImageLabel, duration: number, model: Model, key: string) -> (),
 	TheftSoul: (char: Model, spellname: string) -> boolean,
+	LithBane: (casterModel: Model, spellname: string) -> boolean,
 }
 
 -- NEW: Setup buff events and stat refresh system on an NPC model
@@ -109,6 +111,43 @@ function buffMod.Setup(model: Model, sourceStats: { [string]: any }): ()
 	refreshStats()
 end
 
+-- Updated LithBane: Simplified to use the new utility
+-- Returns true if enemy building found + damaged, false otherwise
+function buffMod.LithBane(casterModel: Model, spellname: string): boolean
+	if not casterModel or not spellname then
+		warn("LithBane → Missing casterModel or spellname")
+		return false
+	end
+	
+	local player = game.Players:GetPlayerFromCharacter(casterModel)
+	if not player then
+		warn("LithBane → No player associated with casterModel")
+		return false
+	end
+	
+	local hrp = casterModel:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not hrp or not hrp:IsA("BasePart") then
+		warn("LithBane → Invalid or missing HumanoidRootPart in caster")
+		return false
+	end
+	
+	local spellinfo = statsMod.SpellInfo[spellname]
+	if not spellinfo or typeof(spellinfo.range) ~= "number" or spellinfo.range <= 0 then
+		warn("LithBane → Invalid range in spell info for", spellname)
+		return false
+	end
+	
+	local targetBuilding = utilMod.GetEnemyBuilding(player, hrp.Position, spellinfo.range)
+	if not targetBuilding then
+		return false
+	end
+	
+	-- Damage the target
+	lithMod.LithBaneDamage(player, targetBuilding, spellname)
+	effectMod.LithBaneEffect(player, targetBuilding, spellname)
+	return true
+end
+
 function buffMod.TheftSoul(char: Model, spellname: string): boolean
 	local player = Players:GetPlayerFromCharacter(char)
 	if not player then
@@ -164,13 +203,13 @@ function buffMod.ApplyBillboardBuffLabel(spelltype: string, spellname: string, d
 	end
 
 	-- Map spelltype to label name
-	local labelName = ({
+	local labelName = {
 		buff = "BuffLabel",
 		debuff = "DebuffLabel",
 		heal = "HealLabel",
 		damage = "DamageLabel",
 		areaDamage = "DamageLabel",
-	})
+	}
 
 	local labelSpecificName = labelName[spelltype]
 	if not labelSpecificName then
@@ -345,6 +384,8 @@ function buffMod.ConvertSpout(char: Model, spellname: string): boolean
 			building:PivotTo(spoutCFrame)
 			building.Parent = manaPoints
 			utilMod.SetAttribute(building, "OwnedBy", userId)
+			local pos = spoutCFrame.Position
+			effectMod.LithSummonEffect(owner, pos, spellname)
 			spout:Destroy()
 			return true
 		end
@@ -392,14 +433,16 @@ function buffMod.ReclaimPet(char: Model, spellname: string, mypets: { Model }): 
 	if not thismags or thismags >= range then
 		return false
 	end
-
+	local pethrp = mypet:FindFirstChild("HumanoidRootPart")
+	if pethrp and pethrp:IsA("BasePart") then
+		effectMod.DesummonEvent(pethrp, spellname)
+	end
 	utilMod.SetAttribute(mypet, "RecycleMe", true)
-
+	
 	local currentmana: number = utilMod.GetAttribute(char, "Mana") or 0
 	local maxmana: number = utilMod.GetAttribute(char, "MaxMana") or 100
 	local name = utilMod.customTrim(mypet.Name)
 	local creaturecost = utilMod.LeveltoManaCost(name)
-	print(creaturecost)
 	utilMod.SetAttribute(char, "Mana", math.min(currentmana + creaturecost, maxmana))
 
 	local maxSouls: number? = utilMod.GetAttribute(char, "MaxSouls")
@@ -412,6 +455,7 @@ function buffMod.ReclaimPet(char: Model, spellname: string, mypets: { Model }): 
 		return false
 	end
 	repstore.Events.GainedSoulEvent:FireClient(plr, utilMod.GetAttribute(char, "Souls"), maxSouls)
+	
 	return true
 end
 
