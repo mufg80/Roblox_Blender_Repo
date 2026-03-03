@@ -785,7 +785,7 @@ function actionsMod.PerformActions(context: ActionContext): MutablePetSync
 			local mana = utilMod.GetAttribute(model, "Mana") or 0
 			local maxMana = utilMod.GetAttribute(model, "MaxMana") or 1
 
-			local nextCastTime = utilMod.GetAttribute(model, "IdleCastCoolDown") or 0
+			local nextCastTime = utilMod.GetAttribute(model, "IdleCastCoolDown") or (time() + 20)
 			if
 				DecideToHeal(model, mana, maxMana, false)
 				and time() > nextCastTime

@@ -366,6 +366,51 @@
         "StarterStaffLocalScript": {
           "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
+      },
+        "PistonRod": {
+        "$path": "models/PistonRod.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "BrassCogWand": {
+        "$path": "models/BrassCogWand.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "SteamValveStaff": {
+        "$path": "models/SteamValveStaff.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "FlywheelScepter": {
+        "$path": "models/FlywheelScepter.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "CoiledTubeBeam": {
+        "$path": "models/CoiledTubeBeam.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
       }
     }
     },

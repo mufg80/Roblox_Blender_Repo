@@ -1045,7 +1045,7 @@ function effectMod.SoulGrabbedEffect(pos: Vector3): ()
 	emitterModel:PivotTo(CFrame.new(pos))
 	emitterModel.Parent = EffectsFolder
 
-	local emitter = emitterModel:FindFirstChildWhichIsA("ParticleEmitter")
+	local emitter = emitterModel:FindFirstChildWhichIsA("ParticleEmitter", true)
 	if not emitter then
 		emitterModel:Destroy()
 		warn("No ParticleEmitter found in SoulEmitterEffect")
