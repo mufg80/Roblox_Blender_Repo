@@ -3277,7 +3277,7 @@ statsMod.Pics = {
 	["FossilVeinWand"] = "",
 	["MudCrystalStaff"] = "",
 	["TarOozeScepter"] = "",
-	["PetrifiedBeam"] = "",
+	["PetrifiedTreeBeam"] = "",
 
 	["BarkthornRod"] = "",
 	["RootboundWand"] = "",
