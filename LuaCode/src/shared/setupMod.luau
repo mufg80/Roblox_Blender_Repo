@@ -701,6 +701,19 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "Earned_Staff_Artificer_FlywheelScepter", true)
 	utilMod.SetAttribute(player, "Earned_Staff_Artificer_CoiledTubeBeam", true)
 
+	utilMod.SetAttribute(player, "Earned_Staff_Primordial_SludgeDrippingRod", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Primordial_FossilVeinWand", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Primordial_MudCrystalStaff", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Primordial_TarOozeScepter", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Primordial_PetrifiedTreeBeam", true)
+
+
+	utilMod.SetAttribute(player, "Earned_Staff_Nature_BarkthornRod", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Nature_RootWadWand", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Nature_TwistedVineStaff", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Nature_SapwoodScepter", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Nature_OvergrownBranchBeam", true)
+
 	for _, name in statsMod.SpellUpgradeNames do
 		local typespell = statsMod.SpellInfo[name] and statsMod.SpellInfo[name].magicType
 		if not typespell then

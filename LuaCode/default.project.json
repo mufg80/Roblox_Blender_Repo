@@ -411,6 +411,78 @@
         "StarterStaffLocalScript": {
           "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
+      },
+        "SludgeDrippingRod": {
+        "$path": "models/SludgeDrippingRod.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "FossilVeinWand": {
+        "$path": "models/FossilVeinWand.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "MudCrystalStaff": {
+        "$path": "models/MudCrystalStaff.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "TarOozeScepter": {
+        "$path": "models/TarOozeScepter.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "PetrifiedTreeBeam": {
+        "$path": "models/PetrifiedTreeBeam.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "BarkthornRod": {
+        "$path": "models/BarkthornRod.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "RootWadWand": {
+        "$path": "models/RootWadWand.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "TwistedVineStaff": {
+        "$path": "models/TwistedVineStaff.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
       }
     }
     },
