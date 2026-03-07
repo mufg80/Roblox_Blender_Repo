@@ -483,6 +483,24 @@
         "StarterStaffLocalScript": {
           "$path": "src/Staff/StarterStaffLocalScript.client.luau"
         }
+      },
+        "SapwoodScepter": {
+        "$path": "models/SapwoodScepter.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
+      },
+        "CactusBeam": {
+        "$path": "models/CactusBeam.rbxm",
+        "StarterStaffServerScript": {
+          "$path": "src/Staff/StarterStaffServerScript.server.luau"
+        },
+        "StarterStaffLocalScript": {
+          "$path": "src/Staff/StarterStaffLocalScript.client.luau"
+        }
       }
     }
     },

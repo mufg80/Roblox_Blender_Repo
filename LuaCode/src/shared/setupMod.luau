@@ -712,7 +712,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	utilMod.SetAttribute(player, "Earned_Staff_Nature_RootWadWand", true)
 	utilMod.SetAttribute(player, "Earned_Staff_Nature_TwistedVineStaff", true)
 	utilMod.SetAttribute(player, "Earned_Staff_Nature_SapwoodScepter", true)
-	utilMod.SetAttribute(player, "Earned_Staff_Nature_OvergrownBranchBeam", true)
+	utilMod.SetAttribute(player, "Earned_Staff_Nature_CactusBeam", true)
 
 	for _, name in statsMod.SpellUpgradeNames do
 		local typespell = statsMod.SpellInfo[name] and statsMod.SpellInfo[name].magicType
