@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local statsMod = require(ReplicatedStorage.Shared.statsMod)
+local explosionMod = require(ReplicatedStorage.Shared.explosionsMod)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
@@ -64,7 +65,7 @@ export type UtilMod = {
 
 	ShallowTableCopy: (t: { [any]: any }) -> { [any]: any },
 
-	createCustomExplosion: (position: Vector3, visualSize: number, lifetime: number, color: Color3) -> (),
+	createCustomExplosion:(position: Vector3, explosionName: string) -> (),
 
 	uniqueName: (baseName: string) -> string,
 	GetSeedFromName: (name: string, useTime: boolean?) -> number,
@@ -705,61 +706,61 @@ function utilMod.ShallowTableCopy(t: { [any]: any }): { [any]: any }
 	return copy
 end
 
-function utilMod.createCustomExplosion(position: Vector3, visualSize: number, lifetime: number, color: Color3): ()
-	local container: Part = Instance.new("Part")
-	container.Anchored = true
-	container.CanCollide = false
-	container.Transparency = 1
-	container.Size = Vector3.new(0.5, 0.5, 0.5)
-	container.Position = position + Vector3.new(0, 0.5, 0)
-	container.Parent = Workspace
+function utilMod.createCustomExplosion(position: Vector3, explosionName: string)
+    local config = explosionMod.GetConfig(explosionName)
+    if not config then
+        warn("No explosion config for:", explosionName)
+        return
+    end
 
-	local pe: ParticleEmitter = Instance.new("ParticleEmitter")
-	pe.Parent = container
+    local container: Part = Instance.new("Part")
+    container.Anchored = true
+    container.CanCollide = false
+    container.Transparency = 1
+    container.Size = Vector3.new(0.05, 0.05, 0.05)  -- tiny, since particles handle visuals
+    container.Position = position + Vector3.new(0, 0.5, 0)  -- slight offset, configurable later if needed
+    container.Parent = Workspace
 
-	pe.Texture = "rbxassetid://104995764302392"
-	pe.LightEmission = 0.6
-	pe.LightInfluence = 1
-	pe.Color = ColorSequence.new(color)
-	pe.Orientation = Enum.ParticleOrientation.FacingCameraWorldUp
+    local pe: ParticleEmitter = Instance.new("ParticleEmitter")
+    pe.Parent = container
 
-	pe.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.5, 0.5),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	pe.Squash = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.5, 0),
-		NumberSequenceKeypoint.new(1, 0),
-	})
+    -- Apply all config values
+    pe.Texture           = config.Texture
+    pe.LightEmission     = config.LightEmission
+    pe.LightInfluence    = config.LightInfluence
+    pe.Color             = ColorSequence.new(config.Color)
+    pe.Orientation       = config.Orientation
 
-	pe.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, visualSize * 0.8),
-		NumberSequenceKeypoint.new(1, visualSize * 0.1),
-	})
-	pe.ZOffset = 0
-	pe.Lifetime = NumberRange.new(0.1, lifetime)
-	pe.Rate = 500
-	pe.Speed = NumberRange.new(5, 6)
-	pe.SpreadAngle = Vector2.new(45, 45)
-	pe.EmissionDirection = Enum.NormalId.Top
-	pe.Enabled = true
-	pe.Rotation = NumberRange.new(-45, 45)
-	pe.RotSpeed = NumberRange.new(-90, 90)
-	pe.Shape = Enum.ParticleEmitterShape.Sphere
-	pe.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
-	pe.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
-	pe.ShapePartial = 1
+    pe.Transparency      = config.Transparency
+    pe.Squash            = config.Squash
+    pe.Size              = config.Size and config.Size(config.BaseSize) or NumberSequence.new(1)  -- fallback
+    pe.ZOffset           = config.ZOffset
 
-	task.defer(function()
-		pe:Emit(100)
-	end)
+    pe.Lifetime          = NumberRange.new(0.1, config.Lifetime)  -- small variation feels natural
+    pe.Rate              = config.Rate
+    pe.Speed             = config.Speed
+    pe.SpreadAngle       = config.SpreadAngle
+    pe.EmissionDirection = config.EmissionDirection
+    pe.Rotation          = config.Rotation
+    pe.RotSpeed          = config.RotSpeed
 
-	Debris:AddItem(container, lifetime)
-	task.delay(0.2, function()
-		pe.Enabled = false
-	end)
+    pe.Shape             = config.Shape
+    pe.ShapeInOut        = config.ShapeInOut
+    pe.ShapeStyle        = config.ShapeStyle
+    pe.ShapePartial      = config.ShapePartial or 1
+
+    pe.Enabled = true
+
+    -- Burst & cleanup
+    task.defer(function()
+        pe:Emit(config.BurstCount)
+    end)
+
+    task.delay(config.EnableDelay or 0.2, function()
+        pe.Enabled = false
+    end)
+
+    Debris:AddItem(container, config.DebrisLifetime or (config.Lifetime + 0.4))
 end
 
 function utilMod.uniqueName(baseName: string): string
