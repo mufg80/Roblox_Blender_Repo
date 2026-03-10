@@ -712,6 +712,7 @@ function utilMod.createCustomExplosion(position: Vector3, explosionName: string)
         warn("No explosion config for:", explosionName)
         return
     end
+	local config1 = explosionMod.GetConfig("Default")
 
     local container: Part = Instance.new("Part")
     container.Anchored = true
@@ -733,7 +734,7 @@ function utilMod.createCustomExplosion(position: Vector3, explosionName: string)
 
     pe.Transparency      = config.Transparency
     pe.Squash            = config.Squash
-    pe.Size              = config.Size and config.Size(config.BaseSize) or NumberSequence.new(1)  -- fallback
+    pe.Size              = config.Size 
     pe.ZOffset           = config.ZOffset
 
     pe.Lifetime          = NumberRange.new(0.1, config.Lifetime)  -- small variation feels natural
@@ -760,7 +761,50 @@ function utilMod.createCustomExplosion(position: Vector3, explosionName: string)
         pe.Enabled = false
     end)
 
-    Debris:AddItem(container, config.DebrisLifetime or (config.Lifetime + 0.4))
+    
+
+	-- default
+	local pe1: ParticleEmitter = Instance.new("ParticleEmitter")
+    pe1.Parent = container
+
+    -- Apply all config values
+    pe1.Texture           = config1.Texture
+    pe1.LightEmission     = config1.LightEmission
+    pe1.LightInfluence    = config1.LightInfluence
+    pe1.Color             = ColorSequence.new(config1.Color)
+    pe1.Orientation       = config1.Orientation
+
+    pe1.Transparency      = config1.Transparency
+    pe1.Squash            = config1.Squash
+    pe1.Size              = config1.Size 
+    pe1.ZOffset           = config1.ZOffset
+
+    pe1.Lifetime          = NumberRange.new(0.1, config1.Lifetime)  -- small variation feels natural
+    pe1.Rate              = config1.Rate
+    pe1.Speed             = config1.Speed
+    pe1.SpreadAngle       = config1.SpreadAngle
+    pe1.EmissionDirection = config1.EmissionDirection
+    pe1.Rotation          = config1.Rotation
+    pe1.RotSpeed          = config1.RotSpeed
+
+    pe1.Shape             = config1.Shape
+    pe1.ShapeInOut        = config1.ShapeInOut
+    pe1.ShapeStyle        = config1.ShapeStyle
+    pe1.ShapePartial      = config1.ShapePartial or 1
+
+    pe1.Enabled = true
+
+    -- Burst & cleanup
+    task.defer(function()
+        pe1:Emit(config1.BurstCount)
+    end)
+
+    task.delay(config1.EnableDelay or 0.1, function()
+        pe1.Enabled = false
+    end)
+
+	Debris:AddItem(container, config.DebrisLifetime or (config.Lifetime + 0.4))
+
 end
 
 function utilMod.uniqueName(baseName: string): string
