@@ -13,6 +13,8 @@ local regenMod = require(ReplicatedStorage.Shared.regenMod)
 local setupMod = require(ReplicatedStorage.Shared.setupMod)
 local spawnMod = require(ReplicatedStorage.Shared.spawnMod)
 
+local staffFireServerMod = require(ReplicatedStorage.Shared.staffFireServerMod)
+
 -- Admin commands
 local adminEvent = ReplicatedStorage.Events.AdminEvent
 adminEvent.OnServerEvent:Connect(function(player: Player, command: string)

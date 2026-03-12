@@ -102,6 +102,20 @@ local function setStaffandPets(player: Player, char: Model): ()
 	end
 
 	-- ────────────────────────────────────────────────
+	-- NEW: Remember currently equipped staff (before hiding anything)
+	-- ────────────────────────────────────────────────
+	local previouslyEquippedStaff: string? = nil
+	for _, item in char:GetChildren() do
+		if item:IsA("Tool") then
+			local staffType = utilMod.GetAttribute(item, "StaffType")
+			if staffType then
+				previouslyEquippedStaff = item.Name
+				break  -- assume only one equipped at a time
+			end
+		end
+	end
+
+	-- ────────────────────────────────────────────────
 	-- 1. Move all staffs to hiddenbackpack from backpack and character
 	-- ────────────────────────────────────────────────
 	local currentMagic = utilMod.GetAttribute(player, "Magic") or "None"
@@ -240,7 +254,20 @@ local function setStaffandPets(player: Player, char: Model): ()
 			end
 		end
 	end
+
+	-- Move held staff back to character if still available
+	if previouslyEquippedStaff then
+		local foundinbackpack = backpack:FindFirstChild(previouslyEquippedStaff)
+		if foundinbackpack and foundinbackpack:IsA("Tool") and not char:FindFirstChild(previouslyEquippedStaff) then
+			foundinbackpack.Parent = char
+		end
+	end
+
+
+
 end
+
+
 
 function setupMod.GetMagicType(player: Player): string
 	local magic = utilMod.GetAttribute(player, "Magic")

@@ -16,6 +16,8 @@ local actionMod = require(ReplicatedStorage.Client.actionMod)
 local buffvisualsMod = require(ReplicatedStorage.Client.buffvisualsMod)
 local soulcolorMod = require(ReplicatedStorage.Client.soulcolorMod)
 local messageMod = require(ReplicatedStorage.Client.messageMod)
+local staffFireMod = require(ReplicatedStorage.Client.staffFireMod)
+
 -- Minimal remaining top-level code (if any)
 -- e.g. wait for guis, initial calls, admin panel...
 
