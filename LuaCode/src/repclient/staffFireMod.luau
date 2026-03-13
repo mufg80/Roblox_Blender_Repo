@@ -1,6 +1,5 @@
 --!strict
 
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -15,13 +14,7 @@ local staffFireMod = {}
 
 -- Shared RemoteEvent for every staff
 local REMOTE_NAME = "FireStaff"
-local fireRemote: RemoteEvent = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
-	or (function()
-		local ev = Instance.new("RemoteEvent")
-		ev.Name = REMOTE_NAME
-		ev.Parent = ReplicatedStorage
-		return ev
-	end)()
+local fireRemote: RemoteEvent = ReplicatedStorage.Events:FindFirstChild(REMOTE_NAME)
 
 -- GUI references (shared)
 local playerGui = player:WaitForChild("PlayerGui")
@@ -32,7 +25,7 @@ local crosshairGui = playerGui:WaitForChild("CrossHairGui")
 local verticalOffset = -100
 local horizontalOffset = 100
 local isCrosshairsVisible: boolean = UserInputService.GamepadEnabled
-local currentEquippedTool: Tool? = nil   -- used for gamepad crosshair updates
+local currentEquippedTool: Tool? = nil -- used for gamepad crosshair updates
 
 local function updateCrosshairVisibility(equipped: boolean)
 	local label = crosshairGui:FindFirstChild("ImageLabel")
@@ -98,8 +91,6 @@ local function setupTool(tool: Tool)
 	local stats = statsMod.StaffStats[staffType]
 	local staffCooldown = stats and stats.coolDown or 1
 
-	local debounce = true
-
 	-- Equip / Unequip
 	tool.Equipped:Connect(function()
 		currentEquippedTool = tool
@@ -108,6 +99,7 @@ local function setupTool(tool: Tool)
 		if humanoid then
 			animMod.ActivateHold(humanoid)
 		end
+		player:SetAttribute("Firing", false)
 	end)
 
 	tool.Unequipped:Connect(function()
@@ -117,15 +109,21 @@ local function setupTool(tool: Tool)
 		if humanoid then
 			animMod.DeactivateHold(humanoid)
 		end
+		player:SetAttribute("Firing", false)
 	end)
 
 	-- Fire logic (exactly your original Activated code)
 	tool.Activated:Connect(function()
-		if utilMod.GetAttribute(player, "HasFallen") then return end
-		if not debounce then return end
-		if castFrame and castFrame:IsA("Frame") and castFrame.Visible then return end
+		if utilMod.GetAttribute(player, "HasFallen") then
+			return
+		end
+		if player:GetAttribute("Firing") then
+			return
+		end
+		if castFrame and castFrame:IsA("Frame") and castFrame.Visible then
+			return
+		end
 
-		debounce = false
 		player:SetAttribute("Firing", true)
 
 		local targetPosition = GetAimPosition(1000)
@@ -136,13 +134,11 @@ local function setupTool(tool: Tool)
 		end
 
 		task.wait(0.3)
-
 		fireRemote:FireServer(targetPosition, staffType)
 
 		task.wait(staffCooldown)
 
 		player:SetAttribute("Firing", false)
-		debounce = true
 	end)
 
 	-- Optional interrupt support
@@ -179,6 +175,11 @@ end
 player.Backpack.ChildAdded:Connect(setupTool)
 setupExistingTools(player.Backpack)
 
+-- One-time connections (outside of tool-specific code)
+player.CharacterRemoving:Connect(function()
+    player:SetAttribute("Firing", false)
+end)
+
 -- Character (and respawns)
 player.CharacterAdded:Connect(function(character: Model)
 	setupExistingTools(character)
@@ -187,6 +188,7 @@ player.CharacterAdded:Connect(function(character: Model)
 			setupTool(child)
 		end
 	end)
+	player:SetAttribute("Firing", false)
 end)
 
 if player.Character then

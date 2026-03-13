@@ -707,6 +707,7 @@ function utilMod.ShallowTableCopy(t: { [any]: any }): { [any]: any }
 end
 
 function utilMod.createCustomExplosion(position: Vector3, explosionName: string)
+
     local config = explosionMod.GetConfig(explosionName)
     if not config then
         warn("No explosion config for:", explosionName)

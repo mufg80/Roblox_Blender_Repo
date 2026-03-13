@@ -187,7 +187,7 @@ RegisterExplosion("primordialmediumbomb", {
 	}),
 
 	Texture = "rbxassetid://112468401764349",
-	Lifetime = 0.9,
+	Lifetime = 0.4,
 	ZOffset = 1,
 })
 
@@ -205,7 +205,7 @@ RegisterExplosion("naturemediumbomb", {
 	}),
 
 	Texture = "rbxassetid://112468401764349",
-	Lifetime = 0.9,
+	Lifetime = 0.4,
 	ZOffset = 1,
 })
 
@@ -223,7 +223,7 @@ RegisterExplosion("artificermediumbomb", {
 	}),
 
 	Texture = "rbxassetid://112468401764349",
-	Lifetime = 0.9,
+	Lifetime = 0.4,
 	ZOffset = 1,
 })
 
