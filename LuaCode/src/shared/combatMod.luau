@@ -225,6 +225,7 @@ function combatMod.ApplyStaffDamage(hitPart: BasePart, ownerPlayer: Player, staf
 
 	local humanoid = hitCharacter:FindFirstChildOfClass("Humanoid")
 	if not humanoid then
+		print("5")
 		return false
 	end
 

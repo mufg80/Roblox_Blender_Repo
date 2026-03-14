@@ -92,12 +92,14 @@ local function startBulletHeartbeat()
 			local rayResult = workspace:Raycast(b.LastPos + backOffsetVec, rayLength, rayParams)
 
 			if rayResult then
+				print("hit: ".. rayResult.Instance.Name)
 				local hitPos = rayResult.Position
 				utilMod.createCustomExplosion(hitPos, staffTable[b.StaffType].Explosion)
 
 				local owner = Players:GetPlayerByUserId(b.OwnerUserId)
 				if owner then
 					combatMod.ApplyStaffDamage(rayResult.Instance :: BasePart, owner, b.StaffType)
+					
 				end
 
 				b.BulletModel:Destroy()

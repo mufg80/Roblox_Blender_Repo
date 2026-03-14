@@ -196,15 +196,15 @@ function recycleMod.SpawnSoul(npc: Model): ()
     utilMod.SetAttribute(soulClone, "OwnedBy", ownedBy)
     utilMod.SetAttribute(soulClone, "DB", true)
 
-    local soulPart = soulClone:FindFirstChild("SoulObject")
-    if not soulPart or not soulPart:IsA("MeshPart") then
+    local tPart = soulClone:FindFirstChild("TouchPart")
+    if not tPart or not tPart:IsA("BasePart") then
         warn("SpawnSoul: SoulObject missing MeshPart")
         soulClone:Destroy()
         return
     end
 
     local con
-    con = soulPart.Touched:Connect(function(hitpart)
+    con = tPart.Touched:Connect(function(hitpart)
         local db = utilMod.GetAttribute(soulClone, "DB")
         if not db then return end
         utilMod.SetAttribute(soulClone, "DB", false)
