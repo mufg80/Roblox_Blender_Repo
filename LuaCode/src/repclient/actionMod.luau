@@ -581,132 +581,280 @@ local function disableButton(btn: GuiButton)
 	btn.BackgroundTransparency = 0.5
 end
 
+local reasons: { [string]: string? } = {}   -- reasons[internalName] = reasonText or nil (nil = enabled)
+
 local function updateButtonStates()
-	local shouldDisableAll = utilMod.GetAttribute(player, "HasFallen")
-		or utilMod.GetAttribute(player, "Firing")
-		or (CastFeedback and CastFeedback.IsOnCooldown and CastFeedback.IsOnCooldown())
-		or false
+    reasons = {}  -- clear previous results
+    
+    local shouldDisableAll = 
+        utilMod.GetAttribute(player, "HasFallen")
+        or utilMod.GetAttribute(player, "Firing")
+        or (CastFeedback and CastFeedback.IsOnCooldown and CastFeedback.IsOnCooldown())
+        or false
 
-	for _, btn in ipairs(actionsMod.buttons) do
-		if not btn:IsA("GuiButton") then
-			continue
-		end
+    for _, btn in ipairs(actionsMod.buttons) do
+        if not btn:IsA("GuiButton") then
+            continue
+        end
 
-		-- Only force Selectable = true when selection is NOT visible
-		if selectionFrame.Visible then
-			btn.Selectable = false
-			attackButton.Selectable = false
-			DefendLithButton.Selectable = false
-			TakeLithButton.Selectable = false
-			FollowMeButton.Selectable = false
-		else
-			btn.Selectable = true
-			attackButton.Selectable = true
-			DefendLithButton.Selectable = true
-			TakeLithButton.Selectable = true
-			FollowMeButton.Selectable = true
-		end
+        local internalName = btn:GetAttribute("InternalName")
+        if not internalName then
+            continue  -- skip buttons without identifier
+        end
 
-		local itemType = btn:GetAttribute("ItemType")
-		local internalName = btn:GetAttribute("InternalName")
+        -- Reset button to enabled state
+        btn.Active = true
+        btn.Interactable = true
+        btn.AutoButtonColor = true
+        btn.BackgroundTransparency = 0
+        
+        if selectionFrame.Visible then
+            btn.Selectable = false
+            -- If you want this case to disable + give reason, uncomment:
+            -- reasons[internalName] = "Selection menu open"
+            -- disableButton(btn)
+            -- continue
+        else
+            btn.Selectable = true
+        end
 
-		btn.Active = true
-		btn.Interactable = true
-		btn.AutoButtonColor = true
-		btn.BackgroundTransparency = 0
+        local thisReason: string? = nil
 
-		if shouldDisableAll then
-			disableButton(btn)
-			continue
-		end
+        -- Highest priority: global disable
+        if shouldDisableAll then
+            thisReason = "Global Cooldown"  -- feel free to make more specific
+        else
+            local itemType = btn:GetAttribute("ItemType")
 
-		if itemType == "Creature" and internalName then
-			local creatureName = internalName
-			local souls = utilMod.GetAttribute(player, "Souls") or 0
-			if souls < 1 then
-				disableButton(btn)
-			end
+            if itemType == "Creature" then
+                local creatureName = internalName
+                local souls = utilMod.GetAttribute(player, "Souls") or 0
+                if souls < 1 then
+                    thisReason = thisReason or "Not enough souls"
+                end
 
-			local manaCost = utilMod.LeveltoManaCost and utilMod.LeveltoManaCost(creatureName) or 0
-			local currentMana = utilMod.GetAttribute(player, "Mana") or 0
-			if currentMana < manaCost then
-				disableButton(btn)
-			end
+                local manaCost = utilMod.LeveltoManaCost and utilMod.LeveltoManaCost(creatureName) or 0
+                local currentMana = utilMod.GetAttribute(player, "Mana") or 0
+                if currentMana < manaCost then
+                    thisReason = thisReason or "Not enough mana"
+                end
 
-			local cdAttr = "button_" .. creatureName
-			local cdEnd = utilMod.GetAttribute(player, cdAttr)
-			if cdEnd and cdEnd > time() then
-				disableButton(btn)
-			elseif cdEnd then
-				utilMod.SetAttribute(player, cdAttr, nil)
-			end
+                local cdAttr = "button_" .. creatureName
+                local cdEnd = utilMod.GetAttribute(player, cdAttr)
+                if cdEnd and cdEnd > time() then
+                    thisReason = thisReason or "On cooldown"
+                elseif cdEnd then
+                    utilMod.SetAttribute(player, cdAttr, nil)
+                end
 
-			if utilMod.IsMaxSummoned(player.Character, creatureName) then
-				disableButton(btn)
-			end
-		end
+                if utilMod.IsMaxSummoned(player.Character, creatureName) then
+                    thisReason = thisReason or "Max summons reached"
+                end
+            end
 
-		if itemType == "Spell" and internalName then
-			local spellName = internalName
-			local spell = statsMod.SpellInfo and statsMod.SpellInfo[spellName]
-			if not spell then
-				continue
-			end
+            if itemType == "Spell" then
+                local spellName = internalName
+                local spell = statsMod.SpellInfo and statsMod.SpellInfo[spellName]
+                if spell then
+                    local currentMana = utilMod.GetAttribute(player, "Mana") or 0
+                    local manaCost = spell.manaCost or 0
+                    if manaCost > 0 and currentMana < manaCost * (statsMod.MaxSpellCost or 1) then
+                        thisReason = thisReason or "Not enough mana"
+                    end
 
-			local currentMana = utilMod.GetAttribute(player, "Mana") or 0
-			local manaCost = spell.manaCost or 0
-			if manaCost > 0 and currentMana < manaCost * (statsMod.MaxSpellCost or 1) then
-				disableButton(btn)
-			end
+                    local cdAttr = "button_" .. spellName
+                    local cdEnd = utilMod.GetAttribute(player, cdAttr)
+                    if cdEnd and cdEnd > time() then
+                        thisReason = thisReason or "On cooldown"
+                    elseif cdEnd then
+                        utilMod.SetAttribute(player, cdAttr, nil)
+                    end
 
-			local cdAttr = "button_" .. spellName
-			local cdEnd = utilMod.GetAttribute(player, cdAttr)
-			if cdEnd and cdEnd > time() then
-				disableButton(btn)
-			elseif cdEnd then
-				utilMod.SetAttribute(player, cdAttr, nil)
-			end
+                    if spell.spellline == "ConvertSpout" and player.Character then
+                        if not buffMod.CheckDistanceOnSpouts(player.Character, spellName) then
+                            thisReason = thisReason or "Too far from spout"
+                        end
+                    end
 
-			if spell.spellline == "ConvertSpout" and player.Character then
-				if not buffMod.CheckDistanceOnSpouts(player.Character, internalName) then
-					disableButton(btn)
-				end
-			end
+                    if spell.spellline == "ReclaimPet" and player.Character then
+                        local myPets = utilMod.MyPets and utilMod.MyPets(player.Character) or {}
+                        if #myPets == 0 then
+                            thisReason = thisReason or "No pets to reclaim"
+                        end
+                    end
 
-			if spell.spellline == "ReclaimPet" and player.Character then
-				local myPets = utilMod.MyPets and utilMod.MyPets(player.Character) or {}
-				if #myPets == 0 then
-					disableButton(btn)
-				end
-			end
+                    if spell.spellline == "TheftOfSoul" and player.Character then
+                        local eligiblesoul = recycleMod.GetEligibleSoul(player.Character, spellName)
+                        if not eligiblesoul then
+                            thisReason = thisReason or "No eligible soul nearby"
+                        end
+                    end
 
-			if spell.spellline == "TheftOfSoul" and player.Character then
-				local eligiblesoul = recycleMod.GetEligibleSoul(player.Character, spellName)
-				if not eligiblesoul then
-					disableButton(btn)
-				end
-			end
+                    if spell.spellline == "LithBane" and player.Character then
+                        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        local range = statsMod.SpellInfo[spellName] and statsMod.SpellInfo[spellName].range
+                        if hrp and hrp:IsA("BasePart") and range and range > 0 then
+                            local eligibleLith = utilMod.GetEnemyBuilding(player, hrp.Position, range)
+                            if not eligibleLith then
+                                thisReason = thisReason or "No target in range"
+                            end
+                        end
+                    end
 
-			if spell.spellline == "LithBane" and player.Character then
-				local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-				local range: number? = statsMod.SpellInfo[spellName] and statsMod.SpellInfo[spellName].range
-				if hrp and hrp:IsA("BasePart") and range and range > 0 then
-					local eligibleLith = utilMod.GetEnemyBuilding(player, hrp.Position, range)
-					if not eligibleLith then
-						disableButton(btn)
-					end
-				end
-			end
+                    if spell.spellType and table.find({"damage", "areaDamage", "debuff"}, spell.spellType) then
+                        local range = spell.range or 30
+                        if player.Character and not utilMod.IsEnemyInRange(player.Character, range) then
+                            thisReason = thisReason or "No enemy in range"
+                        end
+                    end
+                end
+            end
+        end
 
-			if spell.spellType and table.find({ "damage", "areaDamage", "debuff" }, spell.spellType) then
-				local range = spell.range or 30
-				if player.Character and not utilMod.IsEnemyInRange(player.Character, range) then
-					disableButton(btn)
-				end
-			end
-		end
-	end
+        -- Final decision
+        if thisReason then
+            disableButton(btn)
+            reasons[internalName] = thisReason
+        else
+            reasons[internalName] = nil   -- explicitly enabled
+        end
+    end
 end
+
+-- -- Information for Grok
+-- -- this reason string must be populated with a text on why button is enabled, if internalname is not nil. internalname tells function which button needs explanation.
+-- -- the first reason is fine, no others are needed. Upon finding reason, the reason variable should be set to text, additional checks should
+-- -- see that the reason variable is not nil and skip setting new reason
+
+-- local reason:string? = nil
+
+-- local function updateButtonStates(internalname:string?)
+-- 	reason = nil
+-- 	local shouldDisableAll = utilMod.GetAttribute(player, "HasFallen")
+-- 		or utilMod.GetAttribute(player, "Firing")
+-- 		or (CastFeedback and CastFeedback.IsOnCooldown and CastFeedback.IsOnCooldown())
+-- 		or false
+
+-- 	for _, btn in ipairs(actionsMod.buttons) do
+-- 		if not btn:IsA("GuiButton") then
+-- 			continue
+-- 		end
+
+-- 		-- Only force Selectable = true when selection is NOT visible
+-- 		if selectionFrame.Visible then
+-- 			btn.Selectable = false
+-- 			attackButton.Selectable = false
+-- 			DefendLithButton.Selectable = false
+-- 			TakeLithButton.Selectable = false
+-- 			FollowMeButton.Selectable = false
+-- 		else
+-- 			btn.Selectable = true
+-- 			attackButton.Selectable = true
+-- 			DefendLithButton.Selectable = true
+-- 			TakeLithButton.Selectable = true
+-- 			FollowMeButton.Selectable = true
+-- 		end
+
+-- 		local itemType = btn:GetAttribute("ItemType")
+-- 		local internalName = btn:GetAttribute("InternalName")
+
+-- 		btn.Active = true
+-- 		btn.Interactable = true
+-- 		btn.AutoButtonColor = true
+-- 		btn.BackgroundTransparency = 0
+
+-- 		if shouldDisableAll then
+-- 			disableButton(btn)
+-- 			continue
+-- 		end
+
+-- 		if itemType == "Creature" and internalName then
+-- 			local creatureName = internalName
+-- 			local souls = utilMod.GetAttribute(player, "Souls") or 0
+-- 			if souls < 1 then
+-- 				disableButton(btn)
+-- 			end
+
+-- 			local manaCost = utilMod.LeveltoManaCost and utilMod.LeveltoManaCost(creatureName) or 0
+-- 			local currentMana = utilMod.GetAttribute(player, "Mana") or 0
+-- 			if currentMana < manaCost then
+-- 				disableButton(btn)
+-- 			end
+
+-- 			local cdAttr = "button_" .. creatureName
+-- 			local cdEnd = utilMod.GetAttribute(player, cdAttr)
+-- 			if cdEnd and cdEnd > time() then
+-- 				disableButton(btn)
+-- 			elseif cdEnd then
+-- 				utilMod.SetAttribute(player, cdAttr, nil)
+-- 			end
+
+-- 			if utilMod.IsMaxSummoned(player.Character, creatureName) then
+-- 				disableButton(btn)
+-- 			end
+-- 		end
+
+-- 		if itemType == "Spell" and internalName then
+-- 			local spellName = internalName
+-- 			local spell = statsMod.SpellInfo and statsMod.SpellInfo[spellName]
+-- 			if not spell then
+-- 				continue
+-- 			end
+
+-- 			local currentMana = utilMod.GetAttribute(player, "Mana") or 0
+-- 			local manaCost = spell.manaCost or 0
+-- 			if manaCost > 0 and currentMana < manaCost * (statsMod.MaxSpellCost or 1) then
+-- 				disableButton(btn)
+-- 			end
+
+-- 			local cdAttr = "button_" .. spellName
+-- 			local cdEnd = utilMod.GetAttribute(player, cdAttr)
+-- 			if cdEnd and cdEnd > time() then
+-- 				disableButton(btn)
+-- 			elseif cdEnd then
+-- 				utilMod.SetAttribute(player, cdAttr, nil)
+-- 			end
+
+-- 			if spell.spellline == "ConvertSpout" and player.Character then
+-- 				if not buffMod.CheckDistanceOnSpouts(player.Character, internalName) then
+-- 					disableButton(btn)
+-- 				end
+-- 			end
+
+-- 			if spell.spellline == "ReclaimPet" and player.Character then
+-- 				local myPets = utilMod.MyPets and utilMod.MyPets(player.Character) or {}
+-- 				if #myPets == 0 then
+-- 					disableButton(btn)
+-- 				end
+-- 			end
+
+-- 			if spell.spellline == "TheftOfSoul" and player.Character then
+-- 				local eligiblesoul = recycleMod.GetEligibleSoul(player.Character, spellName)
+-- 				if not eligiblesoul then
+-- 					disableButton(btn)
+-- 				end
+-- 			end
+
+-- 			if spell.spellline == "LithBane" and player.Character then
+-- 				local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+-- 				local range: number? = statsMod.SpellInfo[spellName] and statsMod.SpellInfo[spellName].range
+-- 				if hrp and hrp:IsA("BasePart") and range and range > 0 then
+-- 					local eligibleLith = utilMod.GetEnemyBuilding(player, hrp.Position, range)
+-- 					if not eligibleLith then
+-- 						disableButton(btn)
+-- 					end
+-- 				end
+-- 			end
+
+-- 			if spell.spellType and table.find({ "damage", "areaDamage", "debuff" }, spell.spellType) then
+-- 				local range = spell.range or 30
+-- 				if player.Character and not utilMod.IsEnemyInRange(player.Character, range) then
+-- 					disableButton(btn)
+-- 				end
+-- 			end
+-- 		end
+-- 	end
+-- end
 
 -- Theme application + item data refresh + defaults + states
 local function updateMagicUI()
@@ -955,6 +1103,11 @@ end
 
 local function useItem(button)
 	if button.BackgroundTransparency > 0.25 then
+		local intername = button:GetAttribute("InternalName")
+		if intername then
+			local reason = reasons[intername] or "Unknown reason"
+			print("Cant use button:"..reason)
+		end
 		-- Button is visually disabled (no mana/cooldown/souls etc), do not perform action
 		return
 	end
